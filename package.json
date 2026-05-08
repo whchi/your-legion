@@ -1,9 +1,25 @@
 {
-  "name": "your-legion",
+  "name": "@whchi/your-legion",
+  "version": "0.0.1",
   "description": "Plugin-first OpenCode multi-agent system inspired by oh-my-openagent",
+  "homepage": "https://github.com/whchi/your-legion#readme",
+  "bugs": {
+    "url": "https://github.com/whchi/your-legion/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/whchi/your-legion.git"
+  },
+  "license": "ISC",
+  "author": "",
   "type": "module",
   "exports": {
     "./server": "./dist/server.js"
+  },
+  "main": "dist/server.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
   },
   "files": [
     "dist",
@@ -15,11 +31,12 @@
     "build": "bun build src/index.ts --target bun --format esm --outfile dist/server.js",
     "test": "node --test tests/*.test.js"
   },
+  "dependencies": {
+    "yaml": "^2.8.4"
+  },
+  "devDependencies": {},
   "engines": {
     "opencode": ">=0.1.0",
     "bun": ">=1.1.0"
-  },
-  "dependencies": {
-    "yaml": "^2.8.4"
   }
 }
