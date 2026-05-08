@@ -75,6 +75,13 @@ test('package metadata and project config use the published package name', () =>
   assert.deepEqual(projectConfig.plugin, ['@whchi/your-legion'])
 })
 
+test('package root exports the OpenCode plugin entrypoint', () => {
+  const pkg = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'))
+
+  assert.equal(pkg.exports['.'], './dist/server.js')
+  assert.equal(pkg.exports['./server'], './dist/server.js')
+})
+
 test('plugin server exposes a config hook that injects Your Legion agents', async () => {
   const pluginModule = await import('../src/index.ts')
 

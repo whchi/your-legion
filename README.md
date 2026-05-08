@@ -18,13 +18,29 @@ The example agent model config is [`agent-providers.yaml`](./agent-providers.yam
 node_modules/@whchi/your-legion/agent-providers.yaml
 ```
 
-Copy it to the root of the worktree where you run OpenCode:
+Copy it to the root of the worktree where you run OpenCode. This is the default location Your Legion reads from:
 
 ```bash
 cp node_modules/@whchi/your-legion/agent-providers.yaml ./agent-providers.yaml
 ```
 
-Add the plugin to your OpenCode config, usually `~/.config/opencode/opencode.json` or project-local `opencode.jsonc`:
+Add the plugin to an OpenCode config file.
+
+Global config applies everywhere:
+
+```text
+~/.config/opencode/opencode.json
+~/.config/opencode/opencode.jsonc
+```
+
+Project-local config applies only to that project/worktree:
+
+```text
+your-project/opencode.json
+your-project/opencode.jsonc
+```
+
+Use this plugin entry in whichever config file you choose:
 
 ```json
 {
