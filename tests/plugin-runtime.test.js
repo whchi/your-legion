@@ -22,7 +22,7 @@ test('plugin runtime builds the full agent config from the mixed provider map', 
   assert.equal(result.default_agent, 'orchestrator')
   assert.equal(result.agent.orchestrator.model, 'openai/gpt-5.5')
   assert.deepEqual(result.agent.orchestrator.options.reasoning, { effort: 'medium' })
-  assert.equal(result.agent.dispatcher.model, 'github-copilot/claude-sonnet-4')
+  assert.equal(result.agent.dispatcher.model, 'opencode-go/glm-5.1')
   assert.equal(result.agent.builder.model, 'opencode-go/kimi-k2.6')
   assert.equal(result.agent['frontend-developer'].model, 'github-copilot/gemini-3.1-pro-preview')
   assert.equal(result.agent.explorer.model, 'opencode-go/deepseek-v4-flash')
@@ -67,12 +67,12 @@ test('plugin runtime supports alternate mixed provider config files', async () =
   assert.equal(result.agent.librarian.model, 'github-copilot/grok-code-fast-1')
 })
 
-test('package metadata and project config use your-legion', () => {
+test('package metadata and project config use the published package name', () => {
   const pkg = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'))
   const projectConfig = JSON.parse(fs.readFileSync(opencodeConfigPath, 'utf8'))
 
-  assert.equal(pkg.name, 'your-legion')
-  assert.deepEqual(projectConfig.plugin, ['your-legion'])
+  assert.equal(pkg.name, '@whchi/your-legion')
+  assert.deepEqual(projectConfig.plugin, ['@whchi/your-legion'])
 })
 
 test('plugin server exposes a config hook that injects Your Legion agents', async () => {

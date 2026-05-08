@@ -109,7 +109,7 @@ This repo ships an example mixed-provider mapping using `openai`, `github-copilo
 
 ## Packaging
 
-- Package name: `your-legion`
+- Package name: `@whchi/your-legion`
 - Published server entry: `./server`
 - Build output: `dist/server.js`
 - Build command: `bun run build`
@@ -119,7 +119,7 @@ OpenCode should be configured like this:
 ```json
 {
   "$schema": "https://opencode.ai/config.json",
-  "plugin": ["your-legion"]
+  "plugin": ["@whchi/your-legion"]
 }
 ```
 

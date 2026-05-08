@@ -18,7 +18,7 @@ test('provider config file defines a mixed per-agent model map', () => {
   assert.ok(config.agents)
   assert.equal(config.agents.orchestrator.model, 'openai/gpt-5.5')
   assert.equal(config.agents.orchestrator.reasoning.effort, 'medium')
-  assert.equal(config.agents.dispatcher.model, 'github-copilot/claude-sonnet-4')
+  assert.equal(config.agents.dispatcher.model, 'opencode-go/glm-5.1')
   assert.equal(config.agents.explorer.model, 'opencode-go/deepseek-v4-flash')
   assert.equal(config.agents.librarian.model, 'opencode-go/minimax-m2.7')
   assert.equal(config.agents.builder.model, 'opencode-go/kimi-k2.6')
@@ -31,7 +31,7 @@ test('provider loader resolves the mixed per-agent model map', async () => {
 
   assert.equal(result.agents.orchestrator.model, 'openai/gpt-5.5')
   assert.deepEqual(result.agents.orchestrator.reasoning, { effort: 'medium' })
-  assert.equal(result.agents.dispatcher.model, 'github-copilot/claude-sonnet-4')
+  assert.equal(result.agents.dispatcher.model, 'opencode-go/glm-5.1')
   assert.equal(result.agents.explorer.model, 'opencode-go/deepseek-v4-flash')
   assert.equal(result.agents.librarian.model, 'opencode-go/minimax-m2.7')
   assert.equal(result.agents.builder.model, 'opencode-go/kimi-k2.6')

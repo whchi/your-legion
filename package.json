@@ -24,6 +24,7 @@
   "files": [
     "dist",
     "README.md",
+    "DEVELOPMENT.md",
     "AGENTS.md",
     "agent-providers.yaml"
   ],
