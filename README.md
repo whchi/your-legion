@@ -6,23 +6,9 @@ It provides one primary orchestrator, one workflow coordinator, and six leaf spe
 
 ## Install
 
-```bash
-npm install @whchi/your-legion
-```
+Your Legion is installed by registering the npm package name in OpenCode's `plugin` array.
 
-## Configuration
-
-The example agent model config is [`agent-providers.yaml`](./agent-providers.yaml). After installation, the same example file is available here:
-
-```text
-node_modules/@whchi/your-legion/agent-providers.yaml
-```
-
-Copy it to the root of the worktree where you run OpenCode. This is the default location Your Legion reads from:
-
-```bash
-cp node_modules/@whchi/your-legion/agent-providers.yaml ./agent-providers.yaml
-```
+## OpenCode Config
 
 Add the plugin to an OpenCode config file.
 
@@ -49,21 +35,24 @@ Use this plugin entry in whichever config file you choose:
 }
 ```
 
-Restart OpenCode after changing either config file.
-
-## Supported Providers
-
-The bundled example currently uses these provider prefixes:
-
-- `openai`
-- `github-copilot`
-- `opencode-go`
-
-Model values must use `provider/model-id` format, for example `openai/gpt-5.5`.
+Restart OpenCode after changing this config.
 
 ## Agent Model Config
 
-`agent-providers.yaml` maps each managed agent to a model:
+Your Legion also needs an agent model config named `agent-providers.yaml`.
+
+The example file is here:
+
+- [`agent-providers.yaml`](./agent-providers.yaml)
+- Raw URL: `https://raw.githubusercontent.com/whchi/your-legion/main/agent-providers.yaml`
+
+Put `agent-providers.yaml` in the root of the worktree where you run OpenCode. This is the default location Your Legion reads from:
+
+```text
+your-project/agent-providers.yaml
+```
+
+Here is an example:
 
 ```yaml
 agents:
@@ -91,13 +80,25 @@ agents:
       effort: high
 ```
 
-Every managed agent must have a model mapping. Optional `reasoning.effort` values are `low`, `medium`, `high`, `xhigh`, and `max`.
-
 If you want to keep the model map somewhere else, start OpenCode with `AGENT_PROVIDER_CONFIG`:
 
 ```bash
 AGENT_PROVIDER_CONFIG=/absolute/path/to/agent-providers.yaml opencode
 ```
+
+Restart OpenCode after changing `agent-providers.yaml` or `AGENT_PROVIDER_CONFIG`.
+
+## Supported Providers
+
+The bundled example currently uses these provider prefixes:
+
+- `openai`
+- `github-copilot`
+- `opencode-go`
+
+Model values must use `provider/model-id` format, for example `openai/gpt-5.5`.
+
+Every managed agent must have a model mapping. Optional `reasoning.effort` values are `low`, `medium`, `high`, `xhigh`, and `max`.
 
 ## Agents
 
