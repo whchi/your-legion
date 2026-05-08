@@ -12,19 +12,11 @@ Run the installer:
 bunx @whchi/your-legion install
 ```
 
-For full setup, manual install, config paths, backups, and uninstall instructions, see [`INSTALLATION.md`](./INSTALLATION.md).
+For full setup, manual install, config paths, backups, and uninstall instructions, see [`INSTALLATION.md`](./docs/INSTALLATION.md).
 
-## Supported Providers
+## Configuration
 
-The bundled example currently uses these provider prefixes:
-
-- `openai`
-- `github-copilot`
-- `opencode-go`
-
-Model values must use `provider/model-id` format, for example `openai/gpt-5.5`.
-
-Every managed agent must have a model mapping in `legionaries.yaml`. Optional `reasoning.effort` values are `low`, `medium`, `high`, `xhigh`, and `max`.
+Model mapping, provider selection, and reasoning settings are configured in [`legionaries.yaml`](./legionaries.yaml). See [`CONFIGURATION.md`](./docs/CONFIGURATION.md) for the full schema and examples.
 
 ## Agents
 
@@ -48,4 +40,4 @@ Your Legion uses direct specialist routing.
 
 ## Development
 
-Development and contribution notes live in [`DEVELOPMENT.md`](./DEVELOPMENT.md).
+Development and contribution notes live in [`DEVELOPMENT.md`](./docs/DEVELOPMENT.md).

@@ -1,6 +1,6 @@
 # Development
 
-This document covers repository development for `your-legion`. User-facing installation and configuration instructions live in `README.md`.
+This document covers repository development for `your-legion`. User-facing installation and configuration instructions live in [README.md]('../README.md').
 
 ## Plugin-First Runtime
 
@@ -63,5 +63,3 @@ Your Legion uses direct specialist routing rather than a category-first runtime.
 ## Related Docs
 
 - `AGENTS.md`: plugin internals and runtime architecture
-- `docs/your-legion/specs/`: design docs
-- `docs/your-legion/plans/`: implementation plans
