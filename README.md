@@ -10,9 +10,16 @@ It provides one primary orchestrator, one workflow coordinator, and six leaf spe
 npm install @whchi/your-legion
 ```
 
-## Configure OpenCode
+## Quick Start
 
-Add the plugin to your OpenCode config:
+From the project where you run OpenCode:
+
+```bash
+npm install @whchi/your-legion
+cp node_modules/@whchi/your-legion/agent-providers.yaml ./agent-providers.yaml
+```
+
+Then add the plugin to your OpenCode config:
 
 ```json
 {
@@ -21,7 +28,43 @@ Add the plugin to your OpenCode config:
 }
 ```
 
-Create an `agent-providers.yaml` file in your active worktree:
+Edit `agent-providers.yaml` to use models available in your OpenCode providers, then restart OpenCode.
+
+## Configure OpenCode
+
+Installing the npm package only installs the plugin code. You still need two config entries:
+
+- OpenCode plugin config: tells OpenCode to load `@whchi/your-legion`.
+- `agent-providers.yaml`: tells Your Legion which model each agent should use.
+
+### 1. Add The Plugin
+
+Add the plugin to your OpenCode config file, usually `~/.config/opencode/opencode.json` or your project-local `opencode.jsonc`:
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "plugin": ["@whchi/your-legion"]
+}
+```
+
+### 2. Add Agent Model Settings
+
+Create `agent-providers.yaml` in the root of the worktree where you run OpenCode:
+
+```text
+your-project/
+├── agent-providers.yaml
+└── ...
+```
+
+You can copy the example shipped with the package:
+
+```bash
+cp node_modules/@whchi/your-legion/agent-providers.yaml ./agent-providers.yaml
+```
+
+Or create one manually:
 
 ```yaml
 agents:
@@ -49,7 +92,23 @@ agents:
       effort: high
 ```
 
-Restart OpenCode after changing `agent-providers.yaml`.
+If you want to keep the model map somewhere else, set `AGENT_PROVIDER_CONFIG` to that file path before starting OpenCode.
+
+```bash
+AGENT_PROVIDER_CONFIG=/absolute/path/to/agent-providers.yaml opencode
+```
+
+After setup, a project-local configuration usually looks like this:
+
+```text
+your-project/
+├── agent-providers.yaml
+├── node_modules/
+│   └── @whchi/your-legion/
+└── opencode.jsonc
+```
+
+Restart OpenCode after changing `opencode.json`, `opencode.jsonc`, `agent-providers.yaml`, or `AGENT_PROVIDER_CONFIG`.
 
 ## Agents
 
