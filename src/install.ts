@@ -1,7 +1,7 @@
 import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-import { getOpenCodeConfigDir } from './config/agent-providers.ts'
+import { getOpenCodeConfigDir } from './config/legionaries.ts'
 
 const PLUGIN_NAME = '@whchi/your-legion'
 
@@ -13,8 +13,8 @@ export type InstallYourLegionOptions = {
 
 export type InstallYourLegionResult = {
   configDir: string
-  agentProviderConfigPath: string
-  agentProviderBackupPath?: string
+  legionariesConfigPath: string
+  legionariesBackupPath?: string
   opencodeConfigPath: string
 }
 
@@ -70,21 +70,21 @@ export function installYourLegion({
 }: InstallYourLegionOptions): InstallYourLegionResult {
   mkdirSync(configDir, { recursive: true })
 
-  const agentProviderConfigPath = join(configDir, 'legionaries.yaml')
-  let agentProviderBackupPath: string | undefined
+  const legionariesConfigPath = join(configDir, 'legionaries.yaml')
+  let legionariesBackupPath: string | undefined
 
-  if (existsSync(agentProviderConfigPath)) {
-    agentProviderBackupPath = `${agentProviderConfigPath}.bak.${backupTimestamp(now)}`
-    copyFileSync(agentProviderConfigPath, agentProviderBackupPath)
+  if (existsSync(legionariesConfigPath)) {
+    legionariesBackupPath = `${legionariesConfigPath}.bak.${backupTimestamp(now)}`
+    copyFileSync(legionariesConfigPath, legionariesBackupPath)
   }
 
-  copyFileSync(sourceConfigPath, agentProviderConfigPath)
+  copyFileSync(sourceConfigPath, legionariesConfigPath)
   const opencodeConfigPath = registerPlugin(configDir)
 
   return {
     configDir,
-    agentProviderConfigPath,
-    agentProviderBackupPath,
+    legionariesConfigPath,
+    legionariesBackupPath,
     opencodeConfigPath,
   }
 }

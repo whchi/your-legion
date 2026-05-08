@@ -8,11 +8,11 @@ import YAML from 'yaml'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 const rootDir = path.resolve(__dirname, '..')
-const providerConfigPath = path.join(rootDir, 'legionaries.yaml')
+const legionariesConfigPath = path.join(rootDir, 'legionaries.yaml')
 const tempDir = path.join(rootDir, 'temp')
 
-test('provider config file defines a mixed per-agent model map', () => {
-  const text = fs.readFileSync(providerConfigPath, 'utf8')
+test('legionaries config file defines a mixed per-agent model map', () => {
+  const text = fs.readFileSync(legionariesConfigPath, 'utf8')
   const config = YAML.parse(text)
 
   assert.ok(config.agents)
@@ -25,9 +25,9 @@ test('provider config file defines a mixed per-agent model map', () => {
   assert.equal(config.agents['frontend-developer'].model, 'github-copilot/gemini-3.1-pro-preview')
 })
 
-test('provider loader resolves the mixed per-agent model map', async () => {
-  const { loadAgentProviderConfig } = await import('../src/config/agent-providers.ts')
-  const result = loadAgentProviderConfig({ rootDir })
+test('legionaries loader resolves the mixed per-agent model map', async () => {
+  const { loadLegionariesConfig } = await import('../src/config/legionaries.ts')
+  const result = loadLegionariesConfig({ rootDir })
 
   assert.equal(result.agents.orchestrator.model, 'openai/gpt-5.5')
   assert.deepEqual(result.agents.orchestrator.reasoning, { effort: 'medium' })
@@ -38,10 +38,10 @@ test('provider loader resolves the mixed per-agent model map', async () => {
   assert.equal(result.agents['frontend-developer'].model, 'github-copilot/gemini-3.1-pro-preview')
 })
 
-test('provider loader supports per-agent overrides via config override', async () => {
+test('legionaries loader supports per-agent overrides via config override', async () => {
   fs.mkdirSync(tempDir, { recursive: true })
-  const tempConfigPath = path.join(tempDir, 'agent-providers.override.yaml')
-  const original = YAML.parse(fs.readFileSync(providerConfigPath, 'utf8'))
+  const tempConfigPath = path.join(tempDir, 'legionaries.override.yaml')
+  const original = YAML.parse(fs.readFileSync(legionariesConfigPath, 'utf8'))
 
   fs.writeFileSync(
     tempConfigPath,
@@ -61,66 +61,66 @@ test('provider loader supports per-agent overrides via config override', async (
     }),
   )
 
-  const { loadAgentProviderConfig } = await import('../src/config/agent-providers.ts')
-  const result = loadAgentProviderConfig({ rootDir, configPath: tempConfigPath })
+  const { loadLegionariesConfig } = await import('../src/config/legionaries.ts')
+  const result = loadLegionariesConfig({ rootDir, configPath: tempConfigPath })
 
   assert.equal(result.agents.orchestrator.model, 'github-copilot/claude-opus-4.1')
   assert.deepEqual(result.agents.orchestrator.reasoning, { effort: 'medium' })
   assert.equal(result.agents['frontend-developer'].model, 'github-copilot/gemini-3.1-pro-preview')
 })
 
-test('provider loader rejects missing agent model mappings', async () => {
+test('legionaries loader rejects missing agent model mappings', async () => {
   fs.mkdirSync(tempDir, { recursive: true })
-  const tempConfigPath = path.join(tempDir, 'agent-providers.missing-model.yaml')
-  const original = YAML.parse(fs.readFileSync(providerConfigPath, 'utf8'))
+  const tempConfigPath = path.join(tempDir, 'legionaries.missing-model.yaml')
+  const original = YAML.parse(fs.readFileSync(legionariesConfigPath, 'utf8'))
 
   delete original.agents.planner.model
   fs.writeFileSync(tempConfigPath, YAML.stringify(original))
 
-  const { loadAgentProviderConfig } = await import('../src/config/agent-providers.ts')
+  const { loadLegionariesConfig } = await import('../src/config/legionaries.ts')
 
   assert.throws(
-    () => loadAgentProviderConfig({ rootDir, configPath: tempConfigPath }),
+    () => loadLegionariesConfig({ rootDir, configPath: tempConfigPath }),
     /missing model for agent: planner/,
   )
 })
 
-test('provider loader rejects invalid model formats', async () => {
+test('legionaries loader rejects invalid model formats', async () => {
   fs.mkdirSync(tempDir, { recursive: true })
-  const tempConfigPath = path.join(tempDir, 'agent-providers.invalid-model.yaml')
-  const original = YAML.parse(fs.readFileSync(providerConfigPath, 'utf8'))
+  const tempConfigPath = path.join(tempDir, 'legionaries.invalid-model.yaml')
+  const original = YAML.parse(fs.readFileSync(legionariesConfigPath, 'utf8'))
 
   original.agents.planner.model = 'invalid-model-format'
   fs.writeFileSync(tempConfigPath, YAML.stringify(original))
 
-  const { loadAgentProviderConfig } = await import('../src/config/agent-providers.ts')
+  const { loadLegionariesConfig } = await import('../src/config/legionaries.ts')
 
   assert.throws(
-    () => loadAgentProviderConfig({ rootDir, configPath: tempConfigPath }),
+    () => loadLegionariesConfig({ rootDir, configPath: tempConfigPath }),
     /invalid model format for planner: invalid-model-format/,
   )
 })
 
-test('provider loader rejects invalid reasoning effort values', async () => {
+test('legionaries loader rejects invalid reasoning effort values', async () => {
   fs.mkdirSync(tempDir, { recursive: true })
-  const tempConfigPath = path.join(tempDir, 'agent-providers.invalid-reasoning.yaml')
-  const original = YAML.parse(fs.readFileSync(providerConfigPath, 'utf8'))
+  const tempConfigPath = path.join(tempDir, 'legionaries.invalid-reasoning.yaml')
+  const original = YAML.parse(fs.readFileSync(legionariesConfigPath, 'utf8'))
 
   original.agents.orchestrator.reasoning.effort = 'extreme'
   fs.writeFileSync(tempConfigPath, YAML.stringify(original))
 
-  const { loadAgentProviderConfig } = await import('../src/config/agent-providers.ts')
+  const { loadLegionariesConfig } = await import('../src/config/legionaries.ts')
 
   assert.throws(
-    () => loadAgentProviderConfig({ rootDir, configPath: tempConfigPath }),
+    () => loadLegionariesConfig({ rootDir, configPath: tempConfigPath }),
     /invalid reasoning effort for orchestrator: extreme/,
   )
 })
 
-test('provider loader accepts xhigh and max reasoning effort values', async () => {
+test('legionaries loader accepts xhigh and max reasoning effort values', async () => {
   fs.mkdirSync(tempDir, { recursive: true })
-  const tempConfigPath = path.join(tempDir, 'agent-providers.reasoning-variants.yaml')
-  const original = YAML.parse(fs.readFileSync(providerConfigPath, 'utf8'))
+  const tempConfigPath = path.join(tempDir, 'legionaries.reasoning-variants.yaml')
+  const original = YAML.parse(fs.readFileSync(legionariesConfigPath, 'utf8'))
 
   original.agents.orchestrator.reasoning.effort = 'xhigh'
   original.agents.planner = {
@@ -132,8 +132,8 @@ test('provider loader accepts xhigh and max reasoning effort values', async () =
 
   fs.writeFileSync(tempConfigPath, YAML.stringify(original))
 
-  const { loadAgentProviderConfig } = await import('../src/config/agent-providers.ts')
-  const result = loadAgentProviderConfig({ rootDir, configPath: tempConfigPath })
+  const { loadLegionariesConfig } = await import('../src/config/legionaries.ts')
+  const result = loadLegionariesConfig({ rootDir, configPath: tempConfigPath })
 
   assert.deepEqual(result.agents.orchestrator.reasoning, { effort: 'xhigh' })
   assert.deepEqual(result.agents.planner.reasoning, { effort: 'max' })

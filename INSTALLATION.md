@@ -81,7 +81,7 @@ If you want to keep the model map somewhere else, start OpenCode with `LEGIONARI
 LEGIONARIES_CONFIG=/absolute/path/to/legionaries.yaml opencode
 ```
 
-The legacy `AGENT_PROVIDER_CONFIG` environment variable is still accepted.
+Use `LEGIONARIES_CONFIG` for an explicit config path.
 
 ## Supported Providers
 

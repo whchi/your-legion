@@ -30,18 +30,18 @@ export type AgentReasoningConfig = {
   effort: ReasoningEffort
 }
 
-export type AgentProviderEntry =
+export type LegionaryEntry =
   | string
   | {
       model: string
       reasoning?: AgentReasoningConfig
     }
 
-export type AgentProviderConfig = {
-  agents: Partial<Record<AgentName, AgentProviderEntry>>
+export type LegionariesConfig = {
+  agents: Partial<Record<AgentName, LegionaryEntry>>
 }
 
-export type ResolvedAgentProviderEntry = {
+export type ResolvedLegionaryEntry = {
   model: string
   reasoning?: AgentReasoningConfig
 }

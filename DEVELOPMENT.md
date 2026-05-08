@@ -6,7 +6,7 @@ This document covers repository development for `your-legion`. User-facing insta
 
 - OpenCode loads the published package from the `plugin` array.
 - `src/index.ts` registers a server hook that mutates OpenCode config in place.
-- `src/config/agent-providers.ts` reads and validates `legionaries.yaml`.
+- `src/config/legionaries.ts` reads and validates `legionaries.yaml`.
 - `src/runtime/build-agent-config.ts` merges the per-agent model map with the base agent definitions in `src/agents/`.
 - The plugin injects `default_agent` and the full `agent` map at startup.
 

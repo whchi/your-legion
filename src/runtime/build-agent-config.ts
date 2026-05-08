@@ -1,11 +1,11 @@
 import { BASE_AGENT_DEFINITIONS } from '../agents/index.ts'
-import { loadAgentProviderConfig, type LoadAgentProviderConfigOptions } from '../config/agent-providers.ts'
+import { loadLegionariesConfig, type LoadLegionariesConfigOptions } from '../config/legionaries.ts'
 import { AGENT_NAMES, DEFAULT_AGENT, type EffectiveAgentConfig } from '../shared/agent-types.ts'
 
 export function buildEffectiveAgentConfig(
-  options: LoadAgentProviderConfigOptions,
+  options: LoadLegionariesConfigOptions,
 ): EffectiveAgentConfig {
-  const { agents: configuredAgents } = loadAgentProviderConfig(options)
+  const { agents: configuredAgents } = loadLegionariesConfig(options)
   const agent = {} as EffectiveAgentConfig['agent']
 
   for (const agentName of AGENT_NAMES) {

@@ -8,12 +8,12 @@ import YAML from 'yaml'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 const rootDir = path.resolve(__dirname, '..')
-const providerConfigPath = path.join(rootDir, 'legionaries.yaml')
+const legionariesConfigPath = path.join(rootDir, 'legionaries.yaml')
 const packageJsonPath = path.join(rootDir, 'package.json')
 const opencodeConfigPath = path.join(rootDir, 'opencode.jsonc')
 const tempDir = path.join(rootDir, 'temp')
 
-test('plugin runtime builds the full agent config from the mixed provider map', async () => {
+test('plugin runtime builds the full agent config from the mixed legionaries map', async () => {
   const { buildEffectiveAgentConfig } = await import('../src/runtime/build-agent-config.ts')
   const result = await buildEffectiveAgentConfig({
     rootDir: new URL('../', import.meta.url),
@@ -29,10 +29,10 @@ test('plugin runtime builds the full agent config from the mixed provider map', 
   assert.equal(result.agent.librarian.model, 'opencode-go/minimax-m2.7')
 })
 
-test('plugin runtime supports alternate mixed provider config files', async () => {
+test('plugin runtime supports alternate mixed legionaries config files', async () => {
   fs.mkdirSync(tempDir, { recursive: true })
-  const tempConfigPath = path.join(tempDir, 'agent-providers.override.yaml')
-  const original = YAML.parse(fs.readFileSync(providerConfigPath, 'utf8'))
+  const tempConfigPath = path.join(tempDir, 'legionaries.override.yaml')
+  const original = YAML.parse(fs.readFileSync(legionariesConfigPath, 'utf8'))
 
   fs.writeFileSync(
     tempConfigPath,

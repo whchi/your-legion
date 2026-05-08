@@ -7,7 +7,7 @@
 1. OpenCode loads `your-legion` from the `plugin` array.
 2. `src/index.ts` exports the plugin `server` entrypoint.
 3. The plugin `config` hook reads `legionaries.yaml` from the active worktree or global OpenCode config directory.
-4. `src/config/agent-providers.ts` validates the per-agent model map and optional reasoning settings.
+4. `src/config/legionaries.ts` validates the per-agent model map and optional reasoning settings.
 5. `src/runtime/build-agent-config.ts` merges that config with the base agent definitions from `src/agents/`.
 6. The hook mutates `config.default_agent` and `config.agent` in place.
 
@@ -19,7 +19,7 @@ There is no markdown frontmatter rewrite step.
 - `src/agents/index.ts`: registry of all managed Your Legion agents
 - `src/shared/agent-types.ts`: shared names and runtime config types
 - `legionaries.yaml`: per-agent provider/model mapping plus optional reasoning settings
-- `src/config/agent-providers.ts`: YAML loading and validation
+- `src/config/legionaries.ts`: YAML loading and validation
 - `src/runtime/build-agent-config.ts`: final runtime config assembly
 - `src/index.ts`: plugin entrypoint and config injection hook
 - `temp/`: gitignored local temp artifacts for tests and config experiments
@@ -136,5 +136,5 @@ OpenCode should be configured like this:
 ## Verification
 
 - `tests/plugin-runtime.test.js` verifies runtime config assembly and plugin injection.
-- `tests/agent-provider-preset.test.js` verifies model-map parsing and validation.
+- `tests/legionaries.test.js` verifies model-map parsing and validation.
 - `tests/agent-config.test.js` verifies the expected agent behaviors and permissions survive the migration to `src/agents/`.

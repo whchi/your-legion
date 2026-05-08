@@ -32,8 +32,8 @@ test('installer writes global legionaries.yaml and registers the plugin', async 
   const opencodeConfigPath = path.join(configDir, 'opencode.json')
   const opencodeConfig = JSON.parse(fs.readFileSync(opencodeConfigPath, 'utf8'))
 
-  assert.equal(result.agentProviderConfigPath, agentConfigPath)
-  assert.equal(result.agentProviderBackupPath, undefined)
+  assert.equal(result.legionariesConfigPath, agentConfigPath)
+  assert.equal(result.legionariesBackupPath, undefined)
   assert.equal(fs.readFileSync(agentConfigPath, 'utf8'), fs.readFileSync(sourceConfigPath, 'utf8'))
   assert.deepEqual(opencodeConfig.plugin, ['@whchi/your-legion'])
 })
@@ -53,7 +53,7 @@ test('installer backs up an existing global legionaries.yaml before overwriting'
 
   const backupPath = path.join(configDir, 'legionaries.yaml.bak.2026-01-25T11-18-28-014Z')
 
-  assert.equal(result.agentProviderBackupPath, backupPath)
+  assert.equal(result.legionariesBackupPath, backupPath)
   assert.equal(fs.readFileSync(backupPath, 'utf8'), 'agents:\n  old: openai/old\n')
   assert.equal(fs.readFileSync(existingConfigPath, 'utf8'), fs.readFileSync(sourceConfigPath, 'utf8'))
 })
@@ -95,13 +95,13 @@ test('installer updates existing opencode.jsonc instead of creating opencode.jso
   assert.deepEqual(opencodeConfig.plugin, ['opencode-wakatime', '@whchi/your-legion'])
 })
 
-test('provider config resolution falls back to global opencode config dir', async (t) => {
+test('legionaries config resolution falls back to global opencode config dir', async (t) => {
   const projectDir = makeTempDir(t, 'your-legion-project')
   const configDir = makeTempDir(t, 'your-legion-global-config')
   fs.copyFileSync(path.join(rootDir, 'legionaries.yaml'), path.join(configDir, 'legionaries.yaml'))
-  const { resolveAgentProviderConfigPath } = await import('../src/config/agent-providers.ts')
+  const { resolveLegionariesConfigPath } = await import('../src/config/legionaries.ts')
 
-  const result = resolveAgentProviderConfigPath({
+  const result = resolveLegionariesConfigPath({
     rootDir: projectDir,
     configDir,
   })
@@ -109,14 +109,14 @@ test('provider config resolution falls back to global opencode config dir', asyn
   assert.equal(result, path.join(configDir, 'legionaries.yaml'))
 })
 
-test('provider config resolution prefers project config over global config dir', async (t) => {
+test('legionaries config resolution prefers project config over global config dir', async (t) => {
   const projectDir = makeTempDir(t, 'your-legion-project-local')
   const configDir = makeTempDir(t, 'your-legion-global-config-local')
   fs.writeFileSync(path.join(projectDir, 'legionaries.yaml'), 'agents: {}\n')
   fs.writeFileSync(path.join(configDir, 'legionaries.yaml'), 'agents: { global: true }\n')
-  const { resolveAgentProviderConfigPath } = await import('../src/config/agent-providers.ts')
+  const { resolveLegionariesConfigPath } = await import('../src/config/legionaries.ts')
 
-  const result = resolveAgentProviderConfigPath({
+  const result = resolveLegionariesConfigPath({
     rootDir: projectDir,
     configDir,
   })
@@ -126,12 +126,10 @@ test('provider config resolution prefers project config over global config dir',
 
 test('build publishes the installer template under dist', () => {
   fs.mkdirSync(path.join(rootDir, 'dist'), { recursive: true })
-  fs.writeFileSync(path.join(rootDir, 'dist', 'agent-providers.yaml'), 'stale config\n')
   execFileSync('bun', ['run', 'build'], { cwd: rootDir, stdio: 'ignore' })
 
   assert.equal(
     fs.readFileSync(path.join(rootDir, 'dist', 'legionaries.yaml'), 'utf8'),
     fs.readFileSync(path.join(rootDir, 'legionaries.yaml'), 'utf8'),
   )
-  assert.equal(fs.existsSync(path.join(rootDir, 'dist', 'agent-providers.yaml')), false)
 })

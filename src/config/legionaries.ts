@@ -7,9 +7,9 @@ import YAML from 'yaml'
 import {
   AGENT_NAMES,
   type AgentName,
-  type AgentProviderConfig,
-  type AgentProviderEntry,
-  type ResolvedAgentProviderEntry,
+  type LegionariesConfig,
+  type LegionaryEntry,
+  type ResolvedLegionaryEntry,
   type ReasoningEffort,
 } from '../shared/agent-types.ts'
 
@@ -22,7 +22,7 @@ const REASONING_EFFORTS = new Set<ReasoningEffort>([
   'max',
 ])
 
-export type LoadAgentProviderConfigOptions = {
+export type LoadLegionariesConfigOptions = {
   rootDir: string | URL
   configPath?: string | URL
   configDir?: string | URL
@@ -36,11 +36,11 @@ function toPath(value: string | URL) {
   return value
 }
 
-export function resolveAgentProviderConfigPath({
+export function resolveLegionariesConfigPath({
   rootDir,
   configPath,
   configDir,
-}: LoadAgentProviderConfigOptions) {
+}: LoadLegionariesConfigOptions) {
   const rootPath = resolve(toPath(rootDir))
 
   if (configPath) {
@@ -53,10 +53,6 @@ export function resolveAgentProviderConfigPath({
 
   if (process.env.LEGIONARIES_CONFIG) {
     return resolve(process.env.LEGIONARIES_CONFIG)
-  }
-
-  if (process.env.AGENT_PROVIDER_CONFIG) {
-    return resolve(process.env.AGENT_PROVIDER_CONFIG)
   }
 
   const projectConfigPath = join(rootPath, 'legionaries.yaml')
@@ -77,7 +73,7 @@ export function getOpenCodeConfigDir(env: NodeJS.ProcessEnv = process.env) {
   return env.XDG_CONFIG_HOME ? join(env.XDG_CONFIG_HOME, 'opencode') : join(homedir(), '.config', 'opencode')
 }
 
-function normalizeAgentEntry(agent: AgentName, entry: AgentProviderEntry | undefined): ResolvedAgentProviderEntry {
+function normalizeAgentEntry(agent: AgentName, entry: LegionaryEntry | undefined): ResolvedLegionaryEntry {
   const resolved = typeof entry === 'string' ? { model: entry } : entry
 
   if (!resolved?.model) {
@@ -96,9 +92,9 @@ function normalizeAgentEntry(agent: AgentName, entry: AgentProviderEntry | undef
 }
 
 function validateModelMap(
-  models: Partial<Record<AgentName, AgentProviderEntry>>,
-): Record<AgentName, ResolvedAgentProviderEntry> {
-  const resolvedModels = {} as Record<AgentName, ResolvedAgentProviderEntry>
+  models: Partial<Record<AgentName, LegionaryEntry>>,
+): Record<AgentName, ResolvedLegionaryEntry> {
+  const resolvedModels = {} as Record<AgentName, ResolvedLegionaryEntry>
 
   for (const agent of AGENT_NAMES) {
     resolvedModels[agent] = normalizeAgentEntry(agent, models[agent])
@@ -107,10 +103,10 @@ function validateModelMap(
   return resolvedModels
 }
 
-export function loadAgentProviderConfig(options: LoadAgentProviderConfigOptions) {
-  const filePath = resolveAgentProviderConfigPath(options)
+export function loadLegionariesConfig(options: LoadLegionariesConfigOptions) {
+  const filePath = resolveLegionariesConfigPath(options)
   const raw = readFileSync(filePath, 'utf8')
-  const parsed = YAML.parse(raw) as AgentProviderConfig | null
+  const parsed = YAML.parse(raw) as LegionariesConfig | null
 
   if (!parsed?.agents || typeof parsed.agents !== 'object') {
     throw new Error('legionaries.yaml missing agents map')
