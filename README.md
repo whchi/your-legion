@@ -10,61 +10,44 @@ It provides one primary orchestrator, one workflow coordinator, and six leaf spe
 npm install @whchi/your-legion
 ```
 
-## Quick Start
+## Configuration
 
-From the project where you run OpenCode:
-
-```bash
-npm install @whchi/your-legion
-cp node_modules/@whchi/your-legion/agent-providers.yaml ./agent-providers.yaml
-```
-
-Then add the plugin to your OpenCode config:
-
-```json
-{
-  "$schema": "https://opencode.ai/config.json",
-  "plugin": ["@whchi/your-legion"]
-}
-```
-
-Edit `agent-providers.yaml` to use models available in your OpenCode providers, then restart OpenCode.
-
-## Configure OpenCode
-
-Installing the npm package only installs the plugin code. You still need two config entries:
-
-- OpenCode plugin config: tells OpenCode to load `@whchi/your-legion`.
-- `agent-providers.yaml`: tells Your Legion which model each agent should use.
-
-### 1. Add The Plugin
-
-Add the plugin to your OpenCode config file, usually `~/.config/opencode/opencode.json` or your project-local `opencode.jsonc`:
-
-```json
-{
-  "$schema": "https://opencode.ai/config.json",
-  "plugin": ["@whchi/your-legion"]
-}
-```
-
-### 2. Add Agent Model Settings
-
-Create `agent-providers.yaml` in the root of the worktree where you run OpenCode:
+The example agent model config is [`agent-providers.yaml`](./agent-providers.yaml). After installation, the same example file is available here:
 
 ```text
-your-project/
-├── agent-providers.yaml
-└── ...
+node_modules/@whchi/your-legion/agent-providers.yaml
 ```
 
-You can copy the example shipped with the package:
+Copy it to the root of the worktree where you run OpenCode:
 
 ```bash
 cp node_modules/@whchi/your-legion/agent-providers.yaml ./agent-providers.yaml
 ```
 
-Or create one manually:
+Add the plugin to your OpenCode config, usually `~/.config/opencode/opencode.json` or project-local `opencode.jsonc`:
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "plugin": ["@whchi/your-legion"]
+}
+```
+
+Restart OpenCode after changing either config file.
+
+## Supported Providers
+
+The bundled example currently uses these provider prefixes:
+
+- `openai`
+- `github-copilot`
+- `opencode-go`
+
+Model values must use `provider/model-id` format, for example `openai/gpt-5.5`.
+
+## Agent Model Config
+
+`agent-providers.yaml` maps each managed agent to a model:
 
 ```yaml
 agents:
@@ -92,23 +75,13 @@ agents:
       effort: high
 ```
 
-If you want to keep the model map somewhere else, set `AGENT_PROVIDER_CONFIG` to that file path before starting OpenCode.
+Every managed agent must have a model mapping. Optional `reasoning.effort` values are `low`, `medium`, `high`, `xhigh`, and `max`.
+
+If you want to keep the model map somewhere else, start OpenCode with `AGENT_PROVIDER_CONFIG`:
 
 ```bash
 AGENT_PROVIDER_CONFIG=/absolute/path/to/agent-providers.yaml opencode
 ```
-
-After setup, a project-local configuration usually looks like this:
-
-```text
-your-project/
-├── agent-providers.yaml
-├── node_modules/
-│   └── @whchi/your-legion/
-└── opencode.jsonc
-```
-
-Restart OpenCode after changing `opencode.json`, `opencode.jsonc`, `agent-providers.yaml`, or `AGENT_PROVIDER_CONFIG`.
 
 ## Agents
 
@@ -128,24 +101,7 @@ Your Legion uses direct specialist routing.
 - The `orchestrator` classifies each turn into one dominant intent and chooses a concrete subagent.
 - Those intents are routing heuristics, not runtime categories or model profiles.
 - The `dispatcher` is only used when work needs sequencing, decomposition, or parallel coordination across multiple specialists.
-- `planner`, `builder`, `frontend-developer`, `code-reviewer`, `explorer`, and `librarian` are leaf specialists.
 - `agent-providers.yaml` controls model and reasoning settings per agent. It does not control routing.
-
-## Model Configuration
-
-Every managed agent must have a model mapping in `agent-providers.yaml`.
-
-- Models must use `provider/model-id` format.
-- Different agents may use different providers in the same file.
-- `reasoning.effort` is optional and may be `low`, `medium`, `high`, `xhigh`, or `max`.
-- Reasoning settings are passed through to `agent.options.reasoning`.
-
-## Agent Boundaries
-
-- Use `builder` for non-visual code changes, tests, refactors, config, and backend logic.
-- Use `frontend-developer` for UI, layout, styling, accessibility, and client-side interaction work.
-- Use `explorer` for repo-local discovery and impact analysis.
-- Use `librarian` for external docs, API references, and package behavior lookup.
 
 ## Development
 
