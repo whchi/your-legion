@@ -1,6 +1,6 @@
 {
   "name": "@whchi/your-legion",
-  "version": "0.0.3",
+  "version": "0.0.6",
   "description": "Plugin-first OpenCode multi-agent system inspired by oh-my-openagent",
   "homepage": "https://github.com/whchi/your-legion#readme",
   "bugs": {
@@ -18,6 +18,9 @@
     "./server": "./dist/server.js"
   },
   "main": "dist/server.js",
+  "bin": {
+    "your-legion": "./dist/cli.js"
+  },
   "directories": {
     "doc": "docs",
     "test": "tests"
@@ -26,11 +29,10 @@
     "dist",
     "README.md",
     "DEVELOPMENT.md",
-    "AGENTS.md",
-    "agent-providers.yaml"
+    "AGENTS.md"
   ],
   "scripts": {
-    "build": "bun build src/index.ts --target node --format esm --outfile dist/server.js",
+    "build": "bun build src/index.ts --target node --format esm --outfile dist/server.js && bun build src/cli.ts --target node --format esm --outfile dist/cli.js && cp agent-providers.yaml dist/agent-providers.yaml",
     "test": "node --test tests/*.test.js"
   },
   "dependencies": {

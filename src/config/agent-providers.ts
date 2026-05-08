@@ -1,4 +1,5 @@
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
+import { homedir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { isAbsolute, join, resolve } from 'node:path'
 import YAML from 'yaml'
@@ -24,6 +25,7 @@ const REASONING_EFFORTS = new Set<ReasoningEffort>([
 export type LoadAgentProviderConfigOptions = {
   rootDir: string | URL
   configPath?: string | URL
+  configDir?: string | URL
 }
 
 function toPath(value: string | URL) {
@@ -37,6 +39,7 @@ function toPath(value: string | URL) {
 export function resolveAgentProviderConfigPath({
   rootDir,
   configPath,
+  configDir,
 }: LoadAgentProviderConfigOptions) {
   const rootPath = resolve(toPath(rootDir))
 
@@ -52,7 +55,22 @@ export function resolveAgentProviderConfigPath({
     return resolve(process.env.AGENT_PROVIDER_CONFIG)
   }
 
-  return join(rootPath, 'agent-providers.yaml')
+  const projectConfigPath = join(rootPath, 'agent-providers.yaml')
+  if (existsSync(projectConfigPath)) {
+    return projectConfigPath
+  }
+
+  const configRoot = configDir ? resolve(toPath(configDir)) : getOpenCodeConfigDir()
+  const globalConfigPath = join(configRoot, 'agent-providers.yaml')
+  if (existsSync(globalConfigPath)) {
+    return globalConfigPath
+  }
+
+  return projectConfigPath
+}
+
+export function getOpenCodeConfigDir(env: NodeJS.ProcessEnv = process.env) {
+  return env.XDG_CONFIG_HOME ? join(env.XDG_CONFIG_HOME, 'opencode') : join(homedir(), '.config', 'opencode')
 }
 
 function normalizeAgentEntry(agent: AgentName, entry: AgentProviderEntry | undefined): ResolvedAgentProviderEntry {

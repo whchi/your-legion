@@ -6,9 +6,48 @@ It provides one primary orchestrator, one workflow coordinator, and six leaf spe
 
 ## Install
 
-Your Legion is installed by registering the npm package name in OpenCode's `plugin` array.
+Run the installer:
 
-## OpenCode Config
+```bash
+bunx @whchi/your-legion install
+```
+
+Or with npm:
+
+```bash
+npx @whchi/your-legion install
+```
+
+The installer writes:
+
+- `~/.config/opencode/opencode.json`, or updates an existing `~/.config/opencode/opencode.jsonc`
+- `~/.config/opencode/agent-providers.yaml`
+
+If `agent-providers.yaml` already exists, it is backed up first using this format:
+
+```text
+~/.config/opencode/agent-providers.yaml.bak.2026-01-25T11-18-28-014Z
+```
+
+Restart OpenCode after installation.
+
+## Manual Install
+
+You can also install manually by registering the npm package name in OpenCode's `plugin` array.
+
+You do not need a project-local `npm install` just to load the plugin. OpenCode downloads npm plugins automatically on startup and caches them under its cache directory, for example:
+
+```text
+~/.cache/opencode/packages/@whchi/your-legion@latest
+```
+
+If you previously loaded a broken release and OpenCode keeps using it, remove the cached package and restart OpenCode:
+
+```bash
+rm -rf ~/.cache/opencode/packages/@whchi/your-legion@latest
+```
+
+## Manual OpenCode Config
 
 Add the plugin to an OpenCode config file.
 
@@ -37,16 +76,16 @@ Use this plugin entry in whichever config file you choose:
 
 Restart OpenCode after changing this config.
 
-## Agent Model Config
+## Manual Agent Model Config
 
-Your Legion also needs an agent model config named `agent-providers.yaml`.
+Your Legion also needs an agent model config named `agent-providers.yaml`. The installer writes this to `~/.config/opencode/agent-providers.yaml`.
 
 The example file is here:
 
-- [`agent-providers.yaml`](./agent-providers.yaml)
+- [`dist/agent-providers.yaml`](./dist/agent-providers.yaml)
 - Raw URL: `https://raw.githubusercontent.com/whchi/your-legion/main/agent-providers.yaml`
 
-Put `agent-providers.yaml` in the root of the worktree where you run OpenCode. This is the default location Your Legion reads from:
+For project-specific overrides, put `agent-providers.yaml` in the root of the worktree where you run OpenCode. Project config takes precedence over the global file:
 
 ```text
 your-project/agent-providers.yaml
@@ -86,7 +125,7 @@ If you want to keep the model map somewhere else, start OpenCode with `AGENT_PRO
 AGENT_PROVIDER_CONFIG=/absolute/path/to/agent-providers.yaml opencode
 ```
 
-Restart OpenCode after changing `agent-providers.yaml` or `AGENT_PROVIDER_CONFIG`.
+Restart OpenCode after changing `agent-providers.yaml`, the global config file, or `AGENT_PROVIDER_CONFIG`.
 
 ## Supported Providers
 

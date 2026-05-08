@@ -82,6 +82,18 @@ test('package root exports the OpenCode plugin entrypoint', () => {
   assert.equal(pkg.exports['./server'], './dist/server.js')
 })
 
+test('package exposes the installer CLI', () => {
+  const pkg = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'))
+
+  assert.equal(pkg.bin['your-legion'], './dist/cli.js')
+})
+
+test('package publishes build and install artifacts from dist', () => {
+  const pkg = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'))
+
+  assert.deepEqual(pkg.files, ['dist', 'README.md', 'DEVELOPMENT.md', 'AGENTS.md'])
+})
+
 test('plugin server exposes a config hook that injects Your Legion agents', async () => {
   const pluginModule = await import('../src/index.ts')
 
