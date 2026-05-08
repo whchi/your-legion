@@ -6,7 +6,7 @@ This document covers repository development for `your-legion`. User-facing insta
 
 - OpenCode loads the published package from the `plugin` array.
 - `src/index.ts` registers a server hook that mutates OpenCode config in place.
-- `src/config/agent-providers.ts` reads and validates `agent-providers.yaml`.
+- `src/config/agent-providers.ts` reads and validates `legionaries.yaml`.
 - `src/runtime/build-agent-config.ts` merges the per-agent model map with the base agent definitions in `src/agents/`.
 - The plugin injects `default_agent` and the full `agent` map at startup.
 
@@ -22,7 +22,7 @@ No frontmatter rewrite step is required.
 │   ├── runtime/
 │   └── shared/
 ├── tests/
-├── agent-providers.yaml
+├── legionaries.yaml
 ├── opencode.jsonc
 ├── README.md
 ├── DEVELOPMENT.md
@@ -40,8 +40,8 @@ No frontmatter rewrite step is required.
 ## Customization
 
 - Edit `src/agents/*.ts` to change prompts, permissions, descriptions, or modes.
-- Edit `agent-providers.yaml` to mix providers, update per-agent models, and tune reasoning settings.
-- Add a new agent by updating `src/agents/`, `src/agents/index.ts`, `src/shared/agent-types.ts`, `agent-providers.yaml`, and the routing guidance in `src/agents/orchestrator.ts` and `src/agents/dispatcher.ts`.
+- Edit `legionaries.yaml` to mix providers, update per-agent models, and tune reasoning settings.
+- Add a new agent by updating `src/agents/`, `src/agents/index.ts`, `src/shared/agent-types.ts`, `legionaries.yaml`, and the routing guidance in `src/agents/orchestrator.ts` and `src/agents/dispatcher.ts`.
 
 ## Routing Contract
 
@@ -52,7 +52,7 @@ Your Legion uses direct specialist routing rather than a category-first runtime.
 - `dispatcher` coordinates multi-step, multi-specialist work and should be used when sequencing or safe parallelism matters.
 - `planner`, `builder`, `frontend-developer`, `code-reviewer`, `explorer`, and `librarian` are leaf specialists.
 - Leaf specialists should not orchestrate other leaf specialists. Composition should flow through `dispatcher`.
-- `agent-providers.yaml` configures per-agent models and reasoning only. It does not decide which agent gets selected.
+- `legionaries.yaml` configures per-agent models and reasoning only. It does not decide which agent gets selected.
 
 ## Routing Boundaries
 

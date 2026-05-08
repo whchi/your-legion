@@ -16,7 +16,7 @@ if (command !== 'install') {
 }
 
 const distDir = dirname(fileURLToPath(import.meta.url))
-const sourceConfigPath = resolve(distDir, 'agent-providers.yaml')
+const sourceConfigPath = resolve(distDir, 'legionaries.yaml')
 const result = installYourLegion({ sourceConfigPath })
 
 console.log(`Wrote ${result.agentProviderConfigPath}`)

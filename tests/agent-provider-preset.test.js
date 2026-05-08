@@ -8,7 +8,7 @@ import YAML from 'yaml'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 const rootDir = path.resolve(__dirname, '..')
-const providerConfigPath = path.join(rootDir, 'agent-providers.yaml')
+const providerConfigPath = path.join(rootDir, 'legionaries.yaml')
 const tempDir = path.join(rootDir, 'temp')
 
 test('provider config file defines a mixed per-agent model map', () => {

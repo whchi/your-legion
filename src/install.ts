@@ -70,7 +70,7 @@ export function installYourLegion({
 }: InstallYourLegionOptions): InstallYourLegionResult {
   mkdirSync(configDir, { recursive: true })
 
-  const agentProviderConfigPath = join(configDir, 'agent-providers.yaml')
+  const agentProviderConfigPath = join(configDir, 'legionaries.yaml')
   let agentProviderBackupPath: string | undefined
 
   if (existsSync(agentProviderConfigPath)) {

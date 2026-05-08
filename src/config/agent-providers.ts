@@ -51,17 +51,21 @@ export function resolveAgentProviderConfigPath({
     return isAbsolute(configPath) ? configPath : resolve(rootPath, configPath)
   }
 
+  if (process.env.LEGIONARIES_CONFIG) {
+    return resolve(process.env.LEGIONARIES_CONFIG)
+  }
+
   if (process.env.AGENT_PROVIDER_CONFIG) {
     return resolve(process.env.AGENT_PROVIDER_CONFIG)
   }
 
-  const projectConfigPath = join(rootPath, 'agent-providers.yaml')
+  const projectConfigPath = join(rootPath, 'legionaries.yaml')
   if (existsSync(projectConfigPath)) {
     return projectConfigPath
   }
 
   const configRoot = configDir ? resolve(toPath(configDir)) : getOpenCodeConfigDir()
-  const globalConfigPath = join(configRoot, 'agent-providers.yaml')
+  const globalConfigPath = join(configRoot, 'legionaries.yaml')
   if (existsSync(globalConfigPath)) {
     return globalConfigPath
   }
@@ -109,7 +113,7 @@ export function loadAgentProviderConfig(options: LoadAgentProviderConfigOptions)
   const parsed = YAML.parse(raw) as AgentProviderConfig | null
 
   if (!parsed?.agents || typeof parsed.agents !== 'object') {
-    throw new Error('agent-providers.yaml missing agents map')
+    throw new Error('legionaries.yaml missing agents map')
   }
 
   const agents = validateModelMap(parsed.agents)

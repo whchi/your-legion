@@ -8,7 +8,7 @@ import YAML from 'yaml'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 const rootDir = path.resolve(__dirname, '..')
-const providerConfigPath = path.join(rootDir, 'agent-providers.yaml')
+const providerConfigPath = path.join(rootDir, 'legionaries.yaml')
 const packageJsonPath = path.join(rootDir, 'package.json')
 const opencodeConfigPath = path.join(rootDir, 'opencode.jsonc')
 const tempDir = path.join(rootDir, 'temp')
@@ -91,7 +91,7 @@ test('package exposes the installer CLI', () => {
 test('package publishes build and install artifacts from dist', () => {
   const pkg = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'))
 
-  assert.deepEqual(pkg.files, ['dist', 'README.md', 'DEVELOPMENT.md', 'AGENTS.md'])
+  assert.deepEqual(pkg.files, ['dist', 'README.md', 'INSTALLATION.md', 'DEVELOPMENT.md', 'AGENTS.md'])
 })
 
 test('plugin server exposes a config hook that injects Your Legion agents', async () => {
