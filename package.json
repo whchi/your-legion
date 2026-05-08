@@ -1,0 +1,25 @@
+{
+  "name": "your-legion",
+  "description": "Plugin-first OpenCode multi-agent system inspired by oh-my-openagent",
+  "type": "module",
+  "exports": {
+    "./server": "./dist/server.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "AGENTS.md",
+    "agent-providers.yaml"
+  ],
+  "scripts": {
+    "build": "bun build src/index.ts --target bun --format esm --outfile dist/server.js",
+    "test": "node --test tests/*.test.js"
+  },
+  "engines": {
+    "opencode": ">=0.1.0",
+    "bun": ">=1.1.0"
+  },
+  "dependencies": {
+    "yaml": "^2.8.4"
+  }
+}
