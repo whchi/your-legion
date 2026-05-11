@@ -18,11 +18,12 @@ test('legionaries config file defines a mixed per-agent model map', () => {
   assert.ok(config.agents)
   assert.equal(config.agents.orchestrator.model, 'openai/gpt-5.5')
   assert.equal(config.agents.orchestrator.reasoning.effort, 'medium')
-  assert.equal(config.agents.dispatcher.model, 'opencode-go/glm-5.1')
   assert.equal(config.agents.explorer.model, 'opencode-go/deepseek-v4-flash')
   assert.equal(config.agents.librarian.model, 'opencode-go/minimax-m2.7')
   assert.equal(config.agents.builder.model, 'opencode-go/kimi-k2.6')
-  assert.equal(config.agents['frontend-developer'].model, 'github-copilot/gemini-3.1-pro-preview')
+  assert.ok(!('dispatcher' in config.agents))
+  assert.ok(!('frontend-developer' in config.agents))
+  assert.ok(!('code-reviewer' in config.agents))
 })
 
 test('legionaries loader resolves the mixed per-agent model map', async () => {
@@ -31,16 +32,17 @@ test('legionaries loader resolves the mixed per-agent model map', async () => {
 
   assert.equal(result.agents.orchestrator.model, 'openai/gpt-5.5')
   assert.deepEqual(result.agents.orchestrator.reasoning, { effort: 'medium' })
-  assert.equal(result.agents.dispatcher.model, 'opencode-go/glm-5.1')
   assert.equal(result.agents.explorer.model, 'opencode-go/deepseek-v4-flash')
   assert.equal(result.agents.librarian.model, 'opencode-go/minimax-m2.7')
   assert.equal(result.agents.builder.model, 'opencode-go/kimi-k2.6')
-  assert.equal(result.agents['frontend-developer'].model, 'github-copilot/gemini-3.1-pro-preview')
+  assert.ok(!('dispatcher' in result.agents))
+  assert.ok(!('frontend-developer' in result.agents))
+  assert.ok(!('code-reviewer' in result.agents))
 })
 
 test('legionaries loader supports per-agent overrides via config override', async () => {
   fs.mkdirSync(tempDir, { recursive: true })
-  const tempConfigPath = path.join(tempDir, 'legionaries.override.yaml')
+  const tempConfigPath = path.join(tempDir, 'legionaries.loader-override.yaml')
   const original = YAML.parse(fs.readFileSync(legionariesConfigPath, 'utf8'))
 
   fs.writeFileSync(
@@ -54,7 +56,7 @@ test('legionaries loader supports per-agent overrides via config override', asyn
             effort: 'medium',
           },
         },
-        'frontend-developer': {
+        builder: {
           model: 'github-copilot/gemini-3.1-pro-preview',
         },
       },
@@ -66,7 +68,34 @@ test('legionaries loader supports per-agent overrides via config override', asyn
 
   assert.equal(result.agents.orchestrator.model, 'github-copilot/claude-opus-4.1')
   assert.deepEqual(result.agents.orchestrator.reasoning, { effort: 'medium' })
-  assert.equal(result.agents['frontend-developer'].model, 'github-copilot/gemini-3.1-pro-preview')
+  assert.equal(result.agents.builder.model, 'github-copilot/gemini-3.1-pro-preview')
+})
+
+test('legionaries loader accepts optional code-reviewer mapping when provided', async () => {
+  fs.mkdirSync(tempDir, { recursive: true })
+  const tempConfigPath = path.join(tempDir, 'legionaries.optional-code-reviewer.yaml')
+  const original = YAML.parse(fs.readFileSync(legionariesConfigPath, 'utf8'))
+
+  fs.writeFileSync(
+    tempConfigPath,
+    YAML.stringify({
+      agents: {
+        ...original.agents,
+        'code-reviewer': {
+          model: 'openai/gpt-5.5',
+          reasoning: {
+            effort: 'high',
+          },
+        },
+      },
+    }),
+  )
+
+  const { loadLegionariesConfig } = await import('../src/config/legionaries.ts')
+  const result = loadLegionariesConfig({ rootDir, configPath: tempConfigPath })
+
+  assert.equal(result.agents['code-reviewer'].model, 'openai/gpt-5.5')
+  assert.deepEqual(result.agents['code-reviewer'].reasoning, { effort: 'high' })
 })
 
 test('legionaries loader rejects missing agent model mappings', async () => {

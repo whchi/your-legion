@@ -8,7 +8,7 @@
 2. `src/index.ts` exports the plugin `server` entrypoint.
 3. The plugin `config` hook reads `legionaries.yaml` from the active worktree or global OpenCode config directory.
 4. `src/config/legionaries.ts` validates the per-agent model map and optional reasoning settings.
-5. `src/runtime/build-agent-config.ts` merges that config with the base agent definitions from `src/agents/`.
+5. `src/runtime/build-agent-config.ts` merges that config with the required agent definitions and any configured optional agent definitions from `src/agents/`.
 6. The hook mutates `config.default_agent` and `config.agent` in place.
 
 There is no markdown frontmatter rewrite step.
@@ -34,14 +34,6 @@ Repo-local `.opencode/agents/*.md` files are intentionally not part of the runti
 - Role: default entry point and intent-based router
 - Owns the intent gate and routes work to the right specialist
 
-### `dispatcher`
-
-- Mode: `subagent`
-- Role: workflow coordinator for multi-track work
-- Decides sequential versus parallel specialist execution
-
-The dispatcher is a coordinator, not a leaf specialist.
-
 ### `explorer`
 
 - Mode: `subagent`
@@ -53,53 +45,53 @@ The dispatcher is a coordinator, not a leaf specialist.
 - Mode: `subagent`
 - Role: read-only documentation and API reference specialist
 - Read-only leaf focused on external references
+- Prefer Context7 MCP for library and framework docs before falling back to web fetch/search
 
 ### `planner`
 
 - Mode: `subagent`
 - Role: planning specialist for specs and implementation plans
-- Allowed to write markdown planning documents only by convention and prompt
+- Runtime-enforced docs-only editor with `edit` limited to `docs/**/*.md`
 
 ### `builder`
 
 - Mode: `subagent`
-- Role: non-visual execution specialist
-- Handles code changes, tests, configuration, and verification
+- Role: implementation specialist
+- Handles code changes, tests, configuration, verification, and UI/frontend work
 
-### `frontend-developer`
-
-- Mode: `subagent`
-- Role: frontend implementation specialist
-- Handles UI, layout, styling, accessibility, and interaction quality
+## Optional Agent Set
 
 ### `code-reviewer`
 
 - Mode: `subagent`
-- Role: read-only reviewer
-- Limited to read-only inspection plus selected `git diff`, `git log`, and `git status` commands
+- Role: optional read-only reviewer
+- Injected only when `legionaries.yaml` defines `agents.code-reviewer.model`
+- Review remains command-owned by `/code-review` by default
 
 ## Routing Contract
 
 Your Legion uses direct specialist routing rather than a category-first runtime.
 
-- The `orchestrator` performs turn-local intent classification to choose one concrete subagent or route through `dispatcher`.
+- The `orchestrator` performs turn-local intent classification to choose one concrete subagent.
 - These intents are routing heuristics only. They are not runtime categories, model aliases, or execution profiles.
-- `dispatcher` coordinates multi-step, multi-specialist work and should be used when sequencing or safe parallelism matters.
-- `planner`, `builder`, `frontend-developer`, `code-reviewer`, `explorer`, and `librarian` are leaf specialists.
-- Leaf specialists should not orchestrate other leaf specialists. Composition should flow through `dispatcher`.
+- Multi-step work should go through `planner` first when sequencing is unclear, then `builder` executes approved implementation work.
+- `planner`, `builder`, `explorer`, and `librarian` are leaf specialists.
+- Leaf specialists should not orchestrate other leaf specialists.
+- Code review is command-owned by `/code-review` by default; `code-reviewer` is optional and not part of default routing.
 - `legionaries.yaml` configures per-agent models and reasoning only. It does not decide which agent gets selected.
 
 ## Routing Boundaries
 
-- `builder` vs `frontend-developer`: `builder` owns non-visual engineering work, tests, config, and refactors; `frontend-developer` owns UI, layout, styling, accessibility, and interaction quality.
+- `builder` owns implementation work, including backend, frontend, tests, config, refactors, accessibility, and UI interaction quality.
 - `explorer` vs `librarian`: `explorer` owns repo-local discovery and impact tracing; `librarian` owns external documentation, API confirmation, and package behavior lookup.
-- `orchestrator` vs `dispatcher`: `orchestrator` handles single dominant-intent routing; `dispatcher` handles decomposition, sequencing, and parallel specialist coordination.
+- `orchestrator` vs `planner`: `orchestrator` handles turn-local routing; `planner` handles decomposition and implementation plans when work needs sequencing.
 
 ## Model Mapping
 
 - `legionaries.yaml` defines one `agents` map.
-- The map must define all managed agents.
-- Every entry must define `model` using `provider/model-id` format.
+- The map must define all required managed agents.
+- Optional managed agents are injected only when their entries are present.
+- Every present entry must define `model` using `provider/model-id` format.
 - Entries may define `reasoning.effort` as `low`, `medium`, `high`, `xhigh`, or `max`.
 - The plugin injects the resolved `model` string into every agent config at startup.
 - The plugin passes configured reasoning settings through to `agent.options.reasoning`.
@@ -128,8 +120,8 @@ OpenCode should be configured like this:
 1. Add a new agent module under `src/agents/`.
 2. Register it in `src/agents/index.ts`.
 3. Add the agent name to `src/shared/agent-types.ts`.
-4. Add a model mapping for the agent in `legionaries.yaml`.
-5. Update routing guidance in `src/agents/orchestrator.ts` and `src/agents/dispatcher.ts` when the new agent changes delegation behavior.
+4. Add a model mapping for required agents in `legionaries.yaml`; optional agents should be documented but not required in the bundled config.
+5. Update routing guidance in `src/agents/orchestrator.ts` when the new agent changes delegation behavior.
 6. Update docs in `README.md` and `AGENTS.md` if the topology or routing contract changes.
 7. Update tests under `tests/`.
 

@@ -11,6 +11,7 @@ Use this role when the answer depends on official documentation, external packag
 ## Focus Areas
 
 - official documentation lookup
+- Context7 MCP documentation lookup for libraries and frameworks
 - library and framework API references
 - external implementation patterns
 - integration notes and compatibility concerns
@@ -18,6 +19,8 @@ Use this role when the answer depends on official documentation, external packag
 ## Working Style
 
 - Prefer primary sources over blog posts or guesses.
+- Use Context7 MCP first for library and framework documentation: resolve the library ID, then query the relevant docs.
+- Fall back to webfetch or websearch only when Context7 does not cover the source or version needed.
 - Call out version or provider ambiguity when it matters.
 - Summarize the relevant doc behavior, then connect it back to the current repo.
 - Keep recommendations grounded in the actual documentation you found.
@@ -50,9 +53,10 @@ export function createLibrarianAgent(_model: string): BaseAgentDefinition {
       skill: 'allow',
       todowrite: 'allow',
       edit: 'deny',
-      write: 'deny',
       bash: 'deny',
       task: 'deny',
+      'context7_resolve-library-id': 'allow',
+      'context7_query-docs': 'allow',
       webfetch: 'allow',
       websearch: 'allow',
     },

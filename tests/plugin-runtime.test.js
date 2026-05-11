@@ -22,11 +22,11 @@ test('plugin runtime builds the full agent config from the mixed legionaries map
   assert.equal(result.default_agent, 'orchestrator')
   assert.equal(result.agent.orchestrator.model, 'openai/gpt-5.5')
   assert.deepEqual(result.agent.orchestrator.options.reasoning, { effort: 'medium' })
-  assert.equal(result.agent.dispatcher.model, 'opencode-go/glm-5.1')
   assert.equal(result.agent.builder.model, 'opencode-go/kimi-k2.6')
-  assert.equal(result.agent['frontend-developer'].model, 'github-copilot/gemini-3.1-pro-preview')
   assert.equal(result.agent.explorer.model, 'opencode-go/deepseek-v4-flash')
   assert.equal(result.agent.librarian.model, 'opencode-go/minimax-m2.7')
+  assert.ok(!('dispatcher' in result.agent))
+  assert.ok(!('frontend-developer' in result.agent))
 })
 
 test('plugin runtime supports alternate mixed legionaries config files', async () => {
@@ -45,11 +45,17 @@ test('plugin runtime supports alternate mixed legionaries config files', async (
             effort: 'medium',
           },
         },
-        'frontend-developer': {
+        builder: {
           model: 'openai/gpt-5-mini',
         },
         librarian: {
           model: 'github-copilot/grok-code-fast-1',
+        },
+        'code-reviewer': {
+          model: 'openai/gpt-5.5',
+          reasoning: {
+            effort: 'high',
+          },
         },
       },
     }),
@@ -63,8 +69,11 @@ test('plugin runtime supports alternate mixed legionaries config files', async (
 
   assert.equal(result.agent.orchestrator.model, 'github-copilot/claude-opus-4.1')
   assert.deepEqual(result.agent.orchestrator.options.reasoning, { effort: 'medium' })
-  assert.equal(result.agent['frontend-developer'].model, 'openai/gpt-5-mini')
+  assert.equal(result.agent.builder.model, 'openai/gpt-5-mini')
   assert.equal(result.agent.librarian.model, 'github-copilot/grok-code-fast-1')
+  assert.equal(result.agent['code-reviewer'].mode, 'subagent')
+  assert.equal(result.agent['code-reviewer'].model, 'openai/gpt-5.5')
+  assert.deepEqual(result.agent['code-reviewer'].options.reasoning, { effort: 'high' })
 })
 
 test('package metadata and project config use the published package name', () => {
@@ -120,7 +129,8 @@ test('plugin server exposes a config hook that injects Your Legion agents', asyn
   assert.equal(config.default_agent, 'orchestrator')
   assert.equal(config.agent.orchestrator.model, 'openai/gpt-5.5')
   assert.deepEqual(config.agent.orchestrator.options.reasoning, { effort: 'medium' })
-  assert.equal(config.agent['code-reviewer'].mode, 'subagent')
   assert.equal(config.agent.builder.mode, 'subagent')
-  assert.equal(config.agent['frontend-developer'].mode, 'subagent')
+  assert.ok(!('dispatcher' in config.agent))
+  assert.ok(!('frontend-developer' in config.agent))
+  assert.ok(!('code-reviewer' in config.agent))
 })

@@ -1,21 +1,17 @@
 import type { AgentName, AgentFactory, BaseAgentDefinition } from '../shared/agent-types.ts'
 import { createCodeReviewerAgent } from './code-reviewer.ts'
-import { createDispatcherAgent } from './dispatcher.ts'
 import { createExplorerAgent } from './explorer.ts'
-import { createFrontendDeveloperAgent } from './frontend-dev.ts'
-import { createBuilderAgent } from './implementer.ts'
+import { createBuilderAgent } from './builder.ts'
 import { createLibrarianAgent } from './librarian.ts'
 import { createOrchestratorAgent } from './orchestrator.ts'
 import { createPlannerAgent } from './planner.ts'
 
 export const AGENT_FACTORIES: Record<AgentName, AgentFactory> = {
   orchestrator: createOrchestratorAgent,
-  dispatcher: createDispatcherAgent,
   explorer: createExplorerAgent,
   librarian: createLibrarianAgent,
   planner: createPlannerAgent,
   builder: createBuilderAgent,
-  'frontend-developer': createFrontendDeveloperAgent,
   'code-reviewer': createCodeReviewerAgent,
 }
 

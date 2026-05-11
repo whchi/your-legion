@@ -51,7 +51,6 @@ export function createExplorerAgent(_model: string): BaseAgentDefinition {
       skill: 'allow',
       todowrite: 'allow',
       edit: 'deny',
-      write: 'deny',
       bash: 'deny',
       task: 'deny',
       webfetch: 'deny',

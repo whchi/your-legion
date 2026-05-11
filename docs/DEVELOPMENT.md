@@ -41,24 +41,27 @@ No frontmatter rewrite step is required.
 
 - Edit `src/agents/*.ts` to change prompts, permissions, descriptions, or modes.
 - Edit `legionaries.yaml` to mix providers, update per-agent models, and tune reasoning settings.
-- Add a new agent by updating `src/agents/`, `src/agents/index.ts`, `src/shared/agent-types.ts`, `legionaries.yaml`, and the routing guidance in `src/agents/orchestrator.ts` and `src/agents/dispatcher.ts`.
+- Add a new required agent by updating `src/agents/`, `src/agents/index.ts`, `src/shared/agent-types.ts`, `legionaries.yaml`, and the routing guidance in `src/agents/orchestrator.ts`.
+- Add a new optional agent by registering it in `src/shared/agent-types.ts` and `src/agents/index.ts`, then documenting the optional `legionaries.yaml` mapping.
 
 ## Routing Contract
 
 Your Legion uses direct specialist routing rather than a category-first runtime.
 
-- The `orchestrator` performs turn-local intent classification to choose one concrete subagent or route through `dispatcher`.
+- The `orchestrator` performs turn-local intent classification to choose one concrete subagent.
 - These intents are routing heuristics only. They are not runtime categories, model aliases, or execution profiles.
-- `dispatcher` coordinates multi-step, multi-specialist work and should be used when sequencing or safe parallelism matters.
-- `planner`, `builder`, `frontend-developer`, `code-reviewer`, `explorer`, and `librarian` are leaf specialists.
-- Leaf specialists should not orchestrate other leaf specialists. Composition should flow through `dispatcher`.
+- Multi-step work should go through `planner` first when sequencing is unclear, then `builder` executes approved implementation work.
+- `planner`, `builder`, `explorer`, and `librarian` are leaf specialists.
+- Leaf specialists should not orchestrate other leaf specialists.
+- `planner` is runtime-limited to `docs/**/*.md` edits; code changes belong to `builder`.
+- Code review is command-owned by `/code-review` by default; `code-reviewer` is an optional runtime agent when explicitly configured.
 - `legionaries.yaml` configures per-agent models and reasoning only. It does not decide which agent gets selected.
 
 ## Routing Boundaries
 
-- `builder` vs `frontend-developer`: `builder` owns non-visual engineering work, tests, config, and refactors; `frontend-developer` owns UI, layout, styling, accessibility, and interaction quality.
+- `builder` owns implementation work, including backend, frontend, tests, config, refactors, accessibility, and UI interaction quality.
 - `explorer` vs `librarian`: `explorer` owns repo-local discovery and impact tracing; `librarian` owns external documentation, API confirmation, and package behavior lookup.
-- `orchestrator` vs `dispatcher`: `orchestrator` handles single dominant-intent routing; `dispatcher` handles decomposition, sequencing, and parallel specialist coordination.
+- `orchestrator` vs `planner`: `orchestrator` handles turn-local routing; `planner` handles decomposition and implementation plans when work needs sequencing.
 
 ## Related Docs
 

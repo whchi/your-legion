@@ -93,7 +93,7 @@ The bundled example currently uses these provider prefixes:
 
 Model values must use `provider/model-id` format, for example `openai/gpt-5.5`.
 
-Every managed agent must have a model mapping. Optional `reasoning.effort` values are `low`, `medium`, `high`, `xhigh`, and `max`.
+Every required managed agent must have a model mapping. Optional agents are injected only when configured. Optional `reasoning.effort` values are `low`, `medium`, `high`, `xhigh`, and `max`.
 
 ## Uninstall
 

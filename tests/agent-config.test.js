@@ -1,14 +1,24 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-test('agent set includes exploration and docs research specialists', async () => {
-  const { BASE_AGENT_DEFINITIONS } = await import('../src/agents/index.ts')
-  const files = Object.keys(BASE_AGENT_DEFINITIONS).sort()
+test('agent registry supports five required specialists and optional code review', async () => {
+  const { REQUIRED_AGENT_NAMES, OPTIONAL_AGENT_NAMES } = await import('../src/shared/agent-types.ts')
+  const { AGENT_FACTORIES, BASE_AGENT_DEFINITIONS } = await import('../src/agents/index.ts')
 
-  assert.ok(files.includes('explorer'))
-  assert.ok(files.includes('librarian'))
-  assert.ok(files.includes('builder'))
-  assert.ok(files.includes('frontend-developer'))
+  assert.deepEqual(REQUIRED_AGENT_NAMES, [
+    'orchestrator',
+    'explorer',
+    'planner',
+    'builder',
+    'librarian',
+  ])
+  assert.deepEqual(OPTIONAL_AGENT_NAMES, ['code-reviewer'])
+  assert.ok(!('dispatcher' in AGENT_FACTORIES))
+  assert.ok(!('frontend-developer' in AGENT_FACTORIES))
+  assert.ok('code-reviewer' in AGENT_FACTORIES)
+  assert.ok(!('dispatcher' in BASE_AGENT_DEFINITIONS))
+  assert.ok(!('frontend-developer' in BASE_AGENT_DEFINITIONS))
+  assert.ok('code-reviewer' in BASE_AGENT_DEFINITIONS)
 })
 
 test('orchestrator prompt includes an intent gate and can delegate to explorer and librarian', async () => {
@@ -19,24 +29,69 @@ test('orchestrator prompt includes an intent gate and can delegate to explorer a
   assert.equal(orchestrator.permission.task.explorer, 'allow')
   assert.equal(orchestrator.permission.task.librarian, 'allow')
   assert.equal(orchestrator.permission.task.builder, 'allow')
-  assert.equal(orchestrator.permission.task['frontend-developer'], 'allow')
+  assert.ok(!('dispatcher' in orchestrator.permission.task))
+  assert.ok(!('frontend-developer' in orchestrator.permission.task))
+  assert.ok(!('code-reviewer' in orchestrator.permission.task))
   assert.match(orchestrator.prompt, /Intent Gate/i)
   assert.match(orchestrator.prompt, /explore/i)
   assert.match(orchestrator.prompt, /docs research|library docs|api references/i)
+  assert.doesNotMatch(orchestrator.prompt, /dispatcher/i)
+  assert.doesNotMatch(orchestrator.prompt, /frontend-developer/i)
+  assert.doesNotMatch(orchestrator.prompt, /code-reviewer/i)
 })
 
-test('dispatcher prompt documents leaf agents and parallelization rules', async () => {
+test('leaf specialists cannot delegate to other subagents', async () => {
   const { BASE_AGENT_DEFINITIONS } = await import('../src/agents/index.ts')
-  const dispatcher = BASE_AGENT_DEFINITIONS.dispatcher
 
-  assert.equal(dispatcher.permission.task.explorer, 'allow')
-  assert.equal(dispatcher.permission.task.librarian, 'allow')
-  assert.equal(dispatcher.permission.task.builder, 'allow')
-  assert.equal(dispatcher.permission.task['frontend-developer'], 'allow')
-  assert.match(dispatcher.prompt, /leaf/i)
-  assert.match(dispatcher.prompt, /parallel/i)
-  assert.match(dispatcher.prompt, /explorer/i)
-  assert.match(dispatcher.prompt, /librarian/i)
+  assert.equal(BASE_AGENT_DEFINITIONS.builder.permission.task, 'deny')
+  assert.equal(BASE_AGENT_DEFINITIONS.explorer.permission.task, 'deny')
+  assert.equal(BASE_AGENT_DEFINITIONS.librarian.permission.task, 'deny')
+  assert.equal(BASE_AGENT_DEFINITIONS['code-reviewer'].permission.task, 'deny')
+})
+
+test('planner is docs-only and cannot modify application code paths', async () => {
+  const { BASE_AGENT_DEFINITIONS } = await import('../src/agents/index.ts')
+  const planner = BASE_AGENT_DEFINITIONS.planner
+
+  assert.equal(planner.mode, 'subagent')
+  assert.deepEqual(planner.permission.edit, {
+    '*': 'deny',
+    'docs/**/*.md': 'allow',
+  })
+  assert.match(planner.prompt, /docs\/\*\*\/\*\.md/i)
+  assert.doesNotMatch(planner.prompt, /write markdown planning documents only by convention/i)
+})
+
+test('builder prompt carries debugging, testing, and verification workflow cues', async () => {
+  const { BASE_AGENT_DEFINITIONS } = await import('../src/agents/index.ts')
+  const builder = BASE_AGENT_DEFINITIONS.builder
+
+  assert.match(builder.prompt, /frontend|UI|accessibility/i)
+  assert.match(builder.prompt, /debugging-playbook/i)
+  assert.match(builder.prompt, /better-test-driven-development/i)
+  assert.match(builder.prompt, /testing-strategy/i)
+  assert.match(builder.prompt, /build-fix/i)
+})
+
+test('optional code reviewer prompt carries findings-first review workflow cues', async () => {
+  const { BASE_AGENT_DEFINITIONS } = await import('../src/agents/index.ts')
+  const codeReviewer = BASE_AGENT_DEFINITIONS['code-reviewer']
+
+  assert.equal(codeReviewer.mode, 'subagent')
+  assert.equal(codeReviewer.permission.edit, 'deny')
+  assert.match(codeReviewer.prompt, /Findings/i)
+  assert.match(codeReviewer.prompt, /severity/i)
+  assert.match(codeReviewer.prompt, /maintainable-code-review/i)
+  assert.match(codeReviewer.prompt, /code-review/i)
+})
+
+test('planner prompt carries structure and boundary review workflow cues', async () => {
+  const { BASE_AGENT_DEFINITIONS } = await import('../src/agents/index.ts')
+  const planner = BASE_AGENT_DEFINITIONS.planner
+
+  assert.match(planner.prompt, /project-structure-advisor/i)
+  assert.match(planner.prompt, /repository-boundary-review/i)
+  assert.match(planner.prompt, /ddd-fit-check/i)
 })
 
 test('explorer is read-only and cannot delegate', async () => {
@@ -45,7 +100,7 @@ test('explorer is read-only and cannot delegate', async () => {
 
   assert.equal(explorer.mode, 'subagent')
   assert.equal(explorer.permission.edit, 'deny')
-  assert.equal(explorer.permission.write, 'deny')
+  assert.ok(!('write' in explorer.permission))
   assert.equal(explorer.permission.bash, 'deny')
   assert.equal(explorer.permission.task, 'deny')
 })
@@ -56,8 +111,11 @@ test('librarian is read-only and cannot delegate', async () => {
 
   assert.equal(librarian.mode, 'subagent')
   assert.equal(librarian.permission.edit, 'deny')
-  assert.equal(librarian.permission.write, 'deny')
+  assert.ok(!('write' in librarian.permission))
   assert.equal(librarian.permission.task, 'deny')
+  assert.equal(librarian.permission['context7_resolve-library-id'], 'allow')
+  assert.equal(librarian.permission['context7_query-docs'], 'allow')
+  assert.match(librarian.prompt, /Context7/i)
   assert.match(librarian.prompt, /documentation|API|reference/i)
 })
 
@@ -84,4 +142,15 @@ test('buildAgentDefinition produces valid config from factory', async () => {
   assert.equal(builder.mode, 'subagent')
   assert.equal(builder.permission.edit, 'allow')
   assert.match(builder.prompt, /Builder/)
+
+  const planner = buildAgentDefinition('planner', 'openai/gpt-5.5')
+  assert.deepEqual(planner.permission.edit, {
+    '*': 'deny',
+    'docs/**/*.md': 'allow',
+  })
+
+  const codeReviewer = buildAgentDefinition('code-reviewer', 'openai/gpt-5.5')
+  assert.equal(codeReviewer.mode, 'subagent')
+  assert.equal(codeReviewer.permission.edit, 'deny')
+  assert.match(codeReviewer.prompt, /Code Reviewer/)
 })

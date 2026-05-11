@@ -1,16 +1,22 @@
 export const DEFAULT_AGENT = 'orchestrator' as const
 
-export const AGENT_NAMES = [
+export const REQUIRED_AGENT_NAMES = [
   'orchestrator',
-  'dispatcher',
   'explorer',
-  'librarian',
   'planner',
   'builder',
-  'frontend-developer',
-  'code-reviewer',
+  'librarian',
 ] as const
 
+export const OPTIONAL_AGENT_NAMES = ['code-reviewer'] as const
+
+export const AGENT_NAMES = [
+  ...REQUIRED_AGENT_NAMES,
+  ...OPTIONAL_AGENT_NAMES,
+] as const
+
+export type RequiredAgentName = (typeof REQUIRED_AGENT_NAMES)[number]
+export type OptionalAgentName = (typeof OPTIONAL_AGENT_NAMES)[number]
 export type AgentName = (typeof AGENT_NAMES)[number]
 
 export type AgentMode = 'primary' | 'subagent' | 'all'
@@ -54,15 +60,24 @@ export type ResolvedLegionaryEntry = {
   reasoning?: AgentReasoningConfig
 }
 
+export type ResolvedLegionariesMap = Record<
+  RequiredAgentName,
+  ResolvedLegionaryEntry
+> & Partial<Record<OptionalAgentName, ResolvedLegionaryEntry>>
+
+export type EffectiveAgentDefinition = BaseAgentDefinition & {
+  model: string
+  options?: {
+    reasoning?: AgentReasoningConfig
+  }
+}
+
+export type EffectiveAgentMap = Record<
+  RequiredAgentName,
+  EffectiveAgentDefinition
+> & Partial<Record<OptionalAgentName, EffectiveAgentDefinition>>
+
 export type EffectiveAgentConfig = {
   default_agent: typeof DEFAULT_AGENT
-  agent: Record<
-    AgentName,
-    BaseAgentDefinition & {
-      model: string
-      options?: {
-        reasoning?: AgentReasoningConfig
-      }
-    }
-  >
+  agent: EffectiveAgentMap
 }

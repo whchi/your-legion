@@ -5,11 +5,13 @@ import { isAbsolute, join, resolve } from 'node:path'
 import YAML from 'yaml'
 
 import {
-  AGENT_NAMES,
+  OPTIONAL_AGENT_NAMES,
+  REQUIRED_AGENT_NAMES,
   type AgentName,
   type LegionariesConfig,
   type LegionaryEntry,
   type ResolvedLegionaryEntry,
+  type ResolvedLegionariesMap,
   type ReasoningEffort,
 } from '../shared/agent-types.ts'
 
@@ -93,11 +95,17 @@ function normalizeAgentEntry(agent: AgentName, entry: LegionaryEntry | undefined
 
 function validateModelMap(
   models: Partial<Record<AgentName, LegionaryEntry>>,
-): Record<AgentName, ResolvedLegionaryEntry> {
-  const resolvedModels = {} as Record<AgentName, ResolvedLegionaryEntry>
+): ResolvedLegionariesMap {
+  const resolvedModels = {} as ResolvedLegionariesMap
 
-  for (const agent of AGENT_NAMES) {
+  for (const agent of REQUIRED_AGENT_NAMES) {
     resolvedModels[agent] = normalizeAgentEntry(agent, models[agent])
+  }
+
+  for (const agent of OPTIONAL_AGENT_NAMES) {
+    if (models[agent] !== undefined) {
+      resolvedModels[agent] = normalizeAgentEntry(agent, models[agent])
+    }
   }
 
   return resolvedModels

@@ -3,8 +3,6 @@ agents:
     model: openai/gpt-5.5
     reasoning:
       effort: medium
-  dispatcher:
-    model: opencode-go/glm-5.1
   explorer:
     model: opencode-go/deepseek-v4-flash
     reasoning:
@@ -17,9 +15,3 @@ agents:
       effort: high
   builder:
     model: opencode-go/kimi-k2.6
-  frontend-developer:
-    model: github-copilot/gemini-3.1-pro-preview
-  code-reviewer:
-    model: openai/gpt-5.5
-    reasoning:
-      effort: high
