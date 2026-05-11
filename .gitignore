@@ -5,3 +5,4 @@ task_plan.md
 node_modules/
 findings.md
 node-compile-cache
+bun.lock
