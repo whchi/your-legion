@@ -1,6 +1,18 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
+const FORBIDDEN_PROMPT_HOOKS = [
+  'better-test-driven-development',
+  'testing-strategy',
+  'debugging-playbook',
+  'debug-triage',
+  'build-fix',
+  'project-structure-advisor',
+  'repository-boundary-review',
+  'ddd-fit-check',
+  'maintainable-code-review',
+]
+
 test('agent registry supports five required specialists and optional code review', async () => {
   const { REQUIRED_AGENT_NAMES, OPTIONAL_AGENT_NAMES } = await import('../src/shared/agent-types.ts')
   const { AGENT_FACTORIES, BASE_AGENT_DEFINITIONS } = await import('../src/agents/index.ts')
@@ -67,10 +79,10 @@ test('builder prompt carries debugging, testing, and verification workflow cues'
   const builder = BASE_AGENT_DEFINITIONS.builder
 
   assert.match(builder.prompt, /frontend|UI|accessibility/i)
-  assert.match(builder.prompt, /debugging-playbook/i)
-  assert.match(builder.prompt, /better-test-driven-development/i)
-  assert.match(builder.prompt, /testing-strategy/i)
-  assert.match(builder.prompt, /build-fix/i)
+  assert.match(builder.prompt, /failing test/i)
+  assert.match(builder.prompt, /narrowest test level/i)
+  assert.match(builder.prompt, /environment, data, and logic/i)
+  assert.match(builder.prompt, /one build or type error at a time/i)
 })
 
 test('optional code reviewer prompt carries findings-first review workflow cues', async () => {
@@ -81,17 +93,32 @@ test('optional code reviewer prompt carries findings-first review workflow cues'
   assert.equal(codeReviewer.permission.edit, 'deny')
   assert.match(codeReviewer.prompt, /Findings/i)
   assert.match(codeReviewer.prompt, /severity/i)
-  assert.match(codeReviewer.prompt, /maintainable-code-review/i)
-  assert.match(codeReviewer.prompt, /code-review/i)
+  assert.match(codeReviewer.prompt, /change intent/i)
+  assert.match(codeReviewer.prompt, /return contracts/i)
+  assert.match(codeReviewer.prompt, /abstraction level/i)
 })
 
 test('planner prompt carries structure and boundary review workflow cues', async () => {
   const { BASE_AGENT_DEFINITIONS } = await import('../src/agents/index.ts')
   const planner = BASE_AGENT_DEFINITIONS.planner
 
-  assert.match(planner.prompt, /project-structure-advisor/i)
-  assert.match(planner.prompt, /repository-boundary-review/i)
-  assert.match(planner.prompt, /ddd-fit-check/i)
+  assert.match(planner.prompt, /project scale and ownership/i)
+  assert.match(planner.prompt, /persistence access/i)
+  assert.match(planner.prompt, /DDD fit/i)
+})
+
+test('agent prompts inline workflows instead of hardcoding skill hooks', async () => {
+  const { BASE_AGENT_DEFINITIONS } = await import('../src/agents/index.ts')
+
+  for (const [agentName, definition] of Object.entries(BASE_AGENT_DEFINITIONS)) {
+    for (const hook of FORBIDDEN_PROMPT_HOOKS) {
+      assert.doesNotMatch(
+        definition.prompt,
+        new RegExp(hook, 'i'),
+        `${agentName} prompt should inline ${hook} workflow instead of naming the hook`,
+      )
+    }
+  }
 })
 
 test('explorer is read-only and cannot delegate', async () => {

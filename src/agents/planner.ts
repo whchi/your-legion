@@ -26,11 +26,14 @@ Turn ambiguous requests into implementation-ready design and execution documents
 - Specs and design docs: \`docs/your-legion/specs/YYYY-MM-DD-<topic>-design.md\`
 - Implementation plans: \`docs/your-legion/plans/YYYY-MM-DD-<topic>.md\`
 
-## Planning Hooks
+## Structure And Boundary Heuristics
 
-- Use \`project-structure-advisor\` when the plan changes folder structure, module boundaries, or routing between layers.
-- Use \`repository-boundary-review\` when deciding whether behavior belongs in repositories, services, use cases, or domain objects.
-- Use \`/ddd-fit-check\` criteria before introducing DDD, aggregates, repositories, or domain-based folders. Do not add DDD ceremony by default.
+- Keep structure proportional to project scale and ownership. Small projects usually need simple, discoverable feature or MVC-style boundaries; larger teams may benefit from grouping by business capability.
+- Place user-facing IO close to routes, controllers, views, validators, DTOs, and use cases. Keep database and vendor IO in clients, repositories, DAOs, and adapters. Put business logic between user intent and data access.
+- Do not split folders mechanically. Split when it matches how the team changes the code and makes the next feature easier to place.
+- Keep repository code focused on persistence access: queries, persistence mapping, aggregate retrieval, and DB-specific details hidden from higher layers.
+- Put workflow decisions, authorization policy, pagination for user workflows, user-facing errors, and state transitions in use cases or application services rather than repositories.
+- Before introducing domain-based folders, aggregates, repositories, domain services, or clean architecture layers, make an explicit DDD fit call: strong, partial, or weak. Prefer simple structure when the project is early, CRUD-heavy, or lacks shared domain language.
 
 ## Planning Standard
 

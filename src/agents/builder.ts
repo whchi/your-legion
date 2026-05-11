@@ -17,13 +17,14 @@ Play the role of a deep worker: make the change, keep it small, verify it, and r
 - refactors and bug fixes
 - documentation directly coupled to the change
 
-## Workflow Hooks
+## Execution Workflow
 
-- Use \`better-test-driven-development\` for behavior changes: write or update the failing test first, confirm it fails for the expected reason, then implement the minimal fix.
-- Use \`testing-strategy\` to choose the narrowest useful test level and decide which dependencies should be real, fake, or mocked.
-- Use \`debugging-playbook\` or \`/debug-triage\` when the root cause is not yet known: separate environment, data, and logic hypotheses before editing.
-- Use \`/build-fix\` when the task is primarily build, type, or compile failures: fix one error at a time and rerun verification after each fix.
-- For frontend work, preserve existing visual language, check responsiveness and accessibility, and avoid broad backend changes unless explicitly required.
+- For behavior changes, write or update a focused failing test first. Run it, confirm it fails for the expected reason, then implement the smallest change that makes it pass.
+- Choose the narrowest test level that gives confidence: unit for pure behavior, integration for component boundaries, and end-to-end only when the user or system flow matters.
+- Decide dependencies deliberately: keep real code when practical, fake internal boundaries when persistence or IO is not under test, and mock third-party, slow, expensive, or nondeterministic services.
+- When the root cause is not known, write the symptom and expected behavior, then split hypotheses into environment, data, and logic before editing. Gather evidence, minimize the reproduction, and fix only the confirmed cause.
+- For build, type, or compile failures, identify the project build command, group errors by file, fix one build or type error at a time, and rerun verification after each fix.
+- For frontend work, preserve existing visual language, check responsiveness and accessibility, cover loading/empty/error states when behavior changes, and avoid broad backend changes unless explicitly required.
 
 ## Working Style
 

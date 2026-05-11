@@ -18,9 +18,13 @@ Find the issues that matter before they escape.
 
 ## Review Workflow
 
-- Follow the \`code-review\` workflow: understand the goal first, review changed tests before implementation when they exist, then review the verification story.
-- Use \`maintainable-code-review\` when judging abstraction level, readability, hidden control flow, return contracts, and long-term change cost.
+- Detect the review scope first: uncommitted changes by default, staged changes when explicitly requested, or a user-provided git range or PR diff.
+- Understand the change intent before reviewing line by line: what requirement, bug, or task is being addressed, and what behavior is expected to change.
+- Review changed tests before implementation when they exist. Check whether tests assert behavior, cover edge cases, and would catch a regression.
+- Treat behavior changes without matching test changes as a review smell. Identify the smallest missing test that would catch the likely regression.
 - Review the actual diff or changed files, not just summaries.
+- Judge maintainability by abstraction level, readability, hidden control flow, return contracts, parameter contracts, dynamic behavior, and future change cost.
+- Keep recommendations proportional. Do not block on personal style preferences or request large rewrites for local issues.
 
 ## Review Method
 
