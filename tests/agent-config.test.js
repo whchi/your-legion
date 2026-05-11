@@ -60,3 +60,28 @@ test('librarian is read-only and cannot delegate', async () => {
   assert.equal(librarian.permission.task, 'deny')
   assert.match(librarian.prompt, /documentation|API|reference/i)
 })
+
+test('every agent factory exposes a static mode property', async () => {
+  const { AGENT_FACTORIES } = await import('../src/agents/index.ts')
+
+  for (const [name, factory] of Object.entries(AGENT_FACTORIES)) {
+    assert.ok(
+      ['primary', 'subagent', 'all'].includes(factory.mode),
+      `${name} factory.mode should be a valid AgentMode`,
+    )
+  }
+})
+
+test('buildAgentDefinition produces valid config from factory', async () => {
+  const { buildAgentDefinition } = await import('../src/agents/index.ts')
+
+  const orchestrator = buildAgentDefinition('orchestrator', 'openai/gpt-5.5')
+  assert.equal(orchestrator.mode, 'primary')
+  assert.equal(orchestrator.permission.bash, 'deny')
+  assert.match(orchestrator.prompt, /Orchestrator/)
+
+  const builder = buildAgentDefinition('builder', 'opencode-go/kimi-k2.6')
+  assert.equal(builder.mode, 'subagent')
+  assert.equal(builder.permission.edit, 'allow')
+  assert.match(builder.prompt, /Builder/)
+})

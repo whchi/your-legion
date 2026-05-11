@@ -24,6 +24,14 @@ export type BaseAgentDefinition = {
   prompt: string
 }
 
+/**
+ * Agent factory function with static mode property.
+ * Allows per-model customization (prompt variants, provider-specific settings).
+ */
+export type AgentFactory = ((model: string) => BaseAgentDefinition) & {
+  mode: AgentMode
+}
+
 export type ReasoningEffort = 'low' | 'medium' | 'high' | 'xhigh' | 'max'
 
 export type AgentReasoningConfig = {

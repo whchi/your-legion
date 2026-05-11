@@ -1,4 +1,4 @@
-import { BASE_AGENT_DEFINITIONS } from '../agents/index.ts'
+import { AGENT_FACTORIES } from '../agents/index.ts'
 import { loadLegionariesConfig, type LoadLegionariesConfigOptions } from '../config/legionaries.ts'
 import { AGENT_NAMES, DEFAULT_AGENT, type EffectiveAgentConfig } from '../shared/agent-types.ts'
 
@@ -10,9 +10,10 @@ export function buildEffectiveAgentConfig(
 
   for (const agentName of AGENT_NAMES) {
     const configuredAgent = configuredAgents[agentName]
+    const baseDefinition = AGENT_FACTORIES[agentName](configuredAgent.model)
 
     agent[agentName] = {
-      ...BASE_AGENT_DEFINITIONS[agentName],
+      ...baseDefinition,
       model: configuredAgent.model,
       ...(configuredAgent.reasoning
         ? {
