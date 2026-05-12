@@ -66,7 +66,7 @@ Your Legion needs an agent model config named `legionaries.yaml`. The installer 
 
 The example file is here:
 
-- [`dist/legionaries.yaml`](./dist/legionaries.yaml)
+- [`legionaries.yaml`](../legionaries.yaml)
 - Raw URL: `https://raw.githubusercontent.com/whchi/your-legion/main/legionaries.yaml`
 
 For project-specific overrides, put `legionaries.yaml` in the root of the worktree where you run OpenCode. Project config takes precedence over the global file:
