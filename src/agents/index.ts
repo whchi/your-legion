@@ -1,5 +1,4 @@
 import type { AgentName, AgentFactory, BaseAgentDefinition } from '../shared/agent-types.ts'
-import { createCodeReviewerAgent } from './code-reviewer.ts'
 import { createExplorerAgent } from './explorer.ts'
 import { createBuilderAgent } from './builder.ts'
 import { createLibrarianAgent } from './librarian.ts'
@@ -12,7 +11,6 @@ export const AGENT_FACTORIES: Record<AgentName, AgentFactory> = {
   librarian: createLibrarianAgent,
   planner: createPlannerAgent,
   builder: createBuilderAgent,
-  'code-reviewer': createCodeReviewerAgent,
 }
 
 export function buildAgentDefinition(

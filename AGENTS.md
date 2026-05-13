@@ -8,7 +8,7 @@
 2. `src/index.ts` exports the plugin `server` entrypoint.
 3. The plugin `config` hook reads `legionaries.yaml` from the active worktree or global OpenCode config directory.
 4. `src/config/legionaries.ts` validates `system_agents`, `custom_agents`, and optional reasoning settings.
-5. `src/runtime/agent-definition-provider.ts` loads protected system agent factories and discovered custom agent factories.
+5. `src/runtime/agent-definition-provider.ts` loads protected system agent factories and YAML custom agents.
 6. `src/runtime/build-agent-config.ts` merges config with agent providers and DIO commands.
 7. The hook mutates `config.default_agent`, `config.agent`, and `config.command` in place.
 
@@ -21,12 +21,11 @@ There is no markdown frontmatter rewrite step.
 - `src/shared/agent-types.ts`: shared names and runtime config types
 - `legionaries.yaml`: system/custom provider-model mapping plus optional reasoning settings
 - `src/config/legionaries.ts`: YAML loading and validation
-- `src/runtime/agent-definition-provider.ts`: system and custom agent provider loading
+- `src/runtime/agent-definition-provider.ts`: system and YAML custom agent provider loading
 - `src/runtime/build-agent-config.ts`: final runtime config assembly
 - `src/runtime/dio-loop.ts`: in-memory `/dio` session loop
 - `src/index.ts`: plugin entrypoint and config injection hook
-- `.opencode/your-legion/agents/*.ts`: optional project custom agent definitions
-- `~/.config/opencode/your-legion/agents/*.ts`: optional global custom agent definitions
+- `src/custom-agents/*.yaml`: custom agent definitions
 - `temp/`: gitignored local temp artifacts for tests and config experiments
 
 Repo-local `.opencode/agents/*.md` files are intentionally not part of the runtime anymore.
@@ -64,23 +63,16 @@ Repo-local `.opencode/agents/*.md` files are intentionally not part of the runti
 - Role: implementation specialist
 - Handles code changes, tests, configuration, verification, and UI/frontend work
 
-## Optional Agent Set
-
-### `code-reviewer`
-
-- Mode: `subagent`
-- Role: optional read-only reviewer
-- Injected only when `legionaries.yaml` defines `agents.code-reviewer.model`
-- Review remains command-owned by `/code-review` by default
-
 ## Custom Agent Set
 
-- Custom agents are discovered from OpenCode config paths, not from package source.
-- Global path: `~/.config/opencode/your-legion/agents/*.ts`
-- Project path: `.opencode/your-legion/agents/*.ts`
-- Project definitions override global definitions with the same name.
+- Custom agents are discovered from `src/custom-agents/*.yaml`.
+- Bundled package examples are loaded first; active worktree definitions override bundled examples with the same name.
 - A custom agent must have a matching `custom_agents.<name>` model mapping.
+- YAML fields: `name`, `description`, `permission`, and `prompt`.
+- Custom agents run as `subagent`.
+- Any permission key not listed in YAML defaults to `deny`.
 - Custom agents cannot use system agent names; system agents are not replaceable.
+- `code-reviewer` lives at `src/custom-agents/code-reviewer.yaml` as the bundled real custom-agent example.
 
 ## Routing Contract
 
@@ -91,7 +83,7 @@ Your Legion uses direct specialist routing rather than a category-first runtime.
 - Multi-step work should go through `planner` first when sequencing is unclear, then `builder` executes approved implementation work.
 - `planner`, `builder`, `explorer`, and `librarian` are leaf specialists.
 - Leaf specialists should not orchestrate other leaf specialists.
-- Code review is command-owned by `/code-review` by default; `code-reviewer` is optional and not part of default routing.
+- Code review is command-owned by `/code-review` by default; `code-reviewer` is a custom agent example and not part of the protected system set.
 - `legionaries.yaml` configures per-agent models and reasoning only. It does not decide which agent gets selected.
 - Custom agents are available to the orchestrator when configured and discovered; routing guidance is augmented at runtime with their descriptions.
 
@@ -105,7 +97,6 @@ Your Legion uses direct specialist routing rather than a category-first runtime.
 
 - `legionaries.yaml` defines `system_agents` and `custom_agents`.
 - `system_agents` must define all required managed agents.
-- Optional managed agents are injected only when their `system_agents` entries are present.
 - `custom_agents` entries are injected only when a matching custom agent file is discovered.
 - Every present entry must define `model` using `provider/model-id` format.
 - Entries may define `reasoning.effort` as `low`, `medium`, `high`, `xhigh`, or `max`.
@@ -133,7 +124,7 @@ OpenCode should be configured like this:
 
 ## Extending The Plugin
 
-1. For a user custom agent, add a factory file under `.opencode/your-legion/agents/` or the matching global config path.
+1. For a user custom agent, add a YAML file under `src/custom-agents/`.
 2. Add the model mapping under `custom_agents` in `legionaries.yaml`.
 3. For a new protected system agent, add a module under `src/agents/`, register it in `src/agents/index.ts`, update `src/shared/agent-types.ts`, and add a `system_agents` mapping.
 4. Update routing guidance in `src/agents/orchestrator.ts` when the new system agent changes delegation behavior.

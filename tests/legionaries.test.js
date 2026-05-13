@@ -20,7 +20,7 @@ test('legionaries config file defines a mixed system-agent model map', () => {
   const config = YAML.parse(text)
 
   assert.ok(config.system_agents)
-  assert.deepEqual(config.custom_agents, {})
+  assert.equal(config.custom_agents['code-reviewer'].model, 'openai/gpt-5.5')
   assert.equal(config.system_agents.orchestrator.model, 'openai/gpt-5.5')
   assert.equal(config.system_agents.orchestrator.reasoning.effort, 'medium')
   assert.equal(config.system_agents.explorer.model, 'opencode-go/deepseek-v4-flash')
@@ -40,7 +40,7 @@ test('legionaries loader resolves the mixed system-agent model map', async () =>
   assert.equal(result.systemAgents.explorer.model, 'opencode-go/deepseek-v4-flash')
   assert.equal(result.systemAgents.librarian.model, 'opencode-go/minimax-m2.7')
   assert.equal(result.systemAgents.builder.model, 'opencode-go/kimi-k2.6')
-  assert.deepEqual(result.customAgents, {})
+  assert.equal(result.customAgents['code-reviewer'].model, 'openai/gpt-5.5')
   assert.ok(!('dispatcher' in result.systemAgents))
   assert.ok(!('frontend-developer' in result.systemAgents))
   assert.ok(!('code-reviewer' in result.systemAgents))
@@ -76,34 +76,6 @@ test('legionaries loader supports per-agent overrides via config override', asyn
   assert.equal(result.systemAgents.orchestrator.model, 'github-copilot/claude-opus-4.1')
   assert.deepEqual(result.systemAgents.orchestrator.reasoning, { effort: 'medium' })
   assert.equal(result.systemAgents.builder.model, 'github-copilot/gemini-3.1-pro-preview')
-})
-
-test('legionaries loader accepts optional code-reviewer mapping when provided', async () => {
-  fs.mkdirSync(tempDir, { recursive: true })
-  const tempConfigPath = path.join(tempDir, 'legionaries.optional-code-reviewer.yaml')
-  const original = YAML.parse(fs.readFileSync(legionariesConfigPath, 'utf8'))
-  const systemAgents = systemAgentsFrom(original)
-
-  fs.writeFileSync(
-    tempConfigPath,
-    YAML.stringify({
-      system_agents: {
-        ...systemAgents,
-        'code-reviewer': {
-          model: 'openai/gpt-5.5',
-          reasoning: {
-            effort: 'high',
-          },
-        },
-      },
-    }),
-  )
-
-  const { loadLegionariesConfig } = await import('../src/config/legionaries.ts')
-  const result = loadLegionariesConfig({ rootDir, configPath: tempConfigPath })
-
-  assert.equal(result.systemAgents['code-reviewer'].model, 'openai/gpt-5.5')
-  assert.deepEqual(result.systemAgents['code-reviewer'].reasoning, { effort: 'high' })
 })
 
 test('legionaries loader accepts custom_agents with the same entry shape', async () => {

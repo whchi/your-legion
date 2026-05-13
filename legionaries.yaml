@@ -15,4 +15,8 @@ system_agents:
       effort: high
   builder:
     model: opencode-go/kimi-k2.6
-custom_agents: {}
+custom_agents:
+  code-reviewer:
+    model: openai/gpt-5.5
+    reasoning:
+      effort: high

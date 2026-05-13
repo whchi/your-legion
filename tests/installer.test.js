@@ -132,4 +132,8 @@ test('build publishes the installer template under dist', () => {
     fs.readFileSync(path.join(rootDir, 'dist', 'legionaries.yaml'), 'utf8'),
     fs.readFileSync(path.join(rootDir, 'legionaries.yaml'), 'utf8'),
   )
+  assert.equal(
+    fs.readFileSync(path.join(rootDir, 'dist', 'custom-agents', 'code-reviewer.yaml'), 'utf8'),
+    fs.readFileSync(path.join(rootDir, 'src', 'custom-agents', 'code-reviewer.yaml'), 'utf8'),
+  )
 })

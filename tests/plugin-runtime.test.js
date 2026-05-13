@@ -29,6 +29,8 @@ test('plugin runtime builds the full agent config from the mixed legionaries map
   assert.equal(result.agent.builder.model, 'opencode-go/kimi-k2.6')
   assert.equal(result.agent.explorer.model, 'opencode-go/deepseek-v4-flash')
   assert.equal(result.agent.librarian.model, 'opencode-go/minimax-m2.7')
+  assert.equal(result.agent['code-reviewer'].model, 'openai/gpt-5.5')
+  assert.match(result.agent['code-reviewer'].prompt, /Findings/i)
   assert.ok(!('dispatcher' in result.agent))
   assert.ok(!('frontend-developer' in result.agent))
   assert.match(result.command.dio.description, /devotio/i)
@@ -59,6 +61,8 @@ test('plugin runtime supports alternate mixed legionaries config files', async (
         librarian: {
           model: 'github-copilot/grok-code-fast-1',
         },
+      },
+      custom_agents: {
         'code-reviewer': {
           model: 'openai/gpt-5.5',
           reasoning: {
@@ -138,9 +142,9 @@ test('plugin server exposes a config hook that injects Your Legion agents', asyn
   assert.equal(config.agent.orchestrator.model, 'openai/gpt-5.5')
   assert.deepEqual(config.agent.orchestrator.options.reasoning, { effort: 'medium' })
   assert.equal(config.agent.builder.mode, 'subagent')
+  assert.equal(config.agent['code-reviewer'].mode, 'subagent')
   assert.match(config.command.dio.template, /\$ARGUMENTS/)
   assert.match(config.command['dio-stop'].template, /cancel/i)
   assert.ok(!('dispatcher' in config.agent))
   assert.ok(!('frontend-developer' in config.agent))
-  assert.ok(!('code-reviewer' in config.agent))
 })

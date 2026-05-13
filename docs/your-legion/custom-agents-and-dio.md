@@ -4,33 +4,41 @@ This document is the implementation reference for the provider-based agent runti
 
 ## Intent
 
-Your Legion keeps its built-in agents as protected system agents while allowing users to add project or global custom agents without editing the package source. Runtime configuration is split by ownership:
+Your Legion keeps its built-in agents as protected system agents while allowing users to add custom agents with simple YAML files. Runtime configuration is split by ownership:
 
 - `system_agents`: model and reasoning settings for built-in Your Legion agents.
-- `custom_agents`: model and reasoning settings for user-provided agent modules.
+- `custom_agents`: model and reasoning settings for YAML-defined custom agents.
 
-System agents are owned by the plugin and cannot be replaced by custom agents. Custom agents are discovered from OpenCode config locations and injected at startup when configured.
+System agents are owned by the plugin and cannot be replaced by custom agents. Custom agents are discovered from `src/custom-agents/` and injected at startup when configured.
 
 ## Custom Agent Discovery
 
-The runtime scans these directories:
+The runtime scans:
 
-- Global: `<opencode-config-dir>/your-legion/agents/*.ts`
-- Project: `<worktree>/.opencode/your-legion/agents/*.ts`
+- bundled package examples copied to `dist/custom-agents/`
+- the active worktree's `src/custom-agents/*.yaml`
 
-Project-level files override global files with the same filename. The filename without extension is the OpenCode agent name.
+Worktree files override bundled examples with the same filename. The filename without extension is the OpenCode agent key.
 
-Each custom module must export either:
+Each YAML file must define:
 
-- a default factory function, or
-- a named factory using `create<PascalFileName>Agent`
-
-The factory receives the configured model string and returns an OpenCode agent definition with:
-
+- `name`
 - `description`
-- `mode`
 - `permission`
 - `prompt`
+
+The `name` must match the filename and `custom_agents` key. Custom agents are loaded as `subagent`, and every permission key not listed in YAML is set to `deny`.
+
+```yaml
+name: heloman
+description: I am a helo test agent here
+permission:
+  read: allow
+prompt: |-
+  response hello to everyone
+```
+
+`src/custom-agents/code-reviewer.yaml` is the bundled real-world example.
 
 ## DIO Command
 

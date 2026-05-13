@@ -8,7 +8,7 @@ export const REQUIRED_AGENT_NAMES = [
   'librarian',
 ] as const
 
-export const OPTIONAL_AGENT_NAMES = ['code-reviewer'] as const
+export const OPTIONAL_AGENT_NAMES = [] as const
 
 export const AGENT_NAMES = [
   ...REQUIRED_AGENT_NAMES,

@@ -2,7 +2,7 @@
 
 `your-legion` is a plugin-first OpenCode multi-agent system inspired by [`oh-my-openagent`](https://github.com/code-yeongyu/oh-my-openagent).
 
-It provides five protected system agents, an optional code review specialist, and filesystem-discovered custom agents. The plugin injects configured agents into OpenCode at startup and reads per-agent model settings from `legionaries.yaml`.
+It provides five protected system agents and YAML-defined custom agents. The plugin injects configured agents into OpenCode at startup and reads per-agent model settings from `legionaries.yaml`.
 
 ## Install
 
@@ -25,9 +25,9 @@ Model mapping, provider selection, reasoning settings, and custom-agent enableme
 - `builder`: implementation specialist for code, tests, and UI work
 - `explorer`: read-only codebase discovery specialist
 - `librarian`: read-only documentation and API reference specialist; prefers Context7 MCP for library docs
-- `code-reviewer`: optional read-only reviewer, injected only when configured in `legionaries.yaml`
+- `code-reviewer`: bundled YAML custom agent example for read-only review
 
-Custom agents can be added without editing package source by placing a TypeScript agent factory under `.opencode/your-legion/agents/` or `~/.config/opencode/your-legion/agents/`, then adding a matching `custom_agents` entry.
+Custom agents can be added by placing a YAML file under `src/custom-agents/`, then adding a matching `custom_agents` model entry.
 
 ## Routing Model
 
@@ -36,7 +36,7 @@ Your Legion uses direct specialist routing.
 - The `orchestrator` classifies each turn into one dominant intent and chooses a concrete subagent.
 - Those intents are routing heuristics, not runtime categories or model profiles.
 - Multi-step work goes through `planner` first when sequencing is unclear, then `builder` executes approved implementation work.
-- Code review is owned by the `/code-review` command by default; `code-reviewer` is available as an optional runtime agent for explicit advanced workflows.
+- Code review is owned by the `/code-review` command by default; the bundled `code-reviewer` custom agent is available for explicit advanced workflows.
 - `legionaries.yaml` controls model and reasoning settings per agent. It does not control routing.
 
 ## Commands

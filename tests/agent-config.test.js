@@ -13,7 +13,7 @@ const FORBIDDEN_PROMPT_HOOKS = [
   'maintainable-code-review',
 ]
 
-test('agent registry supports five required specialists and optional code review', async () => {
+test('agent registry supports five protected system specialists', async () => {
   const { REQUIRED_AGENT_NAMES, OPTIONAL_AGENT_NAMES } = await import('../src/shared/agent-types.ts')
   const { AGENT_FACTORIES, BASE_AGENT_DEFINITIONS } = await import('../src/agents/index.ts')
 
@@ -24,13 +24,13 @@ test('agent registry supports five required specialists and optional code review
     'builder',
     'librarian',
   ])
-  assert.deepEqual(OPTIONAL_AGENT_NAMES, ['code-reviewer'])
+  assert.deepEqual(OPTIONAL_AGENT_NAMES, [])
   assert.ok(!('dispatcher' in AGENT_FACTORIES))
   assert.ok(!('frontend-developer' in AGENT_FACTORIES))
-  assert.ok('code-reviewer' in AGENT_FACTORIES)
+  assert.ok(!('code-reviewer' in AGENT_FACTORIES))
   assert.ok(!('dispatcher' in BASE_AGENT_DEFINITIONS))
   assert.ok(!('frontend-developer' in BASE_AGENT_DEFINITIONS))
-  assert.ok('code-reviewer' in BASE_AGENT_DEFINITIONS)
+  assert.ok(!('code-reviewer' in BASE_AGENT_DEFINITIONS))
 })
 
 test('orchestrator prompt includes an intent gate and can delegate to explorer and librarian', async () => {
@@ -58,7 +58,6 @@ test('leaf specialists cannot delegate to other subagents', async () => {
   assert.equal(BASE_AGENT_DEFINITIONS.builder.permission.task, 'deny')
   assert.equal(BASE_AGENT_DEFINITIONS.explorer.permission.task, 'deny')
   assert.equal(BASE_AGENT_DEFINITIONS.librarian.permission.task, 'deny')
-  assert.equal(BASE_AGENT_DEFINITIONS['code-reviewer'].permission.task, 'deny')
 })
 
 test('planner is docs-only and cannot modify application code paths', async () => {
@@ -83,19 +82,6 @@ test('builder prompt carries debugging, testing, and verification workflow cues'
   assert.match(builder.prompt, /narrowest test level/i)
   assert.match(builder.prompt, /environment, data, and logic/i)
   assert.match(builder.prompt, /one build or type error at a time/i)
-})
-
-test('optional code reviewer prompt carries findings-first review workflow cues', async () => {
-  const { BASE_AGENT_DEFINITIONS } = await import('../src/agents/index.ts')
-  const codeReviewer = BASE_AGENT_DEFINITIONS['code-reviewer']
-
-  assert.equal(codeReviewer.mode, 'subagent')
-  assert.equal(codeReviewer.permission.edit, 'deny')
-  assert.match(codeReviewer.prompt, /Findings/i)
-  assert.match(codeReviewer.prompt, /severity/i)
-  assert.match(codeReviewer.prompt, /change intent/i)
-  assert.match(codeReviewer.prompt, /return contracts/i)
-  assert.match(codeReviewer.prompt, /abstraction level/i)
 })
 
 test('planner prompt carries structure and boundary review workflow cues', async () => {
@@ -175,9 +161,4 @@ test('buildAgentDefinition produces valid config from factory', async () => {
     '*': 'deny',
     'docs/**/*.md': 'allow',
   })
-
-  const codeReviewer = buildAgentDefinition('code-reviewer', 'openai/gpt-5.5')
-  assert.equal(codeReviewer.mode, 'subagent')
-  assert.equal(codeReviewer.permission.edit, 'deny')
-  assert.match(codeReviewer.prompt, /Code Reviewer/)
 })

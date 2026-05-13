@@ -1,20 +1,35 @@
-import { existsSync, readdirSync } from 'node:fs'
-import { basename, extname, join, resolve } from 'node:path'
-import { fileURLToPath, pathToFileURL } from 'node:url'
+import { existsSync, readFileSync, readdirSync } from 'node:fs'
+import { basename, dirname, extname, join, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import YAML from 'yaml'
 
 import { AGENT_FACTORIES } from '../agents/index.ts'
-import { getOpenCodeConfigDir } from '../config/legionaries.ts'
 import {
   AGENT_NAMES,
   type AgentFactory,
   type AgentMode,
   type BaseAgentDefinition,
-  type LoadableAgentFactory,
   type SystemAgentName,
 } from '../shared/agent-types.ts'
 
 const SYSTEM_AGENT_NAMES = new Set<string>(AGENT_NAMES)
 const AGENT_MODES = new Set<AgentMode>(['primary', 'subagent', 'all'])
+const CUSTOM_PERMISSION_KEYS = [
+  'read',
+  'glob',
+  'grep',
+  'lsp',
+  'question',
+  'skill',
+  'todowrite',
+  'edit',
+  'bash',
+  'task',
+  'webfetch',
+  'websearch',
+  'context7_resolve-library-id',
+  'context7_query-docs',
+]
 
 export type AgentDefinitionProviderOptions = {
   rootDir: string | URL
@@ -30,23 +45,14 @@ function toPath(value: string | URL) {
   return value instanceof URL ? fileURLToPath(value) : value
 }
 
-function pascalCase(value: string) {
-  return value
-    .split(/[^a-z0-9]+/i)
-    .filter(Boolean)
-    .map((part) => `${part[0].toUpperCase()}${part.slice(1)}`)
-    .join('')
-}
-
 function customAgentDirs(options: AgentDefinitionProviderOptions) {
   const rootDir = resolve(toPath(options.rootDir))
-  const configDir = options.configDir
-    ? resolve(toPath(options.configDir))
-    : getOpenCodeConfigDir()
+  const moduleDir = dirname(fileURLToPath(import.meta.url))
 
   return [
-    join(configDir, 'your-legion', 'agents'),
-    join(rootDir, '.opencode', 'your-legion', 'agents'),
+    join(moduleDir, 'custom-agents'),
+    join(moduleDir, '..', 'custom-agents'),
+    join(rootDir, 'src', 'custom-agents'),
   ]
 }
 
@@ -56,9 +62,9 @@ function listAgentFiles(dir: string) {
   }
 
   return readdirSync(dir)
-    .filter((file) => extname(file) === '.ts')
+    .filter((file) => ['.yaml', '.yml'].includes(extname(file)))
     .map((file) => ({
-      name: basename(file, '.ts'),
+      name: basename(file, extname(file)),
       path: join(dir, file),
     }))
 }
@@ -85,33 +91,69 @@ function validateAgentDefinition(name: string, definition: BaseAgentDefinition) 
   }
 }
 
-function asAgentFactory(name: string, value: unknown): AgentFactory {
-  if (typeof value !== 'function') {
-    throw new Error(`custom agent ${name} must export an agent factory`)
+function normalizePermission(permission: unknown) {
+  const normalized: Record<string, unknown> = Object.fromEntries(
+    CUSTOM_PERMISSION_KEYS.map((key) => [key, 'deny']),
+  )
+
+  if (!permission || typeof permission !== 'object' || Array.isArray(permission)) {
+    return normalized
   }
 
+  for (const [key, value] of Object.entries(permission)) {
+    normalized[key] = value
+  }
+
+  return normalized
+}
+
+function loadCustomAgentDefinition(fileName: string, filePath: string): BaseAgentDefinition {
+  const parsed = YAML.parse(readFileSync(filePath, 'utf8')) as
+    | {
+        name?: unknown
+        description?: unknown
+        permission?: unknown
+        prompt?: unknown
+      }
+    | null
+
+  if (!parsed || typeof parsed !== 'object') {
+    throw new Error(`custom agent ${fileName} must be a YAML map`)
+  }
+
+  if (typeof parsed.name !== 'string' || parsed.name.trim() === '') {
+    throw new Error(`custom agent ${fileName} missing name`)
+  }
+
+  if (parsed.name !== fileName) {
+    throw new Error(`custom agent file ${fileName} name mismatch: ${parsed.name}`)
+  }
+
+  return {
+    description: typeof parsed.description === 'string' ? parsed.description : '',
+    mode: 'subagent',
+    permission: normalizePermission(parsed.permission),
+    prompt: typeof parsed.prompt === 'string' ? parsed.prompt : '',
+  }
+}
+
+function asAgentFactory(name: string, definition: BaseAgentDefinition): AgentFactory {
   const factory = ((model: string) => {
-    const definition = (value as LoadableAgentFactory)(model)
     validateAgentDefinition(name, definition)
     return definition
   }) as AgentFactory
 
-  const mode = (value as Partial<AgentFactory>).mode
-  factory.mode = mode && AGENT_MODES.has(mode) ? mode : 'subagent'
+  factory.mode = definition.mode
 
   return factory
 }
 
-async function importCustomAgentFactory(name: string, filePath: string) {
+function loadCustomAgentFactory(name: string, filePath: string) {
   if (SYSTEM_AGENT_NAMES.has(name)) {
     throw new Error(`custom agent cannot replace system agent: ${name}`)
   }
 
-  const module = await import(pathToFileURL(filePath).href)
-  const namedExport = `create${pascalCase(name)}Agent`
-  const exported = module.default ?? module[namedExport]
-
-  return asAgentFactory(name, exported)
+  return asAgentFactory(name, loadCustomAgentDefinition(name, filePath))
 }
 
 export async function loadAgentDefinitionProviders(
@@ -127,7 +169,7 @@ export async function loadAgentDefinitionProviders(
 
   const custom: Record<string, AgentFactory> = {}
   for (const [name, filePath] of customAgentFiles) {
-    custom[name] = await importCustomAgentFactory(name, filePath)
+    custom[name] = loadCustomAgentFactory(name, filePath)
   }
 
   return {

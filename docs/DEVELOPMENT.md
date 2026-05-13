@@ -7,7 +7,7 @@ This document covers repository development for `your-legion`. User-facing insta
 - OpenCode loads the published package from the `plugin` array.
 - `src/index.ts` registers a server hook that mutates OpenCode config in place.
 - `src/config/legionaries.ts` reads and validates `legionaries.yaml`.
-- `src/runtime/agent-definition-provider.ts` loads protected system agent factories and discovered custom agent factories.
+- `src/runtime/agent-definition-provider.ts` loads protected system agent factories and YAML custom agents.
 - `src/runtime/build-agent-config.ts` merges model maps with agent providers and injects `/dio` commands.
 - `src/runtime/dio-loop.ts` owns the in-memory DIO session loop.
 - The plugin injects `default_agent`, the full `agent` map, and plugin commands at startup.
@@ -43,7 +43,7 @@ No frontmatter rewrite step is required.
 
 - Edit `src/agents/*.ts` to change system prompts, permissions, descriptions, or modes.
 - Edit `legionaries.yaml` to mix providers, update per-agent models, tune reasoning settings, and enable custom agents.
-- Add custom agents under `.opencode/your-legion/agents/*.ts` or `~/.config/opencode/your-legion/agents/*.ts`, then add a matching `custom_agents` mapping.
+- Add custom agents under `src/custom-agents/*.yaml`, then add a matching `custom_agents` mapping.
 - Add a new required agent by updating `src/agents/`, `src/agents/index.ts`, `src/shared/agent-types.ts`, `legionaries.yaml`, and the routing guidance in `src/agents/orchestrator.ts`.
 - Add a new optional agent by registering it in `src/shared/agent-types.ts` and `src/agents/index.ts`, then documenting the optional `legionaries.yaml` mapping.
 - Do not use a system agent name for a custom agent. The runtime fails startup if a custom agent attempts to replace a system agent.
@@ -58,7 +58,7 @@ Your Legion uses direct specialist routing rather than a category-first runtime.
 - `planner`, `builder`, `explorer`, and `librarian` are leaf specialists.
 - Leaf specialists should not orchestrate other leaf specialists.
 - `planner` is runtime-limited to `docs/**/*.md` edits; code changes belong to `builder`.
-- Code review is command-owned by `/code-review` by default; `code-reviewer` is an optional runtime agent when explicitly configured.
+- Code review is command-owned by `/code-review` by default; `code-reviewer` is the bundled YAML custom-agent example.
 - `legionaries.yaml` configures per-agent models, reasoning, and custom-agent enablement. It does not decide which system agent gets selected.
 
 ## Routing Boundaries

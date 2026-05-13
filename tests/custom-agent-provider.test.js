@@ -22,64 +22,36 @@ function makeTempDir(t, name) {
   return dir
 }
 
-function writeCustomAgent(dir, name, description) {
-  const agentsDir = path.join(dir, 'your-legion', 'agents')
+function writeCustomAgent(dir, name, description, permission = { read: 'allow' }) {
+  const agentsDir = path.join(dir, 'src', 'custom-agents')
   fs.mkdirSync(agentsDir, { recursive: true })
   fs.writeFileSync(
-    path.join(agentsDir, `${name}.ts`),
-    `const MODE = 'subagent' as const
-
-export default function createCustomAgent(_model: string) {
-  return {
-    description: ${JSON.stringify(description)},
-    mode: MODE,
-    permission: {
-      read: 'allow',
-      edit: 'deny',
-      bash: 'deny',
-      task: 'deny',
-    },
-    prompt: '# ${name}\\n\\nCustom runtime agent',
-  }
-}
-createCustomAgent.mode = MODE
-`,
+    path.join(agentsDir, `${name}.yaml`),
+    YAML.stringify({
+      name,
+      description,
+      permission,
+      prompt: `# ${name}\n\nCustom runtime agent`,
+    }),
   )
 }
 
-function writeNamedCustomAgent(dir, name, exportName, description) {
-  const agentsDir = path.join(dir, 'your-legion', 'agents')
+function writeLiteralCustomAgent(dir, name, text) {
+  const agentsDir = path.join(dir, 'src', 'custom-agents')
   fs.mkdirSync(agentsDir, { recursive: true })
-  fs.writeFileSync(
-    path.join(agentsDir, `${name}.ts`),
-    `const MODE = 'subagent' as const
-
-export function ${exportName}(_model: string) {
-  return {
-    description: ${JSON.stringify(description)},
-    mode: MODE,
-    permission: {
-      read: 'allow',
-      edit: 'deny',
-      bash: 'deny',
-      task: 'deny',
-    },
-    prompt: '# ${name}\\n\\nNamed export custom runtime agent',
-  }
-}
-${exportName}.mode = MODE
-`,
-  )
+  fs.writeFileSync(path.join(agentsDir, `${name}.yaml`), text)
 }
 
-test('custom agent provider discovers configured custom agents from OpenCode config paths', async (t) => {
+test('custom agent provider discovers configured YAML custom agents from src/custom-agents', async (t) => {
   const projectDir = makeTempDir(t, 'custom-agent-project')
-  const globalConfigDir = makeTempDir(t, 'custom-agent-global')
   const configPath = path.join(projectDir, 'legionaries.yaml')
   const original = YAML.parse(fs.readFileSync(legionariesConfigPath, 'utf8'))
   const systemAgents = systemAgentsFrom(original)
 
-  writeCustomAgent(globalConfigDir, 'scribe', 'Writes release notes and changelogs')
+  writeCustomAgent(projectDir, 'scribe', 'Writes release notes and changelogs', {
+    read: 'allow',
+    webfetch: 'allow',
+  })
   fs.writeFileSync(
     configPath,
     YAML.stringify({
@@ -98,7 +70,6 @@ test('custom agent provider discovers configured custom agents from OpenCode con
   const { buildEffectiveAgentConfig } = await import('../src/runtime/build-agent-config.ts')
   const result = await buildEffectiveAgentConfig({
     rootDir: projectDir,
-    configDir: globalConfigDir,
     configPath,
   })
 
@@ -106,26 +77,38 @@ test('custom agent provider discovers configured custom agents from OpenCode con
   assert.equal(result.agent.scribe.model, 'openai/gpt-5.5')
   assert.deepEqual(result.agent.scribe.options.reasoning, { effort: 'low' })
   assert.equal(result.agent.scribe.mode, 'subagent')
+  assert.equal(result.agent.scribe.permission.read, 'allow')
+  assert.equal(result.agent.scribe.permission.webfetch, 'allow')
+  assert.equal(result.agent.scribe.permission.edit, 'deny')
+  assert.equal(result.agent.scribe.permission.glob, 'deny')
   assert.equal(result.agent.orchestrator.permission.task.scribe, 'allow')
   assert.match(result.agent.orchestrator.prompt, /scribe/)
   assert.match(result.agent.orchestrator.prompt, /Writes release notes and changelogs/)
 })
 
-test('project custom agent definitions override global definitions', async (t) => {
-  const projectDir = makeTempDir(t, 'custom-agent-precedence-project')
-  const globalConfigDir = makeTempDir(t, 'custom-agent-precedence-global')
+test('custom agent provider accepts the documented YAML prompt format', async (t) => {
+  const projectDir = makeTempDir(t, 'custom-agent-document-format')
   const configPath = path.join(projectDir, 'legionaries.yaml')
   const original = YAML.parse(fs.readFileSync(legionariesConfigPath, 'utf8'))
   const systemAgents = systemAgentsFrom(original)
 
-  writeCustomAgent(globalConfigDir, 'scribe', 'Global scribe')
-  writeCustomAgent(path.join(projectDir, '.opencode'), 'scribe', 'Project scribe')
+  writeLiteralCustomAgent(
+    projectDir,
+    'heloman',
+    `name: heloman
+description: I am a helo test agent here
+permission:
+      read: 'allow'
+prompt: |-
+  response hello to everyone
+`,
+  )
   fs.writeFileSync(
     configPath,
     YAML.stringify({
       system_agents: systemAgents,
       custom_agents: {
-        scribe: 'openai/gpt-5.5',
+        heloman: 'openai/gpt-5.5',
       },
     }),
   )
@@ -133,54 +116,35 @@ test('project custom agent definitions override global definitions', async (t) =
   const { buildEffectiveAgentConfig } = await import('../src/runtime/build-agent-config.ts')
   const result = await buildEffectiveAgentConfig({
     rootDir: projectDir,
-    configDir: globalConfigDir,
     configPath,
   })
 
-  assert.equal(result.agent.scribe.description, 'Project scribe')
+  assert.equal(result.agent.heloman.description, 'I am a helo test agent here')
+  assert.equal(result.agent.heloman.permission.read, 'allow')
+  assert.equal(result.agent.heloman.permission.glob, 'deny')
+  assert.match(result.agent.heloman.prompt, /response hello to everyone/)
 })
 
-test('custom agent provider accepts createPascalNameAgent named exports', async (t) => {
-  const projectDir = makeTempDir(t, 'custom-agent-named-export-project')
-  const globalConfigDir = makeTempDir(t, 'custom-agent-named-export-global')
-  const configPath = path.join(projectDir, 'legionaries.yaml')
-  const original = YAML.parse(fs.readFileSync(legionariesConfigPath, 'utf8'))
-  const systemAgents = systemAgentsFrom(original)
-
-  writeNamedCustomAgent(
-    path.join(projectDir, '.opencode'),
-    'release-scribe',
-    'createReleaseScribeAgent',
-    'Named release scribe',
-  )
-  fs.writeFileSync(
-    configPath,
-    YAML.stringify({
-      system_agents: systemAgents,
-      custom_agents: {
-        'release-scribe': 'openai/gpt-5.5',
-      },
-    }),
-  )
-
+test('repo code-reviewer custom agent is injected from custom-agents example', async () => {
   const { buildEffectiveAgentConfig } = await import('../src/runtime/build-agent-config.ts')
   const result = await buildEffectiveAgentConfig({
-    rootDir: projectDir,
-    configDir: globalConfigDir,
-    configPath,
+    rootDir,
   })
 
-  assert.equal(result.agent['release-scribe'].description, 'Named release scribe')
+  assert.equal(result.agent['code-reviewer'].mode, 'subagent')
+  assert.equal(result.agent['code-reviewer'].model, 'openai/gpt-5.5')
+  assert.equal(result.agent['code-reviewer'].permission.edit, 'deny')
+  assert.match(result.agent['code-reviewer'].prompt, /Findings/i)
+  assert.equal(result.agent.orchestrator.permission.task['code-reviewer'], 'allow')
 })
 
 test('custom agent provider rejects attempts to replace system agents', async (t) => {
   const projectDir = makeTempDir(t, 'custom-agent-system-collision')
-  const globalConfigDir = makeTempDir(t, 'custom-agent-system-collision-global')
   const configPath = path.join(projectDir, 'legionaries.yaml')
   const original = YAML.parse(fs.readFileSync(legionariesConfigPath, 'utf8'))
   const systemAgents = systemAgentsFrom(original)
 
-  writeCustomAgent(path.join(projectDir, '.opencode'), 'builder', 'Replacement builder')
+  writeCustomAgent(projectDir, 'builder', 'Replacement builder')
   fs.writeFileSync(
     configPath,
     YAML.stringify({
@@ -196,7 +160,6 @@ test('custom agent provider rejects attempts to replace system agents', async (t
   await assert.rejects(
     () => buildEffectiveAgentConfig({
       rootDir: projectDir,
-      configDir: globalConfigDir,
       configPath,
     }),
     /custom agent cannot replace system agent: builder/,
@@ -205,7 +168,6 @@ test('custom agent provider rejects attempts to replace system agents', async (t
 
 test('configured custom agents must have a discovered definition file', async (t) => {
   const projectDir = makeTempDir(t, 'custom-agent-missing-definition')
-  const globalConfigDir = makeTempDir(t, 'custom-agent-missing-definition-global')
   const configPath = path.join(projectDir, 'legionaries.yaml')
   const original = YAML.parse(fs.readFileSync(legionariesConfigPath, 'utf8'))
   const systemAgents = systemAgentsFrom(original)
@@ -225,7 +187,6 @@ test('configured custom agents must have a discovered definition file', async (t
   await assert.rejects(
     () => buildEffectiveAgentConfig({
       rootDir: projectDir,
-      configDir: globalConfigDir,
       configPath,
     }),
     /missing custom agent definition for configured agent: scribe/,
