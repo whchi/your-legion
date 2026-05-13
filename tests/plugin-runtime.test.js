@@ -13,6 +13,10 @@ const packageJsonPath = path.join(rootDir, 'package.json')
 const opencodeConfigPath = path.join(rootDir, 'opencode.jsonc')
 const tempDir = path.join(rootDir, 'temp')
 
+function systemAgentsFrom(config) {
+  return config.system_agents ?? config.agents
+}
+
 test('plugin runtime builds the full agent config from the mixed legionaries map', async () => {
   const { buildEffectiveAgentConfig } = await import('../src/runtime/build-agent-config.ts')
   const result = await buildEffectiveAgentConfig({
@@ -27,18 +31,22 @@ test('plugin runtime builds the full agent config from the mixed legionaries map
   assert.equal(result.agent.librarian.model, 'opencode-go/minimax-m2.7')
   assert.ok(!('dispatcher' in result.agent))
   assert.ok(!('frontend-developer' in result.agent))
+  assert.match(result.command.dio.description, /devotio/i)
+  assert.match(result.command.dio.template, /<dio_complete>/)
+  assert.match(result.command['dio-stop'].description, /cancel/i)
 })
 
 test('plugin runtime supports alternate mixed legionaries config files', async () => {
   fs.mkdirSync(tempDir, { recursive: true })
   const tempConfigPath = path.join(tempDir, 'legionaries.override.yaml')
   const original = YAML.parse(fs.readFileSync(legionariesConfigPath, 'utf8'))
+  const systemAgents = systemAgentsFrom(original)
 
   fs.writeFileSync(
     tempConfigPath,
     YAML.stringify({
-      agents: {
-        ...original.agents,
+      system_agents: {
+        ...systemAgents,
         orchestrator: {
           model: 'github-copilot/claude-opus-4.1',
           reasoning: {
@@ -130,6 +138,8 @@ test('plugin server exposes a config hook that injects Your Legion agents', asyn
   assert.equal(config.agent.orchestrator.model, 'openai/gpt-5.5')
   assert.deepEqual(config.agent.orchestrator.options.reasoning, { effort: 'medium' })
   assert.equal(config.agent.builder.mode, 'subagent')
+  assert.match(config.command.dio.template, /\$ARGUMENTS/)
+  assert.match(config.command['dio-stop'].template, /cancel/i)
   assert.ok(!('dispatcher' in config.agent))
   assert.ok(!('frontend-developer' in config.agent))
   assert.ok(!('code-reviewer' in config.agent))

@@ -1,4 +1,4 @@
-agents:
+system_agents:
   orchestrator:
     model: openai/gpt-5.5
     reasoning:
@@ -15,3 +15,4 @@ agents:
       effort: high
   builder:
     model: opencode-go/kimi-k2.6
+custom_agents: {}

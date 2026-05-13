@@ -7,9 +7,10 @@
 1. OpenCode loads `your-legion` from the `plugin` array.
 2. `src/index.ts` exports the plugin `server` entrypoint.
 3. The plugin `config` hook reads `legionaries.yaml` from the active worktree or global OpenCode config directory.
-4. `src/config/legionaries.ts` validates the per-agent model map and optional reasoning settings.
-5. `src/runtime/build-agent-config.ts` merges that config with the required agent definitions and any configured optional agent definitions from `src/agents/`.
-6. The hook mutates `config.default_agent` and `config.agent` in place.
+4. `src/config/legionaries.ts` validates `system_agents`, `custom_agents`, and optional reasoning settings.
+5. `src/runtime/agent-definition-provider.ts` loads protected system agent factories and discovered custom agent factories.
+6. `src/runtime/build-agent-config.ts` merges config with agent providers and DIO commands.
+7. The hook mutates `config.default_agent`, `config.agent`, and `config.command` in place.
 
 There is no markdown frontmatter rewrite step.
 
@@ -18,10 +19,14 @@ There is no markdown frontmatter rewrite step.
 - `src/agents/*.ts`: descriptions, modes, permissions, and prompts
 - `src/agents/index.ts`: registry of all managed Your Legion agents
 - `src/shared/agent-types.ts`: shared names and runtime config types
-- `legionaries.yaml`: per-agent provider/model mapping plus optional reasoning settings
+- `legionaries.yaml`: system/custom provider-model mapping plus optional reasoning settings
 - `src/config/legionaries.ts`: YAML loading and validation
+- `src/runtime/agent-definition-provider.ts`: system and custom agent provider loading
 - `src/runtime/build-agent-config.ts`: final runtime config assembly
+- `src/runtime/dio-loop.ts`: in-memory `/dio` session loop
 - `src/index.ts`: plugin entrypoint and config injection hook
+- `.opencode/your-legion/agents/*.ts`: optional project custom agent definitions
+- `~/.config/opencode/your-legion/agents/*.ts`: optional global custom agent definitions
 - `temp/`: gitignored local temp artifacts for tests and config experiments
 
 Repo-local `.opencode/agents/*.md` files are intentionally not part of the runtime anymore.
@@ -68,6 +73,15 @@ Repo-local `.opencode/agents/*.md` files are intentionally not part of the runti
 - Injected only when `legionaries.yaml` defines `agents.code-reviewer.model`
 - Review remains command-owned by `/code-review` by default
 
+## Custom Agent Set
+
+- Custom agents are discovered from OpenCode config paths, not from package source.
+- Global path: `~/.config/opencode/your-legion/agents/*.ts`
+- Project path: `.opencode/your-legion/agents/*.ts`
+- Project definitions override global definitions with the same name.
+- A custom agent must have a matching `custom_agents.<name>` model mapping.
+- Custom agents cannot use system agent names; system agents are not replaceable.
+
 ## Routing Contract
 
 Your Legion uses direct specialist routing rather than a category-first runtime.
@@ -79,6 +93,7 @@ Your Legion uses direct specialist routing rather than a category-first runtime.
 - Leaf specialists should not orchestrate other leaf specialists.
 - Code review is command-owned by `/code-review` by default; `code-reviewer` is optional and not part of default routing.
 - `legionaries.yaml` configures per-agent models and reasoning only. It does not decide which agent gets selected.
+- Custom agents are available to the orchestrator when configured and discovered; routing guidance is augmented at runtime with their descriptions.
 
 ## Routing Boundaries
 
@@ -88,9 +103,10 @@ Your Legion uses direct specialist routing rather than a category-first runtime.
 
 ## Model Mapping
 
-- `legionaries.yaml` defines one `agents` map.
-- The map must define all required managed agents.
-- Optional managed agents are injected only when their entries are present.
+- `legionaries.yaml` defines `system_agents` and `custom_agents`.
+- `system_agents` must define all required managed agents.
+- Optional managed agents are injected only when their `system_agents` entries are present.
+- `custom_agents` entries are injected only when a matching custom agent file is discovered.
 - Every present entry must define `model` using `provider/model-id` format.
 - Entries may define `reasoning.effort` as `low`, `medium`, `high`, `xhigh`, or `max`.
 - The plugin injects the resolved `model` string into every agent config at startup.
@@ -117,13 +133,19 @@ OpenCode should be configured like this:
 
 ## Extending The Plugin
 
-1. Add a new agent module under `src/agents/`.
-2. Register it in `src/agents/index.ts`.
-3. Add the agent name to `src/shared/agent-types.ts`.
-4. Add a model mapping for required agents in `legionaries.yaml`; optional agents should be documented but not required in the bundled config.
-5. Update routing guidance in `src/agents/orchestrator.ts` when the new agent changes delegation behavior.
-6. Update docs in `README.md` and `AGENTS.md` if the topology or routing contract changes.
-7. Update tests under `tests/`.
+1. For a user custom agent, add a factory file under `.opencode/your-legion/agents/` or the matching global config path.
+2. Add the model mapping under `custom_agents` in `legionaries.yaml`.
+3. For a new protected system agent, add a module under `src/agents/`, register it in `src/agents/index.ts`, update `src/shared/agent-types.ts`, and add a `system_agents` mapping.
+4. Update routing guidance in `src/agents/orchestrator.ts` when the new system agent changes delegation behavior.
+5. Update docs in `README.md` and `AGENTS.md` if the topology or routing contract changes.
+6. Update tests under `tests/`.
+
+## DIO Command
+
+- `/dio` is a plugin-owned devotio completion loop.
+- The loop is in memory per OpenCode session.
+- It continues on `session.idle` until `<dio_complete>...</dio_complete>` appears, `/dio-stop` cancels it, or the max-iteration guard is reached.
+- DIO state does not persist across OpenCode restarts.
 
 ## Verification
 

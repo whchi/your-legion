@@ -93,7 +93,9 @@ The bundled example currently uses these provider prefixes:
 
 Model values must use `provider/model-id` format, for example `openai/gpt-5.5`.
 
-Every required managed agent must have a model mapping. Optional agents are injected only when configured. Optional `reasoning.effort` values are `low`, `medium`, `high`, `xhigh`, and `max`.
+Every required system agent must have a model mapping under `system_agents`. Optional system agents are injected only when configured. Custom agents can be enabled under `custom_agents` after adding a matching TypeScript file under `~/.config/opencode/your-legion/agents/` or `.opencode/your-legion/agents/`. Optional `reasoning.effort` values are `low`, `medium`, `high`, `xhigh`, and `max`.
+
+The plugin also injects `/dio` and `/dio-stop` commands for a session-local completion loop.
 
 ## Uninstall
 

@@ -5,17 +5,21 @@ import { isAbsolute, join, resolve } from 'node:path'
 import YAML from 'yaml'
 
 import {
+  AGENT_NAMES,
   OPTIONAL_AGENT_NAMES,
   REQUIRED_AGENT_NAMES,
-  type AgentName,
+  type CustomAgentName,
   type LegionariesConfig,
   type LegionaryEntry,
   type ResolvedLegionaryEntry,
+  type ResolvedCustomLegionariesMap,
   type ResolvedLegionariesMap,
   type ReasoningEffort,
+  type SystemAgentName,
 } from '../shared/agent-types.ts'
 
 export const MODEL_PATTERN = /^[a-z0-9][a-z0-9-]*\/.+$/i
+export const AGENT_NAME_PATTERN = /^[a-z0-9][a-z0-9-]*$/i
 const REASONING_EFFORTS = new Set<ReasoningEffort>([
   'low',
   'medium',
@@ -23,6 +27,7 @@ const REASONING_EFFORTS = new Set<ReasoningEffort>([
   'xhigh',
   'max',
 ])
+const SYSTEM_AGENT_NAMES = new Set<string>(AGENT_NAMES)
 
 export type LoadLegionariesConfigOptions = {
   rootDir: string | URL
@@ -75,7 +80,13 @@ export function getOpenCodeConfigDir(env: NodeJS.ProcessEnv = process.env) {
   return env.XDG_CONFIG_HOME ? join(env.XDG_CONFIG_HOME, 'opencode') : join(homedir(), '.config', 'opencode')
 }
 
-function normalizeAgentEntry(agent: AgentName, entry: LegionaryEntry | undefined): ResolvedLegionaryEntry {
+function assertAgentName(agent: string) {
+  if (!AGENT_NAME_PATTERN.test(agent)) {
+    throw new Error(`invalid agent name: ${agent}`)
+  }
+}
+
+function normalizeAgentEntry(agent: string, entry: LegionaryEntry | undefined): ResolvedLegionaryEntry {
   const resolved = typeof entry === 'string' ? { model: entry } : entry
 
   if (!resolved?.model) {
@@ -94,7 +105,7 @@ function normalizeAgentEntry(agent: AgentName, entry: LegionaryEntry | undefined
 }
 
 function validateModelMap(
-  models: Partial<Record<AgentName, LegionaryEntry>>,
+  models: Partial<Record<SystemAgentName, LegionaryEntry>>,
 ): ResolvedLegionariesMap {
   const resolvedModels = {} as ResolvedLegionariesMap
 
@@ -111,19 +122,63 @@ function validateModelMap(
   return resolvedModels
 }
 
+function validateCustomModelMap(
+  models: Record<CustomAgentName, LegionaryEntry> = {},
+): ResolvedCustomLegionariesMap {
+  const resolvedModels: ResolvedCustomLegionariesMap = {}
+
+  for (const [agent, entry] of Object.entries(models)) {
+    assertAgentName(agent)
+
+    if (SYSTEM_AGENT_NAMES.has(agent)) {
+      throw new Error(`custom agent cannot replace system agent: ${agent}`)
+    }
+
+    resolvedModels[agent] = normalizeAgentEntry(agent, entry)
+  }
+
+  return resolvedModels
+}
+
+function resolveConfiguredMaps(parsed: LegionariesConfig | null) {
+  if (!parsed || typeof parsed !== 'object') {
+    throw new Error('legionaries.yaml missing system_agents map')
+  }
+
+  const hasNewSchema =
+    parsed.system_agents !== undefined || parsed.custom_agents !== undefined
+  const systemAgents = hasNewSchema ? parsed.system_agents : parsed.agents
+
+  if (!systemAgents || typeof systemAgents !== 'object') {
+    throw new Error('legionaries.yaml missing system_agents map')
+  }
+
+  if (
+    parsed.custom_agents !== undefined &&
+    (!parsed.custom_agents || typeof parsed.custom_agents !== 'object')
+  ) {
+    throw new Error('legionaries.yaml custom_agents must be a map')
+  }
+
+  return {
+    systemAgents,
+    customAgents: parsed.custom_agents ?? {},
+  }
+}
+
 export function loadLegionariesConfig(options: LoadLegionariesConfigOptions) {
   const filePath = resolveLegionariesConfigPath(options)
   const raw = readFileSync(filePath, 'utf8')
   const parsed = YAML.parse(raw) as LegionariesConfig | null
 
-  if (!parsed?.agents || typeof parsed.agents !== 'object') {
-    throw new Error('legionaries.yaml missing agents map')
-  }
+  const configuredMaps = resolveConfiguredMaps(parsed)
 
-  const agents = validateModelMap(parsed.agents)
+  const systemAgents = validateModelMap(configuredMaps.systemAgents)
+  const customAgents = validateCustomModelMap(configuredMaps.customAgents)
 
   return {
     filePath,
-    agents,
+    systemAgents,
+    customAgents,
   }
 }

@@ -17,7 +17,10 @@ export const AGENT_NAMES = [
 
 export type RequiredAgentName = (typeof REQUIRED_AGENT_NAMES)[number]
 export type OptionalAgentName = (typeof OPTIONAL_AGENT_NAMES)[number]
-export type AgentName = (typeof AGENT_NAMES)[number]
+export type SystemAgentName = (typeof AGENT_NAMES)[number]
+export type AgentName = SystemAgentName
+export type CustomAgentName = string
+export type RuntimeAgentName = SystemAgentName | CustomAgentName
 
 export type AgentMode = 'primary' | 'subagent' | 'all'
 
@@ -38,6 +41,8 @@ export type AgentFactory = ((model: string) => BaseAgentDefinition) & {
   mode: AgentMode
 }
 
+export type LoadableAgentFactory = (model: string) => BaseAgentDefinition
+
 export type ReasoningEffort = 'low' | 'medium' | 'high' | 'xhigh' | 'max'
 
 export type AgentReasoningConfig = {
@@ -52,7 +57,9 @@ export type LegionaryEntry =
     }
 
 export type LegionariesConfig = {
-  agents: Partial<Record<AgentName, LegionaryEntry>>
+  agents?: Partial<Record<SystemAgentName, LegionaryEntry>>
+  system_agents?: Partial<Record<SystemAgentName, LegionaryEntry>>
+  custom_agents?: Record<CustomAgentName, LegionaryEntry>
 }
 
 export type ResolvedLegionaryEntry = {
@@ -65,6 +72,11 @@ export type ResolvedLegionariesMap = Record<
   ResolvedLegionaryEntry
 > & Partial<Record<OptionalAgentName, ResolvedLegionaryEntry>>
 
+export type ResolvedCustomLegionariesMap = Record<
+  CustomAgentName,
+  ResolvedLegionaryEntry
+>
+
 export type EffectiveAgentDefinition = BaseAgentDefinition & {
   model: string
   options?: {
@@ -75,9 +87,19 @@ export type EffectiveAgentDefinition = BaseAgentDefinition & {
 export type EffectiveAgentMap = Record<
   RequiredAgentName,
   EffectiveAgentDefinition
-> & Partial<Record<OptionalAgentName, EffectiveAgentDefinition>>
+> & Partial<Record<OptionalAgentName, EffectiveAgentDefinition>> &
+  Record<string, EffectiveAgentDefinition>
+
+export type CommandDefinition = {
+  template: string
+  description: string
+  agent?: string
+  model?: string
+  subtask?: boolean
+}
 
 export type EffectiveAgentConfig = {
   default_agent: typeof DEFAULT_AGENT
   agent: EffectiveAgentMap
+  command: Record<string, CommandDefinition>
 }
