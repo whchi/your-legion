@@ -25,6 +25,7 @@ custom_agents:
     reasoning:
       effort: <low|medium|high|xhigh|max>
 ```
+If you want to disable custom_agents just set `custom_agents: {}`
 
 ### Fields
 
