@@ -112,7 +112,7 @@ test('package exposes the installer CLI', () => {
 test('package publishes build and install artifacts from dist', () => {
   const pkg = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'))
 
-  assert.deepEqual(pkg.files, ['dist', 'README.md', 'INSTALLATION.md', 'DEVELOPMENT.md', 'AGENTS.md'])
+  assert.deepEqual(pkg.files, ['dist', 'README.md', 'docs', 'AGENTS.md'])
 })
 
 test('plugin server exposes a config hook that injects Your Legion agents', async () => {

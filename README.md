@@ -2,6 +2,8 @@ A plugin-first OpenCode multi-agent system inspired by [`oh-my-openagent`](https
 
 It provides five protected system agents and YAML-defined custom agents. The plugin injects configured agents into OpenCode at startup and reads per-agent model settings from `legionaries.yaml`.
 
+It also supports convention-first domain packs for shared multi-agent memory and reusable domain capability documents. Domain packs let the same system and custom agents operate with different task context such as engineering, marketing, or financial analytics without registering those documents as harness-level skills.
+
 ![](docs/architecture.svg)
 
 ## Install
@@ -16,7 +18,26 @@ For full setup, manual install, config paths, backups, and uninstall instruction
 
 ## Configuration
 
-Model mapping, provider selection, reasoning settings, and custom-agent enablement are configured in [`legionaries.yaml`](./legionaries.yaml). See [`CONFIGURATION.md`](./docs/CONFIGURATION.md) for the full schema and examples.
+Model mapping, provider selection, reasoning settings, custom-agent enablement, and domain pack enablement are configured in [`legionaries.yaml`](./legionaries.yaml). See [`CONFIGURATION.md`](./docs/CONFIGURATION.md) for the full schema and examples.
+
+Domain packs live under your global OpenCode config:
+
+```text
+~/.config/opencode/your-legion/domains/{domain-id}/
+├── workflows/
+├── decisions/
+├── examples/
+└── skills/
+```
+
+Enable a conventional domain pack with:
+
+```yaml
+domains:
+  coding: true
+  marketing: true
+  financial-analytics: true
+```
 
 ## Agents
 
@@ -28,6 +49,10 @@ Model mapping, provider selection, reasoning settings, and custom-agent enableme
 - `code-reviewer`: bundled YAML custom agent example for read-only review
 
 Custom agents can be added by placing a YAML file under `src/custom-agents/`, then adding a matching `custom_agents` model entry.
+
+Domain skills are injected into agent prompts as a namespaced Domain Skill Index such as `marketing/campaign-brief`. Agents read the exact configured path; Your Legion does not register domain skills as top-level harness skills.
+
+The bundled `coding` domain is enabled by default and provides a lightweight implementation loop, engineering guardrails, a change-report example, and a `coding/make-code-change` domain skill.
 
 ## Routing Model
 

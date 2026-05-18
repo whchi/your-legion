@@ -18,6 +18,8 @@ The installer writes:
 
 - `~/.config/opencode/opencode.json`, or updates an existing `~/.config/opencode/opencode.jsonc`
 - `~/.config/opencode/legionaries.yaml`
+- `~/.config/opencode/your-legion/domains/`
+- `~/.config/opencode/your-legion/shared/skills/`
 
 If `legionaries.yaml` already exists, it is backed up first using this format:
 
@@ -82,6 +84,44 @@ LEGIONARIES_CONFIG=/absolute/path/to/legionaries.yaml opencode
 ```
 
 Use `LEGIONARIES_CONFIG` for an explicit config path.
+
+## Domain Pack Directories
+
+Your Legion uses global convention directories for optional domain packs:
+
+```text
+~/.config/opencode/your-legion/domains/
+└── <domain-id>/
+    ├── workflows/
+    ├── decisions/
+    ├── examples/
+    └── skills/
+```
+
+The installer creates the base `domains/` and `shared/skills/` directories. Add domain folders only for the domains you want to enable.
+
+Enable conventional domain packs in `legionaries.yaml`:
+
+```yaml
+domains:
+  coding: true
+  marketing: true
+  financial-analytics: true
+```
+
+The bundled `coding` domain is enabled by the default config. You can add files under `~/.config/opencode/your-legion/domains/coding/` to extend or override its workflows, decisions, examples, and skills.
+
+Shared skills can be mounted into a domain with an override:
+
+```yaml
+domains:
+  financial-analytics:
+    skills:
+      common-data-query:
+        path: ~/.config/opencode/your-legion/shared/skills/sql-query.md
+```
+
+Domain skills are injected into Your Legion prompts as explicit paths. They are not registered as top-level OpenCode, Codex, or Claude skills.
 
 ## Supported Providers
 

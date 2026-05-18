@@ -16,6 +16,8 @@ export type InstallYourLegionResult = {
   legionariesConfigPath: string
   legionariesBackupPath?: string
   opencodeConfigPath: string
+  domainRootPath: string
+  sharedSkillsPath: string
 }
 
 function backupTimestamp(now: Date) {
@@ -69,6 +71,11 @@ export function installYourLegion({
   now = new Date(),
 }: InstallYourLegionOptions): InstallYourLegionResult {
   mkdirSync(configDir, { recursive: true })
+  const domainRootPath = join(configDir, 'your-legion', 'domains')
+  const sharedSkillsPath = join(configDir, 'your-legion', 'shared', 'skills')
+
+  mkdirSync(domainRootPath, { recursive: true })
+  mkdirSync(sharedSkillsPath, { recursive: true })
 
   const legionariesConfigPath = join(configDir, 'legionaries.yaml')
   let legionariesBackupPath: string | undefined
@@ -86,5 +93,7 @@ export function installYourLegion({
     legionariesConfigPath,
     legionariesBackupPath,
     opencodeConfigPath,
+    domainRootPath,
+    sharedSkillsPath,
   }
 }

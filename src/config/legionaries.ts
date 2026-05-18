@@ -8,11 +8,14 @@ import {
   AGENT_NAMES,
   OPTIONAL_AGENT_NAMES,
   REQUIRED_AGENT_NAMES,
+  type DomainComponentOverrides,
+  type DomainConfig,
   type CustomAgentName,
   type LegionariesConfig,
   type LegionaryEntry,
   type ResolvedLegionaryEntry,
   type ResolvedCustomLegionariesMap,
+  type ResolvedDomainConfigMap,
   type ResolvedLegionariesMap,
   type ReasoningEffort,
   type SystemAgentName,
@@ -86,6 +89,12 @@ function assertAgentName(agent: string) {
   }
 }
 
+function assertDomainID(domain: string) {
+  if (!AGENT_NAME_PATTERN.test(domain)) {
+    throw new Error(`invalid domain id: ${domain}`)
+  }
+}
+
 function normalizeAgentEntry(agent: string, entry: LegionaryEntry | undefined): ResolvedLegionaryEntry {
   const resolved = typeof entry === 'string' ? { model: entry } : entry
 
@@ -140,6 +149,71 @@ function validateCustomModelMap(
   return resolvedModels
 }
 
+function validateDomainComponentOverrides(
+  domain: string,
+  component: string,
+  overrides: unknown,
+): DomainComponentOverrides | undefined {
+  if (overrides === undefined) {
+    return undefined
+  }
+
+  if (!overrides || typeof overrides !== 'object' || Array.isArray(overrides)) {
+    throw new Error(`domains.${domain}.${component} must be a map`)
+  }
+
+  for (const [id, override] of Object.entries(overrides)) {
+    assertDomainID(id)
+
+    if (override === false) {
+      continue
+    }
+
+    if (
+      !override ||
+      typeof override !== 'object' ||
+      Array.isArray(override) ||
+      typeof (override as Record<string, unknown>).path !== 'string'
+    ) {
+      throw new Error(`domains.${domain}.${component}.${id} must be false or { path }`)
+    }
+  }
+
+  return overrides as DomainComponentOverrides
+}
+
+function validateDomainConfigMap(
+  domains: Record<string, DomainConfig> = {},
+): ResolvedDomainConfigMap {
+  const resolvedDomains: ResolvedDomainConfigMap = {}
+
+  if (!domains || typeof domains !== 'object' || Array.isArray(domains)) {
+    throw new Error('legionaries.yaml domains must be a map')
+  }
+
+  for (const [domain, config] of Object.entries(domains)) {
+    assertDomainID(domain)
+
+    if (config === true) {
+      resolvedDomains[domain] = true
+      continue
+    }
+
+    if (!config || typeof config !== 'object' || Array.isArray(config)) {
+      throw new Error(`domains.${domain} must be true or a map`)
+    }
+
+    resolvedDomains[domain] = {
+      workflows: validateDomainComponentOverrides(domain, 'workflows', config.workflows),
+      decisions: validateDomainComponentOverrides(domain, 'decisions', config.decisions),
+      examples: validateDomainComponentOverrides(domain, 'examples', config.examples),
+      skills: validateDomainComponentOverrides(domain, 'skills', config.skills),
+    }
+  }
+
+  return resolvedDomains
+}
+
 function resolveConfiguredMaps(parsed: LegionariesConfig | null) {
   if (!parsed || typeof parsed !== 'object') {
     throw new Error('legionaries.yaml missing system_agents map')
@@ -163,6 +237,7 @@ function resolveConfiguredMaps(parsed: LegionariesConfig | null) {
   return {
     systemAgents,
     customAgents: parsed.custom_agents ?? {},
+    domains: parsed.domains ?? {},
   }
 }
 
@@ -175,10 +250,12 @@ export function loadLegionariesConfig(options: LoadLegionariesConfigOptions) {
 
   const systemAgents = validateModelMap(configuredMaps.systemAgents)
   const customAgents = validateCustomModelMap(configuredMaps.customAgents)
+  const domains = validateDomainConfigMap(configuredMaps.domains)
 
   return {
     filePath,
     systemAgents,
     customAgents,
+    domains,
   }
 }
