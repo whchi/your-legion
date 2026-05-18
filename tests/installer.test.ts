@@ -37,7 +37,7 @@ test('installer writes global legionaries.yaml and registers the plugin', async 
   assert.equal(fs.readFileSync(agentConfigPath, 'utf8'), fs.readFileSync(sourceConfigPath, 'utf8'))
   assert.deepEqual(opencodeConfig.plugin, ['@whchi/your-legion'])
   assert.equal(fs.existsSync(path.join(configDir, 'your-legion', 'domains')), true)
-  assert.equal(fs.existsSync(path.join(configDir, 'your-legion', 'shared', 'skills')), true)
+  assert.equal(fs.existsSync(path.join(configDir, 'your-legion', 'shared', 'skills')), false)
 })
 
 test('installer backs up an existing global legionaries.yaml before overwriting', async (t) => {

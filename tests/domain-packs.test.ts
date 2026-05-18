@@ -109,7 +109,7 @@ test('domain overrides merge with convention components by id', async (t) => {
   const baseRoot = path.join(configDir, 'your-legion')
   const domainRoot = path.join(baseRoot, 'domains', 'financial-analytics')
   const overrideDecisionPath = path.join(configDir, 'experiments', 'new-revenue-rules.md')
-  const sharedSkillPath = path.join(baseRoot, 'shared', 'skills', 'sql-query.md')
+  const externalSkillPath = path.join(configDir, 'harness-skills', 'sql-query.md')
   const original = YAML.parse(fs.readFileSync(legionariesConfigPath, 'utf8'))
 
   writeFile(path.join(domainRoot, 'workflows', 'variance-review.md'), '# Variance Review\n')
@@ -117,7 +117,7 @@ test('domain overrides merge with convention components by id', async (t) => {
   writeFile(path.join(domainRoot, 'examples', 'monthly-review.md'), '# Monthly Review\n')
   writeFile(path.join(domainRoot, 'skills', 'runway-analysis.md'), '# Runway Analysis\n')
   writeFile(overrideDecisionPath, '# New Revenue Rules\n')
-  writeFile(sharedSkillPath, '# SQL Query\n')
+  writeFile(externalSkillPath, '# SQL Query\n')
 
   fs.writeFileSync(
     configPath,
@@ -127,7 +127,7 @@ test('domain overrides merge with convention components by id', async (t) => {
         'financial-analytics': {
           skills: {
             'common-data-query': {
-              path: sharedSkillPath,
+              path: externalSkillPath,
             },
           },
           decisions: {
@@ -150,7 +150,7 @@ test('domain overrides merge with convention components by id', async (t) => {
   assert.match(result.agent.orchestrator.prompt, /financial-analytics\/variance-review/)
   assert.match(result.agent.orchestrator.prompt, /financial-analytics\/runway-analysis/)
   assert.match(result.agent.orchestrator.prompt, /financial-analytics\/common-data-query/)
-  assert.match(result.agent.orchestrator.prompt, /shared\/skills\/sql-query\.md/)
+  assert.match(result.agent.orchestrator.prompt, /harness-skills\/sql-query\.md/)
   assert.match(result.agent.orchestrator.prompt, /experiments\/new-revenue-rules\.md/)
   assert.doesNotMatch(result.agent.orchestrator.prompt, /domains\/financial-analytics\/decisions\/revenue-recognition\.md/)
 })

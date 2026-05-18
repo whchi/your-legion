@@ -210,7 +210,7 @@ domains:
   financial-analytics:
     skills:
       common-data-query:
-        path: ~/.config/opencode/your-legion/shared/skills/sql-query.md
+        path: ~/.config/opencode/skills/sql-query.md
     decisions:
       revenue-recognition:
         path: ~/experiments/new-revenue-rules.md
