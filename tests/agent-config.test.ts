@@ -52,6 +52,31 @@ test('orchestrator prompt includes an intent gate and can delegate to explorer a
   assert.doesNotMatch(orchestrator.prompt, /code-reviewer/i)
 })
 
+test('orchestrator prompt requires a compact task context envelope for delegation', async () => {
+  const { BASE_AGENT_DEFINITIONS } = await import('../src/agents/index.ts')
+  const orchestrator = BASE_AGENT_DEFINITIONS.orchestrator
+
+  assert.match(orchestrator.prompt, /Task Context Envelope/i)
+  assert.match(orchestrator.prompt, /Objective:/)
+  assert.match(orchestrator.prompt, /Active domains:/)
+  assert.match(orchestrator.prompt, /Context refs:/)
+  assert.match(orchestrator.prompt, /Constraints:/)
+  assert.match(orchestrator.prompt, /Expected output:/)
+  assert.match(orchestrator.prompt, /Verification:/)
+  assert.match(orchestrator.prompt, /120-180 tokens/)
+})
+
+test('orchestrator prompt treats active domains as task-local responsibilities', async () => {
+  const { BASE_AGENT_DEFINITIONS } = await import('../src/agents/index.ts')
+  const orchestrator = BASE_AGENT_DEFINITIONS.orchestrator
+
+  assert.match(orchestrator.prompt, /enabled domains.*index/i)
+  assert.match(orchestrator.prompt, /Active domains.*task-local/i)
+  assert.match(orchestrator.prompt, /coding: implement UI/i)
+  assert.match(orchestrator.prompt, /marketing: write launch copy/i)
+  assert.match(orchestrator.prompt, /Do not blend domain assumptions/i)
+})
+
 test('leaf specialists cannot delegate to other subagents', async () => {
   const { BASE_AGENT_DEFINITIONS } = await import('../src/agents/index.ts')
 
@@ -91,6 +116,23 @@ test('planner prompt carries structure and boundary review workflow cues', async
   assert.match(planner.prompt, /project scale and ownership/i)
   assert.match(planner.prompt, /persistence access/i)
   assert.match(planner.prompt, /DDD fit/i)
+})
+
+test('leaf specialist prompts follow the task context envelope before broader domain context', async () => {
+  const { BASE_AGENT_DEFINITIONS } = await import('../src/agents/index.ts')
+
+  for (const agentName of ['builder', 'planner', 'explorer', 'librarian']) {
+    const prompt = BASE_AGENT_DEFINITIONS[agentName].prompt
+
+    assert.match(prompt, /Task Context Envelope/i, `${agentName} should name the envelope`)
+    assert.match(prompt, /Active domains/i, `${agentName} should honor active domains`)
+    assert.match(prompt, /Context refs/i, `${agentName} should use context refs`)
+    assert.match(
+      prompt,
+      /If the envelope lacks correctness-critical context, ask instead of guessing/i,
+      `${agentName} should stop when the envelope is insufficient`,
+    )
+  }
 })
 
 test('agent prompts inline workflows instead of hardcoding skill hooks', async () => {

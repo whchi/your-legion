@@ -1,6 +1,8 @@
 # Configuration
 
-Your Legion reads per-agent model and reasoning settings from `legionaries.yaml` at startup. The plugin injects required system agents and configured YAML custom agents into OpenCode automatically.
+Your Legion reads per-agent model, reasoning settings, and enabled domain packs from `legionaries.yaml` at startup. The plugin injects required system agents, configured YAML custom agents, and a Domain Skill Index into OpenCode automatically.
+
+For copy-paste recipes, see [`EXAMPLES.md`](./EXAMPLES.md). This page is the reference for how the config is resolved and validated.
 
 ## File Location
 
@@ -9,9 +11,11 @@ Place `legionaries.yaml` in one of these locations (checked in order):
 - `<worktree-root>/legionaries.yaml`
 - `<opencode-config-dir>/legionaries.yaml`
 
+`LEGIONARIES_CONFIG=/absolute/path/to/legionaries.yaml` takes precedence when set.
+
 ## Schema
 
-The file has two top-level maps. Every required system agent must have an entry in `system_agents`. Custom agents are enabled through `custom_agents` and must have a matching YAML file under `src/custom-agents/`.
+The file has three top-level maps. Every required system agent must have an entry in `system_agents`. Custom agents are enabled through `custom_agents` and must have a matching YAML file under `src/custom-agents/`. Domain packs are enabled through `domains`.
 
 ```yaml
 system_agents:
@@ -24,8 +28,11 @@ custom_agents:
     model: <provider>/<model-id>
     reasoning:
       effort: <low|medium|high|xhigh|max>
+domains:
+  <domain-id>: true
 ```
-If you want to disable custom_agents just set `custom_agents: {}` or comment-out whole block
+
+If you want to disable custom agents, set `custom_agents: {}` or omit the whole block.
 
 ### Fields
 
@@ -35,6 +42,7 @@ If you want to disable custom_agents just set `custom_agents: {}` or comment-out
 | `system_agents.<name>.reasoning.effort` | no | Reasoning effort level for supported providers |
 | `custom_agents.<name>.model` | yes when a custom agent is present | Provider and model ID in `provider/model-id` format |
 | `custom_agents.<name>.reasoning.effort` | no | Reasoning effort level for supported providers |
+| `domains.<id>` | no | Enables a global convention-first domain pack or declares path overrides |
 
 ### Reasoning Effort
 
@@ -43,7 +51,7 @@ Only takes effect when the agent's provider supports reasoning effort.
 
 ## Example
 
-This is the bundled example `legionaries.yaml`:
+This is the bundled example style:
 
 ```yaml
 system_agents:
@@ -64,7 +72,11 @@ system_agents:
   builder:
     model: opencode-go/kimi-k2.6
 custom_agents: {}
+domains:
+  coding: true
 ```
+
+If you want the smallest one-provider config, use the minimal example in [`EXAMPLES.md`](./EXAMPLES.md#minimal-legionariesyaml).
 
 ### Optional Code Reviewer
 
@@ -112,6 +124,118 @@ custom_agents:
 
 Custom agents run as `subagent`. Any permission key not listed in the YAML is set to `deny`. Custom agents cannot use system agent names such as `builder`, `planner`, or `explorer`.
 
+## Domain Packs
+
+Domain packs provide a shared domain index for the same system and custom agents. They are for reusable workflows, decisions, examples, and domain-local skills. They are not registered as harness-level skills and they are not automatically active task memory.
+
+Use domain packs for reusable context. Use the Task Context Envelope for the specific context that applies to one delegation.
+
+The orchestrator activates domain context per delegation through the Task Context Envelope:
+
+```text
+Objective:
+Active domains:
+Context refs:
+Constraints:
+Expected output:
+Verification:
+```
+
+Use `Active domains` to state the task-local responsibility for each domain, such as `coding: implement UI` or `marketing: write launch copy`. Keep the envelope compact and pass paths in `Context refs` instead of copying long documents.
+
+Example mixed-domain envelope:
+
+```text
+Objective: Add a launch banner and matching launch copy.
+Active domains:
+- coding: implement the banner UI and tests
+- marketing: write concise launch copy for developers
+Context refs:
+- coding/make-code-change
+- marketing/campaign-brief
+Constraints: Keep the change local; do not alter pricing or signup flow.
+Expected output: Files changed, copy used, verification results.
+Verification: Run the focused UI test and relevant build check.
+```
+
+Your Legion ships a bundled `coding` domain and enables it in the example `legionaries.yaml`. It includes:
+
+- `coding/implementation-loop`
+- `coding/engineering-guardrails`
+- `coding/change-report`
+- `coding/make-code-change`
+
+After installation, global domain pack files live under:
+
+```text
+~/.config/opencode/your-legion/domains/
+└── <domain-id>/
+    ├── workflows/
+    ├── decisions/
+    ├── examples/
+    └── skills/
+```
+
+Enable a domain that follows this convention with:
+
+```yaml
+domains:
+  coding: true
+  marketing: true
+  financial-analytics: true
+```
+
+For `marketing: true`, Your Legion automatically scans:
+
+```text
+~/.config/opencode/your-legion/domains/marketing/workflows/*.md
+~/.config/opencode/your-legion/domains/marketing/decisions/*.md
+~/.config/opencode/your-legion/domains/marketing/examples/*.md
+~/.config/opencode/your-legion/domains/marketing/skills/*.md
+~/.config/opencode/your-legion/domains/marketing/skills/*/SKILL.md
+```
+
+Each discovered document is injected into agent prompts as a namespaced entry, for example `marketing/campaign-brief`. Agents are instructed to read the exact path from the Domain Skill Index instead of invoking the harness skill resolver.
+
+For a full marketing domain pack example, see [`EXAMPLES.md`](./EXAMPLES.md#add-a-marketing-domain-pack).
+
+Bundled domain components are loaded first, then global convention files under `~/.config/opencode/your-legion/domains/<domain-id>/`, then explicit overrides. This means a global `coding` component with the same id replaces the bundled component with that id.
+
+### Domain Overrides
+
+Any component can be extended or overridden by id:
+
+```yaml
+domains:
+  financial-analytics:
+    skills:
+      common-data-query:
+        path: ~/.config/opencode/skills/sql-query.md
+    decisions:
+      revenue-recognition:
+        path: ~/experiments/new-revenue-rules.md
+```
+
+Override rules:
+
+- Missing component maps still use convention discovery.
+- A new id adds an extra component.
+- A matching id replaces the convention-discovered path.
+- `false` disables a convention-discovered component.
+
+```yaml
+domains:
+  marketing:
+    skills:
+      campaign-brief: false
+      launch-plan:
+        path: ~/my-skills/custom-launch-plan.md
+```
+
+Relative override paths resolve from the directory containing `legionaries.yaml`. `~` expands to the current user's home directory.
+
+Prefer repo-relative override paths when a domain decision should be versioned with a project.
+
 ## Agent Descriptions
 
 | Agent | Role |
@@ -129,6 +253,7 @@ Custom agents run as `subagent`. Any permission key not listed in the YAML is se
 - Different agents may use different providers in the same config.
 - Model values must use `provider/model-id` format.
 - Code review is handled by the `/code-review` command by default; the bundled `code-reviewer` custom agent is enabled in `legionaries.yaml` as an example.
+- Domain packs add domain-local skill indexes to the same agents. They do not create new agents by themselves, and enabled domains become active only when named in a Task Context Envelope.
 
 ## DIO Command
 

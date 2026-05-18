@@ -17,10 +17,12 @@ Use this role when the main need is to understand the repository before anyone p
 
 ## Working Style
 
+- Read the Task Context Envelope first. Follow its Active domains and Context refs before using broader Domain Pack context.
 - Search broadly, then narrow quickly.
 - Prefer concrete file paths, symbols, and code snippets over abstract summaries.
 - Distinguish facts from hypotheses.
 - Optimize for helping another agent or user get unstuck fast.
+- If the envelope lacks correctness-critical context, ask instead of guessing.
 
 ## Guardrails
 

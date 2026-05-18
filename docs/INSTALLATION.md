@@ -18,6 +18,7 @@ The installer writes:
 
 - `~/.config/opencode/opencode.json`, or updates an existing `~/.config/opencode/opencode.jsonc`
 - `~/.config/opencode/legionaries.yaml`
+- `~/.config/opencode/your-legion/domains/`
 
 If `legionaries.yaml` already exists, it is backed up first using this format:
 
@@ -26,6 +27,22 @@ If `legionaries.yaml` already exists, it is backed up first using this format:
 ```
 
 Restart OpenCode after installation.
+
+## Smoke Test
+
+After restart, send a small discovery request:
+
+```text
+Explore where Your Legion builds the runtime agent config.
+```
+
+The default `orchestrator` should route this to `explorer`. Then try a small implementation request to confirm `builder` is available:
+
+```text
+Implement a tiny docs-only wording fix and report verification.
+```
+
+For more startup recipes, see [`EXAMPLES.md`](./EXAMPLES.md).
 
 ## Manual OpenCode Config
 
@@ -82,6 +99,58 @@ LEGIONARIES_CONFIG=/absolute/path/to/legionaries.yaml opencode
 ```
 
 Use `LEGIONARIES_CONFIG` for an explicit config path.
+
+## Domain Pack Directories
+
+Your Legion uses global convention directories for optional domain packs:
+
+```text
+~/.config/opencode/your-legion/domains/
+└── <domain-id>/
+    ├── workflows/
+    ├── decisions/
+    ├── examples/
+    └── skills/
+```
+
+The installer creates the base `domains/` directory. Add domain folders only for the domains you want to enable.
+
+Create a conventional domain pack with the CLI:
+
+```bash
+your-legion create-domain marketing
+```
+
+For an explicit config directory, useful in tests or agent scripts:
+
+```bash
+your-legion create-domain marketing --config-dir ~/.config/opencode
+```
+
+This creates `workflows/`, `decisions/`, `examples/`, `skills/`, and a domain `README.md`. It does not edit `legionaries.yaml`; enable the domain after creating it.
+
+Enable conventional domain packs in `legionaries.yaml`:
+
+```yaml
+domains:
+  coding: true
+  marketing: true
+  financial-analytics: true
+```
+
+The bundled `coding` domain is enabled by the default config. You can add files under `~/.config/opencode/your-legion/domains/coding/` to extend or override its workflows, decisions, examples, and skills.
+
+If you already keep shared skills in your harness/global skill directory, mount the exact file path into a domain with an override:
+
+```yaml
+domains:
+  financial-analytics:
+    skills:
+      common-data-query:
+        path: ~/.config/opencode/skills/sql-query.md
+```
+
+Domain skills are injected into Your Legion prompts as explicit paths. They are not registered as top-level OpenCode, Codex, or Claude skills, and Your Legion does not create a separate shared skill directory.
 
 ## Supported Providers
 

@@ -39,12 +39,15 @@ Turn ambiguous requests into implementation-ready design and execution documents
 
 When planning work:
 
-1. Inspect the relevant code and docs first.
-2. Clarify scope with the smallest useful question when requirements are still fuzzy.
-3. Define what is in scope, out of scope, and what success looks like.
-4. Identify files that will likely change.
-5. Break implementation into ordered, verifiable steps.
-6. Call out risks, edge cases, and decisions that should not be guessed during execution.
+1. Read the Task Context Envelope first. Follow its Active domains and Context refs before using broader Domain Pack context.
+2. Inspect the relevant code and docs first.
+3. Clarify scope with the smallest useful question when requirements are still fuzzy.
+4. Define what is in scope, out of scope, and what success looks like.
+5. Identify files that will likely change.
+6. Break implementation into ordered, verifiable steps.
+7. Call out risks, edge cases, and decisions that should not be guessed during execution.
+
+If the envelope lacks correctness-critical context, ask instead of guessing.
 
 ## Guardrails
 

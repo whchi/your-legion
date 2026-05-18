@@ -1,3 +1,5 @@
+import { fileURLToPath } from 'node:url'
+
 import { loadLegionariesConfig, type LoadLegionariesConfigOptions } from '../config/legionaries.ts'
 import {
   DEFAULT_AGENT,
@@ -8,6 +10,11 @@ import {
   type ResolvedLegionaryEntry,
 } from '../shared/agent-types.ts'
 import { loadAgentDefinitionProviders } from './agent-definition-provider.ts'
+import { buildDomainPromptSection, resolveDomainPacks } from './domain-packs.ts'
+
+function toPath(value: string | URL) {
+  return value instanceof URL ? fileURLToPath(value) : value
+}
 
 const DIO_COMMAND_TEMPLATE = `DIO means devotio: a deliberate vow to carry the requested work through to completion.
 
@@ -102,15 +109,38 @@ ${promptLines.join('\n')}`,
   }
 }
 
+function augmentAgentsWithDomainPacks(
+  agents: EffectiveAgentConfig['agent'],
+  domainSection: string,
+) {
+  if (!domainSection) {
+    return agents
+  }
+
+  return Object.fromEntries(
+    Object.entries(agents).map(([agentName, agent]) => [
+      agentName,
+      {
+        ...agent,
+        prompt: `${agent.prompt}
+
+${domainSection}`,
+      },
+    ]),
+  ) as EffectiveAgentConfig['agent']
+}
+
 export async function buildEffectiveAgentConfig(
   options: LoadLegionariesConfigOptions,
 ): Promise<EffectiveAgentConfig> {
   const {
     systemAgents: configuredSystemAgents,
     customAgents: configuredCustomAgents,
+    domains: configuredDomains,
+    filePath: configPath,
   } = loadLegionariesConfig(options)
   const providers = await loadAgentDefinitionProviders(options)
-  const agent = {} as EffectiveAgentConfig['agent']
+  let agent = {} as EffectiveAgentConfig['agent']
   const customAgentDefinitions = {} as EffectiveAgentConfig['agent']
 
   for (const [agentName, configuredAgent] of Object.entries(configuredSystemAgents)) {
@@ -143,6 +173,13 @@ export async function buildEffectiveAgentConfig(
       customAgentDefinitions,
     )
   }
+
+  const domainPacks = resolveDomainPacks({
+    configDir: options.configDir ? toPath(options.configDir) : undefined,
+    configPath,
+    domains: configuredDomains,
+  })
+  agent = augmentAgentsWithDomainPacks(agent, buildDomainPromptSection(domainPacks))
 
   return {
     default_agent: DEFAULT_AGENT,

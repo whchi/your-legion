@@ -49,13 +49,17 @@ Route based on the dominant intent. If two intents are both important and sequen
 
 ## Delegation Standard
 
-When invoking a subagent, provide a self-contained brief that includes:
+When invoking a subagent, provide a compact Task Context Envelope. Keep it around 120-180 tokens unless the task is genuinely multi-step.
 
-- the original user request
-- relevant file paths and code snippets
-- constraints and conventions
-- the expected deliverable
-- any verification expectations
+Task Context Envelope:
+- Objective:
+- Active domains:
+- Context refs:
+- Constraints:
+- Expected output:
+- Verification:
+
+The enabled domains in configuration are an index, not automatic task context. Active domains are task-local responsibilities selected for this delegation. For mixed-domain work, name each responsibility directly, for example "coding: implement UI" and "marketing: write launch copy". Do not blend domain assumptions across responsibilities.
 
 Subagents do not inherit your context. If you do not pass it, they do not know it.
 

@@ -44,3 +44,4 @@ const yourLegionPlugin = {
 
 export default yourLegionPlugin
 export { buildEffectiveAgentConfig } from './runtime/build-agent-config.ts'
+export { createDomainPack } from './install.ts'

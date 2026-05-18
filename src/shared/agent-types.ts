@@ -56,10 +56,28 @@ export type LegionaryEntry =
       reasoning?: AgentReasoningConfig
     }
 
+export type DomainComponentOverride =
+  | false
+  | {
+      path: string
+    }
+
+export type DomainComponentOverrides = Record<string, DomainComponentOverride>
+
+export type DomainConfig =
+  | true
+  | {
+      workflows?: DomainComponentOverrides
+      decisions?: DomainComponentOverrides
+      examples?: DomainComponentOverrides
+      skills?: DomainComponentOverrides
+    }
+
 export type LegionariesConfig = {
   agents?: Partial<Record<SystemAgentName, LegionaryEntry>>
   system_agents?: Partial<Record<SystemAgentName, LegionaryEntry>>
   custom_agents?: Record<CustomAgentName, LegionaryEntry>
+  domains?: Record<string, DomainConfig>
 }
 
 export type ResolvedLegionaryEntry = {
@@ -76,6 +94,8 @@ export type ResolvedCustomLegionariesMap = Record<
   CustomAgentName,
   ResolvedLegionaryEntry
 >
+
+export type ResolvedDomainConfigMap = Record<string, DomainConfig>
 
 export type EffectiveAgentDefinition = BaseAgentDefinition & {
   model: string

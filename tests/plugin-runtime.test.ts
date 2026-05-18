@@ -109,10 +109,16 @@ test('package exposes the installer CLI', () => {
   assert.equal(pkg.bin['your-legion'], './dist/cli.js')
 })
 
+test('plugin entrypoint exports domain scaffold helper for agent scripts', async () => {
+  const pluginModule = await import('../src/index.ts')
+
+  assert.equal(typeof pluginModule.createDomainPack, 'function')
+})
+
 test('package publishes build and install artifacts from dist', () => {
   const pkg = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'))
 
-  assert.deepEqual(pkg.files, ['dist', 'README.md', 'INSTALLATION.md', 'DEVELOPMENT.md', 'AGENTS.md'])
+  assert.deepEqual(pkg.files, ['dist', 'README.md', 'docs', 'AGENTS.md'])
 })
 
 test('plugin server exposes a config hook that injects Your Legion agents', async () => {

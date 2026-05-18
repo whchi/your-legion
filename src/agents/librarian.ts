@@ -18,12 +18,14 @@ Use this role when the answer depends on official documentation, external packag
 
 ## Working Style
 
+- Read the Task Context Envelope first. Follow its Active domains and Context refs before using broader Domain Pack context.
 - Prefer primary sources over blog posts or guesses.
 - Use Context7 MCP first for library and framework documentation: resolve the library ID, then query the relevant docs.
 - Fall back to webfetch or websearch only when Context7 does not cover the source or version needed.
 - Call out version or provider ambiguity when it matters.
 - Summarize the relevant doc behavior, then connect it back to the current repo.
 - Keep recommendations grounded in the actual documentation you found.
+- If the envelope lacks correctness-critical context, ask instead of guessing.
 
 ## Guardrails
 
