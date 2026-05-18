@@ -62,20 +62,24 @@ This is the style used by the repo's bundled example.
 
 ## Add A Marketing Domain Pack
 
-Create these files under your OpenCode config directory:
+Scaffold the conventional directory shape:
+
+```bash
+your-legion create-domain marketing
+```
+
+This creates:
 
 ```text
 ~/.config/opencode/your-legion/domains/marketing/
+├── README.md
 ├── workflows/
-│   └── campaign-planning.md
 ├── decisions/
-│   └── brand-voice.md
 ├── examples/
-│   └── launch-post.md
 └── skills/
-    └── campaign-brief/
-        └── SKILL.md
 ```
+
+Then add the domain documents you want agents to see:
 
 Example `skills/campaign-brief/SKILL.md`:
 
@@ -102,6 +106,19 @@ domains:
 ```
 
 After restart, Your Legion injects namespaced entries such as `marketing/campaign-brief` into the Domain Skill Index.
+
+Agent scripts can call the same scaffold behavior directly:
+
+```ts
+import { createDomainPack } from '@whchi/your-legion/server'
+
+createDomainPack({
+  domainID: 'marketing',
+  configDir: process.env.XDG_CONFIG_HOME
+    ? `${process.env.XDG_CONFIG_HOME}/opencode`
+    : `${process.env.HOME}/.config/opencode`,
+})
+```
 
 ## Mixed Coding And Marketing Work
 

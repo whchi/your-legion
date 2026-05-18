@@ -4,6 +4,8 @@ import { join } from 'node:path'
 import { getOpenCodeConfigDir } from './config/legionaries.ts'
 
 const PLUGIN_NAME = '@whchi/your-legion'
+const DOMAIN_ID_PATTERN = /^[a-z0-9][a-z0-9-]*$/
+const DOMAIN_COMPONENT_DIRS = ['workflows', 'decisions', 'examples', 'skills'] as const
 
 export type InstallYourLegionOptions = {
   configDir?: string
@@ -17,6 +19,20 @@ export type InstallYourLegionResult = {
   legionariesBackupPath?: string
   opencodeConfigPath: string
   domainRootPath: string
+}
+
+export type CreateDomainPackOptions = {
+  configDir?: string
+  domainID: string
+}
+
+export type CreateDomainPackResult = {
+  configDir: string
+  domainID: string
+  domainRootPath: string
+  componentPaths: string[]
+  manifestPath: string
+  enablementSnippet: string
 }
 
 function backupTimestamp(now: Date) {
@@ -64,6 +80,25 @@ function registerPlugin(configDir: string) {
   return configPath
 }
 
+function domainManifest(domainID: string) {
+  return `# ${domainID}
+
+This domain pack follows the Your Legion convention:
+
+- \`workflows/\`: repeatable domain workflows
+- \`decisions/\`: stable domain decisions and guardrails
+- \`examples/\`: examples agents can copy or compare against
+- \`skills/\`: domain-local skills, either \`<skill>.md\` or \`<skill>/SKILL.md\`
+
+Enable it in \`legionaries.yaml\`:
+
+\`\`\`yaml
+domains:
+  ${domainID}: true
+\`\`\`
+`
+}
+
 export function installYourLegion({
   configDir = getOpenCodeConfigDir(),
   sourceConfigPath,
@@ -91,5 +126,36 @@ export function installYourLegion({
     legionariesBackupPath,
     opencodeConfigPath,
     domainRootPath,
+  }
+}
+
+export function createDomainPack({
+  configDir = getOpenCodeConfigDir(),
+  domainID,
+}: CreateDomainPackOptions): CreateDomainPackResult {
+  if (!DOMAIN_ID_PATTERN.test(domainID)) {
+    throw new Error(`invalid domain id: ${domainID}`)
+  }
+
+  const domainRootPath = join(configDir, 'your-legion', 'domains', domainID)
+  const componentPaths = DOMAIN_COMPONENT_DIRS.map((component) => join(domainRootPath, component))
+  const manifestPath = join(domainRootPath, 'README.md')
+
+  mkdirSync(domainRootPath, { recursive: true })
+  for (const componentPath of componentPaths) {
+    mkdirSync(componentPath, { recursive: true })
+  }
+
+  if (!existsSync(manifestPath)) {
+    writeFileSync(manifestPath, domainManifest(domainID))
+  }
+
+  return {
+    configDir,
+    domainID,
+    domainRootPath,
+    componentPaths,
+    manifestPath,
+    enablementSnippet: `domains:\n  ${domainID}: true\n`,
   }
 }

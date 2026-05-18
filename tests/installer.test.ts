@@ -97,6 +97,52 @@ test('installer updates existing opencode.jsonc instead of creating opencode.jso
   assert.deepEqual(opencodeConfig.plugin, ['opencode-wakatime', '@whchi/your-legion'])
 })
 
+test('createDomainPack scaffolds a conventional domain without shared skill directories', async (t) => {
+  const configDir = makeTempDir(t, 'your-legion-domain')
+  const { createDomainPack } = await import('../src/install.ts')
+
+  const result = createDomainPack({
+    configDir,
+    domainID: 'marketing-ops',
+  })
+
+  assert.equal(result.domainID, 'marketing-ops')
+  assert.equal(result.domainRootPath, path.join(configDir, 'your-legion', 'domains', 'marketing-ops'))
+  assert.deepEqual(
+    result.componentPaths.map((componentPath) => path.relative(result.domainRootPath, componentPath)),
+    ['workflows', 'decisions', 'examples', 'skills'],
+  )
+  assert.equal(fs.existsSync(path.join(result.domainRootPath, 'README.md')), true)
+  assert.equal(fs.existsSync(path.join(configDir, 'your-legion', 'shared', 'skills')), false)
+  assert.match(result.enablementSnippet, /marketing-ops: true/)
+})
+
+test('createDomainPack rejects non kebab-case domain ids', async (t) => {
+  const configDir = makeTempDir(t, 'your-legion-domain-invalid')
+  const { createDomainPack } = await import('../src/install.ts')
+
+  assert.throws(
+    () => createDomainPack({ configDir, domainID: 'Marketing Ops' }),
+    /invalid domain id: Marketing Ops/,
+  )
+})
+
+test('create-domain cli scaffolds a domain under an explicit config dir', (t) => {
+  const configDir = makeTempDir(t, 'your-legion-domain-cli')
+
+  const output = execFileSync(
+    'bun',
+    ['src/cli.ts', 'create-domain', 'marketing-ops', '--config-dir', configDir],
+    { cwd: rootDir, encoding: 'utf8' },
+  )
+
+  assert.match(output, /Created domain marketing-ops/)
+  assert.equal(
+    fs.existsSync(path.join(configDir, 'your-legion', 'domains', 'marketing-ops', 'README.md')),
+    true,
+  )
+})
+
 test('legionaries config resolution falls back to global opencode config dir', async (t) => {
   const projectDir = makeTempDir(t, 'your-legion-project')
   const configDir = makeTempDir(t, 'your-legion-global-config')

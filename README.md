@@ -116,6 +116,7 @@ Your Legion uses direct specialist routing.
 
 ## Commands
 
+- `your-legion create-domain <domain-id>`: scaffolds a conventional global domain pack under `~/.config/opencode/your-legion/domains/<domain-id>/`.
 - `/dio`: a devotio-inspired completion loop that keeps the current session moving until the assistant emits `<dio_complete>...</dio_complete>`, `/dio-stop` is run, or the iteration guard is reached.
 - `/dio-stop`: cancels the active DIO loop for the current session.
 

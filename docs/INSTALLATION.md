@@ -115,6 +115,20 @@ Your Legion uses global convention directories for optional domain packs:
 
 The installer creates the base `domains/` directory. Add domain folders only for the domains you want to enable.
 
+Create a conventional domain pack with the CLI:
+
+```bash
+your-legion create-domain marketing
+```
+
+For an explicit config directory, useful in tests or agent scripts:
+
+```bash
+your-legion create-domain marketing --config-dir ~/.config/opencode
+```
+
+This creates `workflows/`, `decisions/`, `examples/`, `skills/`, and a domain `README.md`. It does not edit `legionaries.yaml`; enable the domain after creating it.
+
 Enable conventional domain packs in `legionaries.yaml`:
 
 ```yaml
