@@ -36,7 +36,7 @@ No frontmatter rewrite step is required.
 ## Local Development
 
 - Install dependencies with `bun install`.
-- Run tests with `node --test tests/*.test.js`.
+- Run tests with `node --test tests/*.test.ts`.
 - Build the published plugin entrypoint with `bun run build`.
 - Temporary test artifacts belong under `temp/`, which is gitignored.
 
@@ -64,7 +64,7 @@ Your Legion uses direct specialist routing rather than a category-first runtime.
 - `planner` is runtime-limited to `docs/**/*.md` edits; code changes belong to `builder`.
 - Code review is command-owned by `/code-review` by default; `code-reviewer` is the bundled YAML custom-agent example.
 - `legionaries.yaml` configures per-agent models, reasoning, and custom-agent enablement. It does not decide which system agent gets selected.
-- Domain packs add shared task context and namespaced domain skills to existing agents. They do not create new agents, and their skills are not registered with the harness skill resolver.
+- Domain packs add a shared domain index and namespaced domain skills to existing agents. They do not create new agents, and their skills are not registered with the harness skill resolver.
 
 ## Routing Boundaries
 

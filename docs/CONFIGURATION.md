@@ -2,12 +2,16 @@
 
 Your Legion reads per-agent model, reasoning settings, and enabled domain packs from `legionaries.yaml` at startup. The plugin injects required system agents, configured YAML custom agents, and a Domain Skill Index into OpenCode automatically.
 
+For copy-paste recipes, see [`EXAMPLES.md`](./EXAMPLES.md). This page is the reference for how the config is resolved and validated.
+
 ## File Location
 
 Place `legionaries.yaml` in one of these locations (checked in order):
 
 - `<worktree-root>/legionaries.yaml`
 - `<opencode-config-dir>/legionaries.yaml`
+
+`LEGIONARIES_CONFIG=/absolute/path/to/legionaries.yaml` takes precedence when set.
 
 ## Schema
 
@@ -27,7 +31,8 @@ custom_agents:
 domains:
   <domain-id>: true
 ```
-If you want to disable custom_agents just set `custom_agents: {}` or comment-out whole block
+
+If you want to disable custom agents, set `custom_agents: {}` or omit the whole block.
 
 ### Fields
 
@@ -46,7 +51,7 @@ Only takes effect when the agent's provider supports reasoning effort.
 
 ## Example
 
-This is the bundled example `legionaries.yaml`:
+This is the bundled example style:
 
 ```yaml
 system_agents:
@@ -70,6 +75,8 @@ custom_agents: {}
 domains:
   coding: true
 ```
+
+If you want the smallest one-provider config, use the minimal example in [`EXAMPLES.md`](./EXAMPLES.md#minimal-legionariesyaml).
 
 ### Optional Code Reviewer
 
@@ -119,7 +126,37 @@ Custom agents run as `subagent`. Any permission key not listed in the YAML is se
 
 ## Domain Packs
 
-Domain packs provide shared task context for the same system and custom agents. They are for domain memory, reusable workflows, decisions, examples, and domain-local skills. They are not registered as harness-level skills.
+Domain packs provide a shared domain index for the same system and custom agents. They are for reusable workflows, decisions, examples, and domain-local skills. They are not registered as harness-level skills and they are not automatically active task memory.
+
+Use domain packs for reusable context. Use the Task Context Envelope for the specific context that applies to one delegation.
+
+The orchestrator activates domain context per delegation through the Task Context Envelope:
+
+```text
+Objective:
+Active domains:
+Context refs:
+Constraints:
+Expected output:
+Verification:
+```
+
+Use `Active domains` to state the task-local responsibility for each domain, such as `coding: implement UI` or `marketing: write launch copy`. Keep the envelope compact and pass paths in `Context refs` instead of copying long documents.
+
+Example mixed-domain envelope:
+
+```text
+Objective: Add a launch banner and matching launch copy.
+Active domains:
+- coding: implement the banner UI and tests
+- marketing: write concise launch copy for developers
+Context refs:
+- coding/make-code-change
+- marketing/campaign-brief
+Constraints: Keep the change local; do not alter pricing or signup flow.
+Expected output: Files changed, copy used, verification results.
+Verification: Run the focused UI test and relevant build check.
+```
 
 Your Legion ships a bundled `coding` domain and enables it in the example `legionaries.yaml`. It includes:
 
@@ -160,6 +197,8 @@ For `marketing: true`, Your Legion automatically scans:
 
 Each discovered document is injected into agent prompts as a namespaced entry, for example `marketing/campaign-brief`. Agents are instructed to read the exact path from the Domain Skill Index instead of invoking the harness skill resolver.
 
+For a full marketing domain pack example, see [`EXAMPLES.md`](./EXAMPLES.md#add-a-marketing-domain-pack).
+
 Bundled domain components are loaded first, then global convention files under `~/.config/opencode/your-legion/domains/<domain-id>/`, then explicit overrides. This means a global `coding` component with the same id replaces the bundled component with that id.
 
 ### Domain Overrides
@@ -195,6 +234,8 @@ domains:
 
 Relative override paths resolve from the directory containing `legionaries.yaml`. `~` expands to the current user's home directory.
 
+Prefer repo-relative override paths when a domain decision should be versioned with a project.
+
 ## Agent Descriptions
 
 | Agent | Role |
@@ -212,7 +253,7 @@ Relative override paths resolve from the directory containing `legionaries.yaml`
 - Different agents may use different providers in the same config.
 - Model values must use `provider/model-id` format.
 - Code review is handled by the `/code-review` command by default; the bundled `code-reviewer` custom agent is enabled in `legionaries.yaml` as an example.
-- Domain packs add task context and domain-local skill indexes to the same agents. They do not create new agents by themselves.
+- Domain packs add domain-local skill indexes to the same agents. They do not create new agents by themselves, and enabled domains become active only when named in a Task Context Envelope.
 
 ## DIO Command
 

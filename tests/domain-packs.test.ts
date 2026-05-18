@@ -65,6 +65,43 @@ test('enabled domains are resolved from the global convention directory', async 
   assert.doesNotMatch(result.agent.builder.prompt, /use the harness skill tool for Your Legion domain skills/i)
 })
 
+test('domain pack prompt distinguishes enabled indexes from active task context', async (t) => {
+  const projectDir = makeTempDir(t, 'domain-pack-active-context-project')
+  const configDir = makeTempDir(t, 'domain-pack-active-context-config')
+  const configPath = path.join(projectDir, 'legionaries.yaml')
+  const marketingRoot = path.join(configDir, 'your-legion', 'domains', 'marketing')
+  const codingRoot = path.join(configDir, 'your-legion', 'domains', 'coding')
+  const original = YAML.parse(fs.readFileSync(legionariesConfigPath, 'utf8'))
+
+  writeFile(path.join(marketingRoot, 'skills', 'campaign-brief', 'SKILL.md'), '# Campaign Brief\n')
+  writeFile(path.join(codingRoot, 'skills', 'make-code-change', 'SKILL.md'), '# Make Code Change\n')
+
+  fs.writeFileSync(
+    configPath,
+    YAML.stringify({
+      system_agents: systemAgentsFrom(original),
+      domains: {
+        coding: true,
+        marketing: true,
+      },
+    }),
+  )
+
+  const { buildEffectiveAgentConfig } = await import('../src/runtime/build-agent-config.ts')
+  const result = await buildEffectiveAgentConfig({
+    rootDir: projectDir,
+    configDir,
+    configPath,
+  })
+
+  assert.match(result.agent.orchestrator.prompt, /enabled domain packs are an index/i)
+  assert.match(result.agent.orchestrator.prompt, /not automatically active task context/i)
+  assert.match(result.agent.orchestrator.prompt, /Use the Task Context Envelope's Active domains/i)
+  assert.match(result.agent.orchestrator.prompt, /coding\/make-code-change/)
+  assert.match(result.agent.orchestrator.prompt, /marketing\/campaign-brief/)
+  assert.doesNotMatch(result.agent.orchestrator.prompt, /registered as harness-level skills/i)
+})
+
 test('domain overrides merge with convention components by id', async (t) => {
   const projectDir = makeTempDir(t, 'domain-pack-override-project')
   const configDir = makeTempDir(t, 'domain-pack-override-config')

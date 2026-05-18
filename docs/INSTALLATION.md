@@ -29,6 +29,22 @@ If `legionaries.yaml` already exists, it is backed up first using this format:
 
 Restart OpenCode after installation.
 
+## Smoke Test
+
+After restart, send a small discovery request:
+
+```text
+Explore where Your Legion builds the runtime agent config.
+```
+
+The default `orchestrator` should route this to `explorer`. Then try a small implementation request to confirm `builder` is available:
+
+```text
+Implement a tiny docs-only wording fix and report verification.
+```
+
+For more startup recipes, see [`EXAMPLES.md`](./EXAMPLES.md).
+
 ## Manual OpenCode Config
 
 You can also install manually by registering the npm package name in OpenCode's `plugin` array.

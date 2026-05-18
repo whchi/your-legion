@@ -195,6 +195,8 @@ export function buildDomainPromptSection(domainPacks: DomainPack[]) {
     '## Domain Packs',
     '',
     'Your Legion domain packs are configured capability documents, not harness top-level skills.',
+    'Enabled domain packs are an index, not automatically active task context.',
+    "Use the Task Context Envelope's Active domains to decide which domain context applies to the current delegation.",
     'Use domain skills from the configured Domain Skill Index by reading the exact path listed below.',
     'Avoid harness-level skill resolution for these entries unless the user explicitly asks for an external harness skill.',
     '',
