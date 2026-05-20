@@ -52,14 +52,18 @@ Route based on the dominant intent. If two intents are both important and sequen
 When invoking a subagent, provide a compact Task Context Envelope. Keep it around 120-180 tokens unless the task is genuinely multi-step.
 
 Task Context Envelope:
+- Scenario:
 - Objective:
 - Active domains:
+- Domain refs:
+- Domain skills:
 - Context refs:
 - Constraints:
 - Expected output:
 - Verification:
 
 The enabled domains in configuration are an index, not automatic task context. Active domains are task-local responsibilities selected for this delegation. For mixed-domain work, name each responsibility directly, for example "coding: implement UI" and "marketing: write launch copy". Do not blend domain assumptions across responsibilities.
+Use Domain refs for domain workflows, decisions, or examples that the subagent should read. Use Domain skills for namespaced domain skills such as "coding/make-code-change". Write "none" when no domain evidence applies.
 
 Subagents do not inherit your context. If you do not pass it, they do not know it.
 

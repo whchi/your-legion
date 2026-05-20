@@ -2,7 +2,7 @@
 
 ## Install
 
-Run the installer:
+Use `bunx` when you have not installed the CLI globally:
 
 ```bash
 bunx @whchi/your-legion install
@@ -14,11 +14,28 @@ Or with npm:
 npx @whchi/your-legion install
 ```
 
+If you want the shorter `your-legion <command>` form, install the package globally first:
+
+```bash
+bun install -g @whchi/your-legion
+your-legion install
+```
+
+The rest of these docs use `bunx @whchi/your-legion ...` so every command is executable without assuming a global install.
+
 The installer writes:
 
 - `~/.config/opencode/opencode.json`, or updates an existing `~/.config/opencode/opencode.jsonc`
 - `~/.config/opencode/legionaries.yaml`
 - `~/.config/opencode/your-legion/domains/`
+
+The installer enables `coding` by default. To pick the bundled domains to enable, pass a comma-separated `--domains` list:
+
+```bash
+bunx @whchi/your-legion install --domains coding,marketing,finance,accounting
+```
+
+Available bundled domains are `coding`, `marketing`, `finance`, and `accounting`.
 
 If `legionaries.yaml` already exists, it is backed up first using this format:
 
@@ -107,38 +124,48 @@ Your Legion uses global convention directories for optional domain packs:
 ```text
 ~/.config/opencode/your-legion/domains/
 └── <domain-id>/
-    ├── workflows/
-    ├── decisions/
-    ├── examples/
-    └── skills/
+    ├── README.md
+    ├── workflows/   # optional
+    ├── decisions/   # optional
+    ├── examples/    # optional
+    └── skills/      # optional
 ```
 
 The installer creates the base `domains/` directory. Add domain folders only for the domains you want to enable.
 
-Create a conventional domain pack with the CLI:
+Create a domain pack manifest with the CLI:
 
 ```bash
-your-legion create-domain marketing
+bunx @whchi/your-legion create-domain marketing
 ```
 
 For an explicit config directory, useful in tests or agent scripts:
 
 ```bash
-your-legion create-domain marketing --config-dir ~/.config/opencode
+bunx @whchi/your-legion create-domain marketing --config-dir ~/.config/opencode
 ```
 
-This creates `workflows/`, `decisions/`, `examples/`, `skills/`, and a domain `README.md`. It does not edit `legionaries.yaml`; enable the domain after creating it.
+By default this creates only `README.md`. Component folders are optional capability facets; create them only when that domain has real versioned knowledge for the facet.
 
-Enable conventional domain packs in `legionaries.yaml`:
+To scaffold selected component folders in one command:
+
+```bash
+bunx @whchi/your-legion create-domain marketing --components workflows,decisions,skills
+```
+
+Available components are `workflows`, `decisions`, `examples`, and `skills`. The command does not edit `legionaries.yaml`; enable the domain after creating it.
+
+Enable conventional or bundled domain packs in `legionaries.yaml`:
 
 ```yaml
 domains:
   coding: true
   marketing: true
-  financial-analytics: true
+  finance: true
+  accounting: true
 ```
 
-The bundled `coding` domain is enabled by the default config. You can add files under `~/.config/opencode/your-legion/domains/coding/` to extend or override its workflows, decisions, examples, and skills.
+The bundled `coding` domain is enabled by the default config. The other bundled domains become available when enabled. You can add files under `~/.config/opencode/your-legion/domains/<domain-id>/` to extend or override bundled workflows, decisions, examples, and skills.
 
 If you already keep shared skills in your harness/global skill directory, mount the exact file path into a domain with an override:
 
@@ -151,6 +178,27 @@ domains:
 ```
 
 Domain skills are injected into Your Legion prompts as explicit paths. They are not registered as top-level OpenCode, Codex, or Claude skills, and Your Legion does not create a separate shared skill directory.
+
+To verify domain usage after a session, inspect the trace for the current worktree:
+
+```bash
+bunx @whchi/your-legion trace --worktree . --limit 10
+bunx @whchi/your-legion trace-check --worktree .
+```
+
+Trace events are stored under `~/.config/opencode/your-legion/traces/`. Contract warnings are warn-only at runtime, but `trace-check` exits non-zero so local verification can catch vague active domains, unknown domain refs, or unknown domain skills.
+
+For a fixed acceptance flow, print the built-in domain scenario prompts:
+
+```bash
+bunx @whchi/your-legion domain-scenarios
+```
+
+Run the printed prompts in OpenCode, then verify that trace evidence contains the fixed domain scenario set:
+
+```bash
+bunx @whchi/your-legion domain-scenario-check --worktree .
+```
 
 ## Supported Providers
 

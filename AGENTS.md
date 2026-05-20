@@ -25,6 +25,7 @@ There is no markdown frontmatter rewrite step.
 - `src/runtime/agent-definition-provider.ts`: system and YAML custom agent provider loading
 - `src/runtime/build-agent-config.ts`: final runtime config assembly
 - `src/runtime/domain-packs.ts`: convention-first domain pack discovery and Domain Skill Index prompt section
+- `src/runtime/domain-usage-contract.ts`: Task Context Envelope parsing, warn-only domain validation, and JSONL trace evidence
 - `src/domains/`: bundled domain packs copied to `dist/domains` at build time
 - `src/runtime/dio-loop.ts`: in-memory `/dio` session loop
 - `src/index.ts`: plugin entrypoint and config injection hook
@@ -92,6 +93,7 @@ Your Legion uses direct specialist routing rather than a category-first runtime.
 - `domains` in `legionaries.yaml` enables domain packs. Domain packs add a shared domain index and namespaced domain skills to the same agents; they do not create new runtime agents.
 - The orchestrator activates domain context per delegation with a compact Task Context Envelope. Enabled domains are an index; `Active domains` marks the task-local responsibilities.
 - Domain skills are read from explicit configured paths in the Domain Skill Index and are intentionally not registered as harness top-level skills.
+- Domain usage is observable through warn-only trace events under `~/.config/opencode/your-legion/traces/`.
 
 ## Routing Boundaries
 
@@ -114,11 +116,14 @@ Your Legion uses direct specialist routing rather than a category-first runtime.
 
 - Domain packs live under `~/.config/opencode/your-legion/domains/<domain-id>/`.
 - Bundled domain packs live under `src/domains/<domain-id>/`; global domain packs can extend or override them by id.
-- Conventional component folders are `workflows/`, `decisions/`, `examples/`, and `skills/`.
+- Optional component folders are `workflows/`, `decisions/`, `examples/`, and `skills/`; create only folders with real domain knowledge.
 - Enable a conventional domain with `domains.<domain-id>: true`.
 - Override or mount specific components with `domains.<domain-id>.<component>.<id>.path`.
 - A same-id override replaces the conventional file; `false` disables a conventional component.
 - Domain ids and component ids use the same kebab-case style as agent names.
+- `bunx @whchi/your-legion create-domain <domain-id>` creates a manifest only; pass `--components decisions,skills` to scaffold selected facets.
+- Runtime evidence records `delegation` and `domain-read` events. Use `bunx @whchi/your-legion trace` and `bunx @whchi/your-legion trace-check` for acceptance.
+- Use `bunx @whchi/your-legion domain-scenarios` and `bunx @whchi/your-legion domain-scenario-check` for the fixed coding, marketing, finance, accounting, and mixed-domain validation set.
 
 This repo ships an example mixed-provider mapping using `openai`, `github-copilot`, and `opencode-go`.
 

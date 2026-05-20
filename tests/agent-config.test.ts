@@ -57,8 +57,11 @@ test('orchestrator prompt requires a compact task context envelope for delegatio
   const orchestrator = BASE_AGENT_DEFINITIONS.orchestrator
 
   assert.match(orchestrator.prompt, /Task Context Envelope/i)
+  assert.match(orchestrator.prompt, /Scenario:/)
   assert.match(orchestrator.prompt, /Objective:/)
   assert.match(orchestrator.prompt, /Active domains:/)
+  assert.match(orchestrator.prompt, /Domain refs:/)
+  assert.match(orchestrator.prompt, /Domain skills:/)
   assert.match(orchestrator.prompt, /Context refs:/)
   assert.match(orchestrator.prompt, /Constraints:/)
   assert.match(orchestrator.prompt, /Expected output:/)
@@ -126,6 +129,7 @@ test('leaf specialist prompts follow the task context envelope before broader do
 
     assert.match(prompt, /Task Context Envelope/i, `${agentName} should name the envelope`)
     assert.match(prompt, /Active domains/i, `${agentName} should honor active domains`)
+    assert.match(prompt, /Domain evidence/i, `${agentName} should report domain evidence`)
     assert.match(prompt, /Context refs/i, `${agentName} should use context refs`)
     assert.match(
       prompt,

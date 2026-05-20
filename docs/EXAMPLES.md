@@ -62,21 +62,23 @@ This is the style used by the repo's bundled example.
 
 ## Add A Marketing Domain Pack
 
-Scaffold the conventional directory shape:
+Scaffold the domain manifest:
 
 ```bash
-your-legion create-domain marketing
+bunx @whchi/your-legion create-domain marketing
 ```
 
 This creates:
 
 ```text
 ~/.config/opencode/your-legion/domains/marketing/
-├── README.md
-├── workflows/
-├── decisions/
-├── examples/
-└── skills/
+└── README.md
+```
+
+Add only the component folders that carry real knowledge. For a marketing pack with campaign workflow, brand decisions, examples, and a domain skill, either create those folders yourself or scaffold them explicitly:
+
+```bash
+bunx @whchi/your-legion create-domain marketing --components workflows,decisions,examples,skills
 ```
 
 Then add the domain documents you want agents to see:
@@ -131,15 +133,40 @@ Objective: Add a launch banner and matching launch copy.
 Active domains:
 - coding: implement the banner UI and tests
 - marketing: write concise launch copy for developers
-Context refs:
+Domain refs:
+- coding/implementation-loop
+Domain skills:
 - coding/make-code-change
 - marketing/campaign-brief
+Context refs:
+- src/pages/launch.tsx
 Constraints: Keep the change local; do not alter pricing or signup flow.
 Expected output: Files changed, copy used, verification results.
 Verification: Run the focused UI test and relevant build check.
 ```
 
 Avoid vague active domains like `coding, marketing`. Name what each domain owns.
+
+After the run, inspect runtime evidence:
+
+```bash
+bunx @whchi/your-legion trace --worktree . --limit 10
+bunx @whchi/your-legion trace-check --worktree .
+```
+
+`delegation` events show which domains and skills were requested. `domain-read` events show which domain docs or domain skills were actually read.
+
+For repeatable validation, use the fixed scenario set:
+
+```bash
+bunx @whchi/your-legion domain-scenarios
+```
+
+Ask the printed prompts, then run:
+
+```bash
+bunx @whchi/your-legion domain-scenario-check --worktree .
+```
 
 ## Add A Custom Agent
 

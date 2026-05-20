@@ -169,3 +169,58 @@ test('default coding domain resolves from bundled domain files', async () => {
   assert.match(result.agent.orchestrator.prompt, /coding\/make-code-change/)
   assert.match(result.agent.builder.prompt, /Use domain skills from the configured Domain Skill Index/)
 })
+
+test('bundled coding marketing finance and accounting domains resolve when enabled', async (t) => {
+  const projectDir = makeTempDir(t, 'domain-pack-bundled-all-project')
+  const configPath = path.join(projectDir, 'legionaries.yaml')
+  const original = YAML.parse(fs.readFileSync(legionariesConfigPath, 'utf8'))
+
+  fs.writeFileSync(
+    configPath,
+    YAML.stringify({
+      system_agents: systemAgentsFrom(original),
+      domains: {
+        coding: true,
+        marketing: true,
+        finance: true,
+        accounting: true,
+      },
+    }),
+  )
+
+  const { buildEffectiveAgentConfig } = await import('../src/runtime/build-agent-config.ts')
+  const result = await buildEffectiveAgentConfig({
+    rootDir: projectDir,
+    configPath,
+  })
+
+  assert.match(result.agent.orchestrator.prompt, /coding\/make-code-change/)
+  assert.match(result.agent.orchestrator.prompt, /marketing\/campaign-brief/)
+  assert.match(result.agent.orchestrator.prompt, /finance\/financial-analysis/)
+  assert.match(result.agent.orchestrator.prompt, /accounting\/accounting-review/)
+})
+
+test('empty enabled domains are visible as quality warnings instead of fake templates', async (t) => {
+  const projectDir = makeTempDir(t, 'domain-pack-empty-project')
+  const configPath = path.join(projectDir, 'legionaries.yaml')
+  const original = YAML.parse(fs.readFileSync(legionariesConfigPath, 'utf8'))
+
+  fs.writeFileSync(
+    configPath,
+    YAML.stringify({
+      system_agents: systemAgentsFrom(original),
+      domains: {
+        'empty-domain': true,
+      },
+    }),
+  )
+
+  const { buildEffectiveAgentConfig } = await import('../src/runtime/build-agent-config.ts')
+  const result = await buildEffectiveAgentConfig({
+    rootDir: projectDir,
+    configPath,
+  })
+
+  assert.match(result.agent.orchestrator.prompt, /empty-domain/)
+  assert.match(result.agent.orchestrator.prompt, /No domain components discovered/)
+})

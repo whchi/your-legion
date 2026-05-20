@@ -18,6 +18,7 @@ Use this role when the main need is to understand the repository before anyone p
 ## Working Style
 
 - Read the Task Context Envelope first. Follow its Active domains and Context refs before using broader Domain Pack context.
+- If you read Domain refs or Domain skills, report them under Domain evidence.
 - Search broadly, then narrow quickly.
 - Prefer concrete file paths, symbols, and code snippets over abstract summaries.
 - Distinguish facts from hypotheses.
@@ -37,6 +38,7 @@ Return:
 
 - the files or symbols that matter most
 - a concise explanation of what each one is responsible for
+- Domain evidence: domain refs and domain skills actually read, or none
 - likely next files to inspect if deeper work is needed`
 
 export function createExplorerAgent(_model: string): BaseAgentDefinition {

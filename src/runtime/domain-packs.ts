@@ -133,7 +133,10 @@ function resolveDomainRoot(configDir: string, domain: string) {
 }
 
 function resolveBundledDomainRoot(domain: string) {
-  return join(dirname(fileURLToPath(import.meta.url)), '..', 'domains', domain)
+  const runtimeRoot = dirname(fileURLToPath(import.meta.url))
+  const bundledRoot = join(runtimeRoot, 'domains', domain)
+
+  return existsSync(bundledRoot) ? bundledRoot : join(runtimeRoot, '..', 'domains', domain)
 }
 
 export function resolveDomainPacks({
@@ -186,6 +189,13 @@ function formatComponent(kind: DomainComponentKind, pack: DomainPack) {
   ]
 }
 
+export function countDomainPackComponents(pack: DomainPack) {
+  return DOMAIN_COMPONENTS.reduce(
+    (total, component) => total + pack.components[component].length,
+    0,
+  )
+}
+
 export function buildDomainPromptSection(domainPacks: DomainPack[]) {
   if (domainPacks.length === 0) {
     return ''
@@ -205,6 +215,12 @@ export function buildDomainPromptSection(domainPacks: DomainPack[]) {
 
   for (const pack of domainPacks) {
     lines.push(`- \`${pack.id}\` (${pack.root})`)
+
+    if (countDomainPackComponents(pack) === 0) {
+      lines.push(
+        '  Warning: No domain components discovered. Add at least one workflow, decision, example, or skill before using this domain as active task context.',
+      )
+    }
 
     for (const component of DOMAIN_COMPONENTS) {
       lines.push(...formatComponent(component, pack))

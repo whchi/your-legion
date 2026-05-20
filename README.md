@@ -10,13 +10,20 @@ It also supports convention-first domain packs for a shared domain index and reu
 
 ## Quick Start
 
+There are two ways to run the CLI:
+
+- **No global install:** use `bunx @whchi/your-legion <command>`. This is the recommended copy-paste form in these docs.
+- **Global install:** after `bun install -g @whchi/your-legion`, you may use `your-legion <command>` directly.
+
+If you have not installed the package globally, commands like `your-legion install` will not exist in your shell.
+
 Install the plugin and restart OpenCode:
 
 ```bash
 bunx @whchi/your-legion install
 ```
 
-The installer registers the plugin, writes `~/.config/opencode/legionaries.yaml`, and creates the global domain pack directories.
+The installer registers the plugin, writes `~/.config/opencode/legionaries.yaml`, and creates the base global domain pack directory.
 
 After restart, try a small routing check:
 
@@ -35,10 +42,23 @@ Use these docs next:
 
 ## Install
 
-Run the installer:
+Run the installer without a global install:
 
 ```bash
 bunx @whchi/your-legion install
+```
+
+Or install the CLI globally first:
+
+```bash
+bun install -g @whchi/your-legion
+your-legion install
+```
+
+The installer enables `coding` by default. To pick all bundled domains:
+
+```bash
+bunx @whchi/your-legion install --domains coding,marketing,finance,accounting
 ```
 
 For full setup, manual install, config paths, backups, and uninstall instructions, see [`INSTALLATION.md`](./docs/INSTALLATION.md).
@@ -70,11 +90,14 @@ Domain packs live under your global OpenCode config:
 
 ```text
 ~/.config/opencode/your-legion/domains/{domain-id}/
-├── workflows/
-├── decisions/
-├── examples/
-└── skills/
+├── README.md
+├── workflows/   # optional repeatable procedures
+├── decisions/   # optional guardrails and constraints
+├── examples/    # optional examples and output patterns
+└── skills/      # optional domain-local skill instructions
 ```
+
+These component folders are optional. A domain should contain the facets that carry real knowledge, not empty folders created for symmetry.
 
 Enable a conventional domain pack with:
 
@@ -82,7 +105,8 @@ Enable a conventional domain pack with:
 domains:
   coding: true
   marketing: true
-  financial-analytics: true
+  finance: true
+  accounting: true
 ```
 
 ## Agents
@@ -98,9 +122,13 @@ Custom agents can be added by placing a YAML file under `src/custom-agents/`, th
 
 Domain skills are injected into agent prompts as a namespaced Domain Skill Index such as `marketing/campaign-brief`. Agents read the exact configured path; Your Legion does not register domain skills as top-level harness skills.
 
-Delegations use a compact Task Context Envelope with `Objective`, `Active domains`, `Context refs`, `Constraints`, `Expected output`, and `Verification`. Enabled domain packs are an index; `Active domains` marks the task-local context for a specific delegation.
+Delegations use a compact Task Context Envelope with `Objective`, `Active domains`, `Domain refs`, `Domain skills`, `Context refs`, `Constraints`, `Expected output`, and `Verification`. Enabled domain packs are an index; `Active domains` marks the task-local context for a specific delegation.
 
-The bundled `coding` domain is enabled by default and provides a lightweight implementation loop, engineering guardrails, a change-report example, and a `coding/make-code-change` domain skill.
+Your Legion records warn-only domain usage evidence under `~/.config/opencode/your-legion/traces/`. Use `bunx @whchi/your-legion trace` to inspect recent delegation and domain-read events, and `bunx @whchi/your-legion trace-check` to fail CI or local acceptance when a delegation used unknown or vague domain context.
+
+For a fixed domain-routing smoke test, run `bunx @whchi/your-legion domain-scenarios`, ask the printed prompts in OpenCode, then run `bunx @whchi/your-legion domain-scenario-check --worktree .`. The fixed set covers coding, marketing, finance, accounting, and their mixed-domain pairs.
+
+The bundled domains are `coding`, `marketing`, `finance`, and `accounting`. `coding` is enabled by default; enable the others with `--domains` during install or by editing `legionaries.yaml`.
 
 For hands-on examples of custom agents, marketing domain packs, mixed coding plus marketing work, and domain overrides, see [`EXAMPLES.md`](./docs/EXAMPLES.md).
 
@@ -116,7 +144,11 @@ Your Legion uses direct specialist routing.
 
 ## Commands
 
-- `your-legion create-domain <domain-id>`: scaffolds a conventional global domain pack under `~/.config/opencode/your-legion/domains/<domain-id>/`.
+- `bunx @whchi/your-legion create-domain <domain-id> [--components workflows,decisions,examples,skills]`: scaffolds a global domain pack. By default it creates only `README.md`; use `--components` to add selected optional folders.
+- `bunx @whchi/your-legion trace [--worktree <path>] [--limit <n>]`: prints recent domain usage evidence for a worktree.
+- `bunx @whchi/your-legion trace-check [--worktree <path>]`: exits non-zero when recorded domain usage warnings exist.
+- `bunx @whchi/your-legion domain-scenarios`: prints the fixed domain scenario prompts.
+- `bunx @whchi/your-legion domain-scenario-check [--worktree <path>]`: verifies trace evidence for the fixed domain scenario set.
 - `/dio`: a devotio-inspired completion loop that keeps the current session moving until the assistant emits `<dio_complete>...</dio_complete>`, `/dio-stop` is run, or the iteration guard is reached.
 - `/dio-stop`: cancels the active DIO loop for the current session.
 

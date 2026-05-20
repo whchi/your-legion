@@ -4,6 +4,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import test from 'node:test'
 import { fileURLToPath } from 'node:url'
+import YAML from 'yaml'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -38,6 +39,45 @@ test('installer writes global legionaries.yaml and registers the plugin', async 
   assert.deepEqual(opencodeConfig.plugin, ['@whchi/your-legion'])
   assert.equal(fs.existsSync(path.join(configDir, 'your-legion', 'domains')), true)
   assert.equal(fs.existsSync(path.join(configDir, 'your-legion', 'shared', 'skills')), false)
+})
+
+test('installer defaults enabled domains to coding', async (t) => {
+  const configDir = makeTempDir(t, 'your-legion-install-default-domains')
+  const sourceConfigPath = path.join(rootDir, 'legionaries.yaml')
+  const { installYourLegion } = await import('../src/install.ts')
+
+  installYourLegion({
+    configDir,
+    sourceConfigPath,
+    now: new Date('2026-01-25T11:18:28.014Z'),
+  })
+
+  const config = YAML.parse(fs.readFileSync(path.join(configDir, 'legionaries.yaml'), 'utf8'))
+
+  assert.deepEqual(config.domains, { coding: true })
+})
+
+test('installer writes selected pickable domains into legionaries.yaml', async (t) => {
+  const configDir = makeTempDir(t, 'your-legion-install-selected-domains')
+  const sourceConfigPath = path.join(rootDir, 'legionaries.yaml')
+  const { installYourLegion } = await import('../src/install.ts')
+
+  const result = installYourLegion({
+    configDir,
+    sourceConfigPath,
+    enabledDomains: ['coding', 'marketing', 'finance', 'accounting'],
+    now: new Date('2026-01-25T11:18:28.014Z'),
+  })
+
+  const config = YAML.parse(fs.readFileSync(path.join(configDir, 'legionaries.yaml'), 'utf8'))
+
+  assert.deepEqual(config.domains, {
+    coding: true,
+    marketing: true,
+    finance: true,
+    accounting: true,
+  })
+  assert.deepEqual(result.enabledDomains, ['coding', 'marketing', 'finance', 'accounting'])
 })
 
 test('installer backs up an existing global legionaries.yaml before overwriting', async (t) => {
@@ -97,7 +137,7 @@ test('installer updates existing opencode.jsonc instead of creating opencode.jso
   assert.deepEqual(opencodeConfig.plugin, ['opencode-wakatime', '@whchi/your-legion'])
 })
 
-test('createDomainPack scaffolds a conventional domain without shared skill directories', async (t) => {
+test('createDomainPack scaffolds a domain manifest without forcing component folders', async (t) => {
   const configDir = makeTempDir(t, 'your-legion-domain')
   const { createDomainPack } = await import('../src/install.ts')
 
@@ -108,13 +148,34 @@ test('createDomainPack scaffolds a conventional domain without shared skill dire
 
   assert.equal(result.domainID, 'marketing-ops')
   assert.equal(result.domainRootPath, path.join(configDir, 'your-legion', 'domains', 'marketing-ops'))
-  assert.deepEqual(
-    result.componentPaths.map((componentPath) => path.relative(result.domainRootPath, componentPath)),
-    ['workflows', 'decisions', 'examples', 'skills'],
-  )
+  assert.deepEqual(result.componentPaths, [])
   assert.equal(fs.existsSync(path.join(result.domainRootPath, 'README.md')), true)
+  assert.equal(fs.existsSync(path.join(result.domainRootPath, 'workflows')), false)
+  assert.equal(fs.existsSync(path.join(result.domainRootPath, 'decisions')), false)
+  assert.equal(fs.existsSync(path.join(result.domainRootPath, 'examples')), false)
+  assert.equal(fs.existsSync(path.join(result.domainRootPath, 'skills')), false)
   assert.equal(fs.existsSync(path.join(configDir, 'your-legion', 'shared', 'skills')), false)
   assert.match(result.enablementSnippet, /marketing-ops: true/)
+})
+
+test('createDomainPack scaffolds only selected optional component folders', async (t) => {
+  const configDir = makeTempDir(t, 'your-legion-domain-components')
+  const { createDomainPack } = await import('../src/install.ts')
+
+  const result = createDomainPack({
+    configDir,
+    domainID: 'marketing-ops',
+    components: ['decisions', 'skills'],
+  })
+
+  assert.deepEqual(
+    result.componentPaths.map((componentPath) => path.relative(result.domainRootPath, componentPath)),
+    ['decisions', 'skills'],
+  )
+  assert.equal(fs.existsSync(path.join(result.domainRootPath, 'workflows')), false)
+  assert.equal(fs.existsSync(path.join(result.domainRootPath, 'decisions')), true)
+  assert.equal(fs.existsSync(path.join(result.domainRootPath, 'examples')), false)
+  assert.equal(fs.existsSync(path.join(result.domainRootPath, 'skills')), true)
 })
 
 test('createDomainPack rejects non kebab-case domain ids', async (t) => {
@@ -141,6 +202,57 @@ test('create-domain cli scaffolds a domain under an explicit config dir', (t) =>
     fs.existsSync(path.join(configDir, 'your-legion', 'domains', 'marketing-ops', 'README.md')),
     true,
   )
+})
+
+test('create-domain cli accepts selected optional component folders', (t) => {
+  const configDir = makeTempDir(t, 'your-legion-domain-cli-components')
+
+  const output = execFileSync(
+    'bun',
+    [
+      'src/cli.ts',
+      'create-domain',
+      'marketing-ops',
+      '--config-dir',
+      configDir,
+      '--components',
+      'decisions,skills',
+    ],
+    { cwd: rootDir, encoding: 'utf8' },
+  )
+  const domainRoot = path.join(configDir, 'your-legion', 'domains', 'marketing-ops')
+
+  assert.match(output, /Components: decisions, skills/)
+  assert.equal(fs.existsSync(path.join(domainRoot, 'decisions')), true)
+  assert.equal(fs.existsSync(path.join(domainRoot, 'skills')), true)
+  assert.equal(fs.existsSync(path.join(domainRoot, 'workflows')), false)
+  assert.equal(fs.existsSync(path.join(domainRoot, 'examples')), false)
+})
+
+test('install cli accepts pickable domains with coding as default', (t) => {
+  const configDir = makeTempDir(t, 'your-legion-install-cli-domains')
+
+  const output = execFileSync(
+    'bun',
+    [
+      'src/cli.ts',
+      'install',
+      '--config-dir',
+      configDir,
+      '--domains',
+      'coding,marketing,finance,accounting',
+    ],
+    { cwd: rootDir, encoding: 'utf8' },
+  )
+  const config = YAML.parse(fs.readFileSync(path.join(configDir, 'legionaries.yaml'), 'utf8'))
+
+  assert.match(output, /Enabled domains: coding, marketing, finance, accounting/)
+  assert.deepEqual(Object.keys(config.domains), [
+    'coding',
+    'marketing',
+    'finance',
+    'accounting',
+  ])
 })
 
 test('legionaries config resolution falls back to global opencode config dir', async (t) => {
@@ -187,5 +299,17 @@ test('build publishes the installer template under dist', () => {
   assert.equal(
     fs.readFileSync(path.join(rootDir, 'dist', 'domains', 'coding', 'skills', 'make-code-change', 'SKILL.md'), 'utf8'),
     fs.readFileSync(path.join(rootDir, 'src', 'domains', 'coding', 'skills', 'make-code-change', 'SKILL.md'), 'utf8'),
+  )
+  assert.equal(
+    fs.readFileSync(path.join(rootDir, 'dist', 'domains', 'marketing', 'skills', 'campaign-brief', 'SKILL.md'), 'utf8'),
+    fs.readFileSync(path.join(rootDir, 'src', 'domains', 'marketing', 'skills', 'campaign-brief', 'SKILL.md'), 'utf8'),
+  )
+  assert.equal(
+    fs.readFileSync(path.join(rootDir, 'dist', 'domains', 'finance', 'skills', 'financial-analysis', 'SKILL.md'), 'utf8'),
+    fs.readFileSync(path.join(rootDir, 'src', 'domains', 'finance', 'skills', 'financial-analysis', 'SKILL.md'), 'utf8'),
+  )
+  assert.equal(
+    fs.readFileSync(path.join(rootDir, 'dist', 'domains', 'accounting', 'skills', 'accounting-review', 'SKILL.md'), 'utf8'),
+    fs.readFileSync(path.join(rootDir, 'src', 'domains', 'accounting', 'skills', 'accounting-review', 'SKILL.md'), 'utf8'),
   )
 })
