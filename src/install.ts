@@ -184,6 +184,14 @@ function enableDomainInLegionariesConfig(configDir: string, domainID: string) {
   writeFileSync(configPath, YAML.stringify(parsed));
 }
 
+function assertCanEnableDomain(configDir: string) {
+  const configPath = join(configDir, 'legionaries.yaml');
+
+  if (!existsSync(configPath)) {
+    throw new Error(`cannot enable domain before install: ${configPath} does not exist`);
+  }
+}
+
 export function installYourLegion({
   configDir = getOpenCodeConfigDir(),
   sourceConfigPath,
@@ -233,6 +241,13 @@ export function createDomainPack({
 
   const selectedComponents = normalizeDomainComponents(components);
   const domainRootPath = join(configDir, 'your-legion', 'domains', domainID);
+  if (AVAILABLE_DOMAIN_IDS.includes(domainID as (typeof AVAILABLE_DOMAIN_IDS)[number]) || existsSync(domainRootPath)) {
+    throw new Error(`domain already exists: ${domainID}`);
+  }
+  if (enable) {
+    assertCanEnableDomain(configDir);
+  }
+
   const componentPaths = selectedComponents.map(component => join(domainRootPath, component));
   const descriptionPath = join(domainRootPath, 'DOMAIN.md');
 

@@ -134,7 +134,7 @@ function loadCustomAgentDefinition(fileName: string, filePath: string): BaseAgen
 }
 
 function asAgentFactory(name: string, definition: BaseAgentDefinition): AgentFactory {
-  const factory = ((model: string) => {
+  const factory = ((_model: string) => {
     validateAgentDefinition(name, definition);
     return definition;
   }) as AgentFactory;

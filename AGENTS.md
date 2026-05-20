@@ -124,7 +124,7 @@ Your Legion uses direct specialist routing rather than a category-first runtime.
 - Override or disable specific declared components with `domains.<domain-id>.<component>.<id>.path` or `false`.
 - A same-id override replaces the declared file path; overrides do not add components that are absent from `DOMAIN.md`.
 - Domain ids and component ids use the same kebab-case style as agent names.
-- `bunx @whchi/your-legion create-domain <domain-id>` creates `DOMAIN.md` only; pass `--components decisions,skills` to scaffold selected facets, and `--enable` to write it into `legionaries.yaml`.
+- `bunx @whchi/your-legion create-domain <domain-id>` creates `DOMAIN.md` only for a new custom id; pass `--components decisions,skills` to scaffold selected facets, and `--enable` to write it into `legionaries.yaml`. It must reject existing global domains and bundled domain ids.
 - Runtime evidence records `delegation` and `domain-read` events. Use `bunx @whchi/your-legion trace` and `bunx @whchi/your-legion trace-check` for acceptance. `trace-check` fails when declared domain skills were not read.
 - Use `bunx @whchi/your-legion domain-scenarios` and `bunx @whchi/your-legion domain-scenario-check` for the fixed coding, marketing, finance, accounting, and mixed-domain validation set.
 

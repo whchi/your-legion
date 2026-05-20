@@ -121,6 +121,8 @@ Create a domain manifest and routing description:
 bun src/cli.ts create-domain marketing-ops --config-dir /tmp/opencode
 ```
 
+`create-domain` is intentionally new-only. It must fail for an existing global domain directory and for bundled domain ids.
+
 Create selected component folders:
 
 ```bash

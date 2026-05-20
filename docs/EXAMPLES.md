@@ -68,6 +68,8 @@ Scaffold the domain manifest:
 bunx @whchi/your-legion create-domain marketing
 ```
 
+Use a new custom id here. `create-domain` refuses existing global domains and bundled domain ids, so do not use it to recreate `coding`, `marketing`, `finance`, or `accounting`.
+
 This creates:
 
 ```text

@@ -311,6 +311,8 @@ Scaffold a domain manifest:
 bunx @whchi/your-legion create-domain marketing
 ```
 
+`create-domain` only creates new custom domains. It refuses existing global domain ids and bundled ids (`coding`, `marketing`, `finance`, `accounting`).
+
 This creates:
 
 ```text

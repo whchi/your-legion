@@ -139,6 +139,8 @@ Create a domain pack manifest with the CLI:
 bunx @whchi/your-legion create-domain marketing
 ```
 
+`create-domain` is for new custom domain ids. It fails if the domain already exists globally or if the id is one of the bundled domains: `coding`, `marketing`, `finance`, or `accounting`.
+
 For an explicit config directory, useful in tests or agent scripts:
 
 ```bash
@@ -178,7 +180,7 @@ domains:
   accounting: true
 ```
 
-The bundled `coding` domain is enabled by the default config. The other bundled domains become available when enabled. To replace a bundled domain, add a global `DOMAIN.md` under `~/.config/opencode/your-legion/domains/<domain-id>/` and list the component paths that should be exposed.
+The bundled `coding` domain is enabled by the default config. The other bundled domains become available when enabled. To replace a bundled domain intentionally, author a global `DOMAIN.md` under `~/.config/opencode/your-legion/domains/<domain-id>/` yourself and list the component paths that should be exposed. `create-domain` refuses bundled ids because it is a new-domain scaffold command.
 
 If you already keep shared skills in your harness/global skill directory, mount the exact file path into a domain with an override:
 

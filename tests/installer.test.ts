@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import test, { type TestContext } from 'node:test';
@@ -224,6 +224,22 @@ test('createDomainPack rejects non kebab-case domain ids', async t => {
   assert.throws(() => createDomainPack({ configDir, domainID: 'Marketing Ops' }), /invalid domain id: Marketing Ops/);
 });
 
+test('createDomainPack rejects duplicate global domain ids', async t => {
+  const configDir = makeTempDir(t, 'your-legion-domain-duplicate');
+  const { createDomainPack } = await import('../src/install');
+
+  createDomainPack({ configDir, domainID: 'product-ops' });
+
+  assert.throws(() => createDomainPack({ configDir, domainID: 'product-ops' }), /domain already exists: product-ops/);
+});
+
+test('createDomainPack rejects bundled domain ids', async t => {
+  const configDir = makeTempDir(t, 'your-legion-domain-bundled-duplicate');
+  const { createDomainPack } = await import('../src/install');
+
+  assert.throws(() => createDomainPack({ configDir, domainID: 'coding' }), /domain already exists: coding/);
+});
+
 test('createDomainPack can enable a new domain in an installed legionaries config', async t => {
   const configDir = makeTempDir(t, 'your-legion-domain-enable');
   const sourceConfigPath = path.join(rootDir, 'legionaries.yaml');
@@ -259,6 +275,7 @@ test('createDomainPack enable requires an installed legionaries config', async t
     () => createDomainPack({ configDir, domainID: 'product-ops', enable: true }),
     /cannot enable domain before install/i,
   );
+  assert.equal(fs.existsSync(path.join(configDir, 'your-legion', 'domains', 'product-ops')), false);
 });
 
 test('create-domain cli scaffolds a domain under an explicit config dir', t => {
@@ -289,6 +306,22 @@ test('create-domain cli accepts selected optional component folders', t => {
   assert.equal(fs.existsSync(path.join(domainRoot, 'skills')), true);
   assert.equal(fs.existsSync(path.join(domainRoot, 'workflows')), false);
   assert.equal(fs.existsSync(path.join(domainRoot, 'examples')), false);
+});
+
+test('create-domain cli rejects an existing domain', t => {
+  const configDir = makeTempDir(t, 'your-legion-domain-cli-duplicate');
+  execFileSync('bun', ['src/cli.ts', 'create-domain', 'product-ops', '--config-dir', configDir], {
+    cwd: rootDir,
+    encoding: 'utf8',
+  });
+
+  const result = spawnSync('bun', ['src/cli.ts', 'create-domain', 'product-ops', '--config-dir', configDir], {
+    cwd: rootDir,
+    encoding: 'utf8',
+  });
+
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr + result.stdout, /domain already exists: product-ops/);
 });
 
 test('create-domain cli can enable the domain in legionaries.yaml', t => {
