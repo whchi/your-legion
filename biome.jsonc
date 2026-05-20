@@ -1,8 +1,8 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.4.4/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.4.15/schema.json",
   "files": {
     "includes": ["**", "!**/package.json"],
-    "ignoreUnknown": true
+    "ignoreUnknown": true,
   },
   "assist": {
     "enabled": true,
@@ -11,66 +11,82 @@
         "organizeImports": "on",
         "useSortedAttributes": "off",
         "useSortedKeys": "off",
-        "useSortedProperties": "off"
-      }
-    }
+        "useSortedProperties": "off",
+      },
+    },
   },
   "formatter": {
     "indentStyle": "space",
     "indentWidth": 2,
-    "lineWidth": 120
+    "lineWidth": 120,
   },
   "css": {
     "parser": {
-      "tailwindDirectives": true
-    }
+      "tailwindDirectives": true,
+    },
   },
   "javascript": {
     "formatter": {
       "arrowParentheses": "asNeeded",
       "quoteStyle": "single",
       "semicolons": "always",
-      "trailingCommas": "all"
+      "trailingCommas": "all",
     },
-    "globals": ["afterAll", "afterEach", "beforeAll", "beforeEach", "describe", "expect", "it", "jest", "test"]
+    "globals": [
+      "afterAll",
+      "afterEach",
+      "beforeAll",
+      "beforeEach",
+      "describe",
+      "expect",
+      "it",
+      "jest",
+      "test",
+    ],
   },
   "linter": {
     "rules": {
       "correctness": {
         "noNodejsModules": "off",
-        "useImportExtensions": "off"
+        "useImportExtensions": "off",
       },
       "style": {
         "noImplicitBoolean": "off",
         "noNamespace": "off",
-        "useFilenamingConvention": "off"
+        "useFilenamingConvention": "off",
       },
       "suspicious": {
         "noConsole": {
           "level": "warn",
           "options": {
-            "allow": ["info", "warn", "error"]
-          }
+            "allow": ["info", "warn", "error"],
+          },
         },
-        "noReactSpecificProps": "off"
-      }
-    }
+        "noReactSpecificProps": "off",
+      },
+    },
   },
   "vcs": {
     "enabled": true,
     "clientKind": "git",
-    "useIgnoreFile": true
+    "useIgnoreFile": true,
   },
   "overrides": [
     {
-      "includes": ["**/constants/**", "**/constants.ts", "**/types.ts", "**/*.types.ts", "**/typings/**/*.d.ts"],
+      "includes": [
+        "**/constants/**",
+        "**/constants.ts",
+        "**/types.ts",
+        "**/*.types.ts",
+        "**/typings/**/*.d.ts",
+      ],
       "linter": {
         "rules": {
           "style": {
-            "useNamingConvention": "off"
-          }
-        }
-      }
+            "useNamingConvention": "off",
+          },
+        },
+      },
     },
     {
       "includes": [
@@ -79,21 +95,21 @@
         "**/*.config.cjs",
         "**/*.config.js",
         "**/*.config.mjs",
-        "**/*.config.ts"
+        "**/*.config.ts",
       ],
       "linter": {
         "rules": {
           "style": {
-            "noDefaultExport": "off"
-          }
-        }
-      }
+            "noDefaultExport": "off",
+          },
+        },
+      },
     },
     {
       "includes": ["biome.json", "biome.jsonc"],
       "assist": {
-        "enabled": false
-      }
-    }
-  ]
+        "enabled": false,
+      },
+    },
+  ],
 }
