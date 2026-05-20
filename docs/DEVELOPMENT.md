@@ -113,7 +113,7 @@ The check expects these scenarios to have matching `delegation` evidence with no
 
 ## Domain Pack Development
 
-Domain routing is description-driven. `DOMAIN.md` is the only domain description and component catalog used in the Domain Catalog; `README.md` is human-facing and does not participate in routing. Domain component folders are optional capability facets. Do not scaffold all four folders unless the domain actually has all four kinds of knowledge. Runtime only includes component paths listed in `DOMAIN.md`; folders or files that are not listed are treated as absent.
+Domain routing is description-driven. `DOMAIN.md` is the only domain description and component catalog used in the Domain Catalog. Domain component folders are optional capability facets. Do not scaffold all four folders unless the domain actually has all four kinds of knowledge. Runtime only includes component paths listed in `DOMAIN.md`; folders or files that are not listed are treated as absent.
 
 Create a domain manifest and routing description:
 
@@ -131,6 +131,12 @@ The installed package form is the same command without `bun src/cli.ts`:
 
 ```bash
 bunx @whchi/your-legion create-domain marketing-ops --components workflows,decisions,examples,skills
+```
+
+Create and immediately enable a domain in an installed config:
+
+```bash
+bunx @whchi/your-legion create-domain marketing-ops --components decisions,skills --enable
 ```
 
 Component meanings:
@@ -192,4 +198,5 @@ Your Legion uses direct specialist routing rather than a category-first runtime.
 ## Related Docs
 
 - `AGENTS.md`: plugin internals and runtime architecture
+- `docs/DOMAIN_OBSERVABILITY.md`: runtime domain evidence and fixed scenario validation
 - `docs/your-legion/custom-agents-and-dio.md`: custom agent and DIO implementation reference

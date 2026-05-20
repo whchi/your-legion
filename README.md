@@ -37,6 +37,7 @@ Use these docs next:
 
 - Install and uninstall details: [`INSTALLATION.md`](./docs/INSTALLATION.md)
 - Config schema and field rules: [`CONFIGURATION.md`](./docs/CONFIGURATION.md)
+- Domain observability and validation: [`DOMAIN_OBSERVABILITY.md`](./docs/DOMAIN_OBSERVABILITY.md)
 - Copy-paste examples: [`EXAMPLES.md`](./docs/EXAMPLES.md)
 - Development notes: [`DEVELOPMENT.md`](./docs/DEVELOPMENT.md)
 
@@ -91,7 +92,6 @@ Domain packs live under your global OpenCode config:
 ```text
 ~/.config/opencode/your-legion/domains/{domain-id}/
 ├── DOMAIN.md   # domain description used in the Domain Catalog
-├── README.md
 ├── workflows/   # optional repeatable procedures
 ├── decisions/   # optional guardrails and constraints
 ├── examples/    # optional examples and output patterns
@@ -99,7 +99,7 @@ Domain packs live under your global OpenCode config:
 ```
 
 These component folders are optional. A domain should contain the facets that carry real knowledge, not empty folders created for symmetry.
-`DOMAIN.md` is the only domain description contract used for routing; `README.md` is human-facing documentation and is not used to select domains.
+`DOMAIN.md` is the only domain description contract used for routing and component discovery.
 Runtime component discovery also comes from `DOMAIN.md`: list domain-root relative paths such as `workflows/campaign-planning.md` or `skills/campaign-brief/SKILL.md`. If a folder or path is not listed in `DOMAIN.md`, it is treated as absent.
 
 Enable a domain pack with:
@@ -127,7 +127,7 @@ Domain descriptions and skills are injected into agent prompts as a Domain Catal
 
 Delegations use a compact Task Context Envelope with `Objective`, `Active domains`, `Domain refs`, `Domain skills`, `Context refs`, `Constraints`, `Expected output`, and `Verification`. The orchestrator compares the task with the Domain Catalog and activates every domain whose description materially applies. If no domain is configured or no domain description clearly matches, it should use no-domain delegation: `Active domains: none`, `Domain refs: none`, and `Domain skills: none`.
 
-Your Legion records warn-only domain usage evidence under `~/.config/opencode/your-legion/traces/`. Use `bunx @whchi/your-legion trace` to inspect recent delegation and domain-read events, and `bunx @whchi/your-legion trace-check` to fail CI or local acceptance when a delegation used unknown or vague domain context or declared a domain skill without reading its file.
+Your Legion records warn-only domain usage evidence under `~/.config/opencode/your-legion/traces/`. Use `bunx @whchi/your-legion trace` to inspect recent delegation and domain-read events, and `bunx @whchi/your-legion trace-check` to fail CI or local acceptance when a delegation used unknown or vague domain context or declared a domain skill without reading its file. See [`DOMAIN_OBSERVABILITY.md`](./docs/DOMAIN_OBSERVABILITY.md) for the full validation workflow.
 
 For a fixed domain-routing smoke test, run `bunx @whchi/your-legion domain-scenarios`, ask the printed prompts in OpenCode, then run `bunx @whchi/your-legion domain-scenario-check --worktree .`. The fixed set covers coding, marketing, finance, accounting, and their mixed-domain pairs.
 
@@ -147,7 +147,7 @@ Your Legion uses direct specialist routing.
 
 ## Commands
 
-- `bunx @whchi/your-legion create-domain <domain-id> [--components workflows,decisions,examples,skills]`: scaffolds a global domain pack. By default it creates `DOMAIN.md` and `README.md`; use `--components` to add selected optional folders.
+- `bunx @whchi/your-legion create-domain <domain-id> [--components workflows,decisions,examples,skills] [--enable]`: scaffolds a global domain pack. By default it creates only `DOMAIN.md`; use `--components` to add selected optional folders, and `--enable` to write the domain into `legionaries.yaml`.
 - `bunx @whchi/your-legion trace [--worktree <path>] [--limit <n>]`: prints recent domain usage evidence for a worktree.
 - `bunx @whchi/your-legion trace-check [--worktree <path>]`: exits non-zero when recorded domain usage warnings exist or a declared domain skill was not read.
 - `bunx @whchi/your-legion domain-scenarios`: prints the fixed domain scenario prompts.

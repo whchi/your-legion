@@ -29,13 +29,13 @@ The installer writes:
 - `~/.config/opencode/legionaries.yaml`
 - `~/.config/opencode/your-legion/domains/`
 
-The installer enables `coding` by default. To pick the bundled domains to enable, pass a comma-separated `--domains` list:
+The installer enables `coding` by default. To pick bundled domains, pass a comma-separated `--domains` list:
 
 ```bash
 bunx @whchi/your-legion install --domains coding,marketing,finance,accounting
 ```
 
-Available bundled domains are `coding`, `marketing`, `finance`, and `accounting`.
+Available bundled domains are `coding`, `marketing`, `finance`, and `accounting`. `--domains` also accepts a custom domain after that domain has been created under `~/.config/opencode/your-legion/domains/<domain-id>/DOMAIN.md`.
 
 If `legionaries.yaml` already exists, it is backed up first using this format:
 
@@ -125,7 +125,6 @@ Your Legion uses global directories for optional domain packs:
 ~/.config/opencode/your-legion/domains/
 └── <domain-id>/
     ├── DOMAIN.md   # domain description used in routing
-    ├── README.md
     ├── workflows/   # optional
     ├── decisions/   # optional
     ├── examples/    # optional
@@ -146,7 +145,7 @@ For an explicit config directory, useful in tests or agent scripts:
 bunx @whchi/your-legion create-domain marketing --config-dir ~/.config/opencode
 ```
 
-By default this creates `DOMAIN.md` and `README.md`. `DOMAIN.md` is the only description and component catalog used in the Domain Catalog; `README.md` is for humans. Component folders are optional capability facets; create them only when that domain has real versioned knowledge for the facet. Runtime only includes component paths listed in `DOMAIN.md`; unlisted folders are treated as absent.
+By default this creates only `DOMAIN.md`. `DOMAIN.md` is the only description and component catalog used in the Domain Catalog. Component folders are optional capability facets; create them only when that domain has real versioned knowledge for the facet. Runtime only includes component paths listed in `DOMAIN.md`; unlisted folders are treated as absent.
 
 To scaffold selected component folders in one command:
 
@@ -154,7 +153,20 @@ To scaffold selected component folders in one command:
 bunx @whchi/your-legion create-domain marketing --components workflows,decisions,skills
 ```
 
-Available components are `workflows`, `decisions`, `examples`, and `skills`. The command does not edit `legionaries.yaml`; enable the domain after creating it.
+Available components are `workflows`, `decisions`, `examples`, and `skills`. Without `--enable`, the command prints a `legionaries.yaml` snippet so you can enable the domain manually.
+
+To create and enable the domain in an already-installed `legionaries.yaml` in one command:
+
+```bash
+bunx @whchi/your-legion create-domain marketing --components workflows,decisions,skills --enable
+```
+
+To create first and enable during install:
+
+```bash
+bunx @whchi/your-legion create-domain product-ops --components decisions,skills
+bunx @whchi/your-legion install --domains coding,product-ops
+```
 
 Enable global or bundled domain packs in `legionaries.yaml`:
 

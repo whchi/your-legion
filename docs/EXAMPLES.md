@@ -72,16 +72,21 @@ This creates:
 
 ```text
 ~/.config/opencode/your-legion/domains/marketing/
-├── DOMAIN.md
-└── README.md
+└── DOMAIN.md
 ```
 
-Edit `DOMAIN.md` with semantic routing guidance: when to use the marketing domain, when not to use it, and the domain-root relative `Workflows`, `Decisions`, `Examples`, and `Skills` paths. Do not use `README.md` for domain routing; it is human-facing only.
+Edit `DOMAIN.md` with semantic routing guidance: when to use the marketing domain, when not to use it, and the domain-root relative `Workflows`, `Decisions`, `Examples`, and `Skills` paths.
 
 Add only the component folders that carry real knowledge. For a marketing pack with campaign workflow, brand decisions, examples, and a domain skill, either create those folders yourself or scaffold them explicitly:
 
 ```bash
 bunx @whchi/your-legion create-domain marketing --components workflows,decisions,examples,skills
+```
+
+Create and enable in one command after installation:
+
+```bash
+bunx @whchi/your-legion create-domain marketing --components workflows,decisions,examples,skills --enable
 ```
 
 Then add the domain documents you want agents to see:

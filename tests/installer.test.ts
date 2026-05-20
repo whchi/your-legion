@@ -80,6 +80,33 @@ test('installer writes selected pickable domains into legionaries.yaml', async t
   assert.deepEqual(result.enabledDomains, ['coding', 'marketing', 'finance', 'accounting']);
 });
 
+test('installer accepts existing custom global domains in --domains', async t => {
+  const configDir = makeTempDir(t, 'your-legion-install-custom-domain');
+  const sourceConfigPath = path.join(rootDir, 'legionaries.yaml');
+  const { createDomainPack, installYourLegion } = await import('../src/install');
+
+  createDomainPack({
+    configDir,
+    domainID: 'product-ops',
+    components: ['decisions'],
+  });
+
+  const result = installYourLegion({
+    configDir,
+    sourceConfigPath,
+    enabledDomains: ['coding', 'product-ops'],
+    now: new Date('2026-01-25T11:18:28.014Z'),
+  });
+
+  const config = YAML.parse(fs.readFileSync(path.join(configDir, 'legionaries.yaml'), 'utf8'));
+
+  assert.deepEqual(config.domains, {
+    coding: true,
+    'product-ops': true,
+  });
+  assert.deepEqual(result.enabledDomains, ['coding', 'product-ops']);
+});
+
 test('installer backs up an existing global legionaries.yaml before overwriting', async t => {
   const configDir = makeTempDir(t, 'your-legion-install-backup');
   const sourceConfigPath = path.join(rootDir, 'legionaries.yaml');
@@ -149,8 +176,9 @@ test('createDomainPack scaffolds a domain manifest without forcing component fol
   assert.equal(result.domainID, 'marketing-ops');
   assert.equal(result.domainRootPath, path.join(configDir, 'your-legion', 'domains', 'marketing-ops'));
   assert.deepEqual(result.componentPaths, []);
-  assert.equal(fs.existsSync(path.join(result.domainRootPath, 'README.md')), true);
+  assert.equal(fs.existsSync(path.join(result.domainRootPath, 'README.md')), false);
   assert.equal(fs.existsSync(path.join(result.domainRootPath, 'DOMAIN.md')), true);
+  assert.equal(result.descriptionPath, path.join(result.domainRootPath, 'DOMAIN.md'));
   assert.match(fs.readFileSync(path.join(result.domainRootPath, 'DOMAIN.md'), 'utf8'), /Use this domain when/);
   assert.doesNotMatch(
     fs.readFileSync(path.join(result.domainRootPath, 'DOMAIN.md'), 'utf8'),
@@ -196,6 +224,43 @@ test('createDomainPack rejects non kebab-case domain ids', async t => {
   assert.throws(() => createDomainPack({ configDir, domainID: 'Marketing Ops' }), /invalid domain id: Marketing Ops/);
 });
 
+test('createDomainPack can enable a new domain in an installed legionaries config', async t => {
+  const configDir = makeTempDir(t, 'your-legion-domain-enable');
+  const sourceConfigPath = path.join(rootDir, 'legionaries.yaml');
+  const { createDomainPack, installYourLegion } = await import('../src/install');
+
+  installYourLegion({
+    configDir,
+    sourceConfigPath,
+    enabledDomains: ['coding'],
+    now: new Date('2026-01-25T11:18:28.014Z'),
+  });
+
+  const result = createDomainPack({
+    configDir,
+    domainID: 'product-ops',
+    components: ['workflows', 'skills'],
+    enable: true,
+  });
+  const config = YAML.parse(fs.readFileSync(path.join(configDir, 'legionaries.yaml'), 'utf8'));
+
+  assert.equal(result.enabled, true);
+  assert.deepEqual(config.domains, {
+    coding: true,
+    'product-ops': true,
+  });
+});
+
+test('createDomainPack enable requires an installed legionaries config', async t => {
+  const configDir = makeTempDir(t, 'your-legion-domain-enable-missing-config');
+  const { createDomainPack } = await import('../src/install');
+
+  assert.throws(
+    () => createDomainPack({ configDir, domainID: 'product-ops', enable: true }),
+    /cannot enable domain before install/i,
+  );
+});
+
 test('create-domain cli scaffolds a domain under an explicit config dir', t => {
   const configDir = makeTempDir(t, 'your-legion-domain-cli');
 
@@ -205,7 +270,8 @@ test('create-domain cli scaffolds a domain under an explicit config dir', t => {
   });
 
   assert.match(output, /Created domain marketing-ops/);
-  assert.equal(fs.existsSync(path.join(configDir, 'your-legion', 'domains', 'marketing-ops', 'README.md')), true);
+  assert.equal(fs.existsSync(path.join(configDir, 'your-legion', 'domains', 'marketing-ops', 'DOMAIN.md')), true);
+  assert.equal(fs.existsSync(path.join(configDir, 'your-legion', 'domains', 'marketing-ops', 'README.md')), false);
 });
 
 test('create-domain cli accepts selected optional component folders', t => {
@@ -225,6 +291,27 @@ test('create-domain cli accepts selected optional component folders', t => {
   assert.equal(fs.existsSync(path.join(domainRoot, 'examples')), false);
 });
 
+test('create-domain cli can enable the domain in legionaries.yaml', t => {
+  const configDir = makeTempDir(t, 'your-legion-domain-cli-enable');
+  execFileSync('bun', ['src/cli.ts', 'install', '--config-dir', configDir], {
+    cwd: rootDir,
+    encoding: 'utf8',
+  });
+
+  const output = execFileSync(
+    'bun',
+    ['src/cli.ts', 'create-domain', 'product-ops', '--config-dir', configDir, '--components', 'decisions,skills', '--enable'],
+    { cwd: rootDir, encoding: 'utf8' },
+  );
+  const config = YAML.parse(fs.readFileSync(path.join(configDir, 'legionaries.yaml'), 'utf8'));
+
+  assert.match(output, /Enabled domain product-ops/);
+  assert.deepEqual(config.domains, {
+    coding: true,
+    'product-ops': true,
+  });
+});
+
 test('install cli accepts pickable domains with coding as default', t => {
   const configDir = makeTempDir(t, 'your-legion-install-cli-domains');
 
@@ -237,6 +324,28 @@ test('install cli accepts pickable domains with coding as default', t => {
 
   assert.match(output, /Enabled domains: coding, marketing, finance, accounting/);
   assert.deepEqual(Object.keys(config.domains), ['coding', 'marketing', 'finance', 'accounting']);
+});
+
+test('install cli accepts a previously created custom domain', t => {
+  const configDir = makeTempDir(t, 'your-legion-install-cli-custom-domain');
+
+  execFileSync(
+    'bun',
+    ['src/cli.ts', 'create-domain', 'product-ops', '--config-dir', configDir, '--components', 'decisions'],
+    { cwd: rootDir, encoding: 'utf8' },
+  );
+  const output = execFileSync(
+    'bun',
+    ['src/cli.ts', 'install', '--config-dir', configDir, '--domains', 'coding,product-ops'],
+    { cwd: rootDir, encoding: 'utf8' },
+  );
+  const config = YAML.parse(fs.readFileSync(path.join(configDir, 'legionaries.yaml'), 'utf8'));
+
+  assert.match(output, /Enabled domains: coding, product-ops/);
+  assert.deepEqual(config.domains, {
+    coding: true,
+    'product-ops': true,
+  });
 });
 
 test('legionaries config resolution falls back to global opencode config dir', async t => {

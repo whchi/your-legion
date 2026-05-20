@@ -157,7 +157,7 @@ domains:
 
 Enable only the domains you want available in the Domain Catalog. A task becomes domain-specific only when the orchestrator decides that a domain description materially applies and names it under `Active domains`.
 
-Each domain's routing description comes only from `DOMAIN.md`. `README.md` is human-facing documentation and is never used as a fallback for domain routing. Resolution order is:
+Each domain's routing description comes only from `DOMAIN.md`. Resolution order is:
 
 ```text
 global DOMAIN.md
@@ -281,7 +281,6 @@ After installation, global domain pack files live under:
 ~/.config/opencode/your-legion/domains/
 └── <domain-id>/
     ├── DOMAIN.md   # domain description used in the Domain Catalog
-    ├── README.md
     ├── workflows/   # optional repeatable procedures
     ├── decisions/   # optional guardrails and constraints
     ├── examples/    # optional examples and output patterns
@@ -316,7 +315,6 @@ This creates:
 
 ```text
 ~/.config/opencode/your-legion/domains/marketing/DOMAIN.md
-~/.config/opencode/your-legion/domains/marketing/README.md
 ```
 
 Scaffold selected optional component folders when you already know the domain needs them:
@@ -332,6 +330,19 @@ bun src/cli.ts create-domain marketing --config-dir /tmp/opencode --components d
 ```
 
 Available component ids are `workflows`, `decisions`, `examples`, and `skills`. The CLI prints the created path, the selected components, and the `legionaries.yaml` enablement snippet.
+
+Create and enable a custom domain in one command after installation:
+
+```bash
+bunx @whchi/your-legion create-domain marketing --components workflows,decisions,skills --enable
+```
+
+Or create it first and include it in install:
+
+```bash
+bunx @whchi/your-legion create-domain product-ops --components decisions,skills
+bunx @whchi/your-legion install --domains coding,product-ops
+```
 
 Enable a domain with:
 

@@ -32,6 +32,7 @@ export type CreateDomainPackOptions = {
   configDir?: string;
   domainID: string;
   components?: DomainComponentDir[];
+  enable?: boolean;
 };
 
 export type CreateDomainPackResult = {
@@ -39,7 +40,8 @@ export type CreateDomainPackResult = {
   domainID: string;
   domainRootPath: string;
   componentPaths: string[];
-  manifestPath: string;
+  descriptionPath: string;
+  enabled: boolean;
   enablementSnippet: string;
 };
 
@@ -88,36 +90,6 @@ function registerPlugin(configDir: string) {
   return configPath;
 }
 
-function domainManifest(domainID: string) {
-  return `# ${domainID}
-
-This domain pack is a context and knowledge boundary for Your Legion.
-
-Use \`DOMAIN.md\` for the short semantic description that appears in the
-Domain Catalog. This \`README.md\` is human-facing documentation only.
-When adding components, list domain-root relative paths in \`DOMAIN.md\`, for
-example \`workflows/example-workflow.md\` or \`skills/example-skill/SKILL.md\`.
-
-Component folders are optional capability facets. Create only the folders that
-carry real, versioned knowledge for this domain:
-
-- \`workflows/\`: repeatable ways of doing domain work
-- \`decisions/\`: stable constraints, guardrails, and policy decisions
-- \`examples/\`: representative past work, edge cases, and output patterns
-- \`skills/\`: domain-local skills, either \`<skill>.md\` or \`<skill>/SKILL.md\`
-
-A domain should have at least one useful component before agents use it as
-active task context. Do not create empty folders just to satisfy a template.
-
-Enable it in \`legionaries.yaml\`:
-
-\`\`\`yaml
-domains:
-  ${domainID}: true
-\`\`\`
-`;
-}
-
 function domainDescriptionTemplate(domainID: string, components: DomainComponentDir[]) {
   const sections = components.map(component => {
     switch (component) {
@@ -159,12 +131,20 @@ function normalizeDomainComponents(components: DomainComponentDir[] = []) {
   return normalized as DomainComponentDir[];
 }
 
-function normalizeEnabledDomains(enabledDomains: string[] = [...DEFAULT_DOMAIN_IDS]) {
-  const available = new Set<string>(AVAILABLE_DOMAIN_IDS);
+function isExistingGlobalDomain(configDir: string, domainID: string) {
+  return existsSync(join(configDir, 'your-legion', 'domains', domainID, 'DOMAIN.md'));
+}
+
+function normalizeEnabledDomains(configDir: string, enabledDomains: string[] = [...DEFAULT_DOMAIN_IDS]) {
+  const bundled = new Set<string>(AVAILABLE_DOMAIN_IDS);
   const normalized = [...new Set(enabledDomains.map(domain => domain.trim()).filter(Boolean))];
 
   for (const domain of normalized) {
-    if (!available.has(domain)) {
+    if (!DOMAIN_ID_PATTERN.test(domain)) {
+      throw new Error(`invalid domain id: ${domain}`);
+    }
+
+    if (!bundled.has(domain) && !isExistingGlobalDomain(configDir, domain)) {
       throw new Error(`unknown domain: ${domain}`);
     }
   }
@@ -184,6 +164,26 @@ function writeLegionariesConfigWithDomains(
   writeFileSync(targetConfigPath, YAML.stringify(parsed));
 }
 
+function enableDomainInLegionariesConfig(configDir: string, domainID: string) {
+  const configPath = join(configDir, 'legionaries.yaml');
+
+  if (!existsSync(configPath)) {
+    throw new Error(`cannot enable domain before install: ${configPath} does not exist`);
+  }
+
+  const parsed = (YAML.parse(readFileSync(configPath, 'utf8')) ?? {}) as Record<string, unknown>;
+  const existingDomains =
+    parsed.domains && typeof parsed.domains === 'object' && !Array.isArray(parsed.domains)
+      ? (parsed.domains as Record<string, unknown>)
+      : {};
+
+  parsed.domains = {
+    ...existingDomains,
+    [domainID]: true,
+  };
+  writeFileSync(configPath, YAML.stringify(parsed));
+}
+
 export function installYourLegion({
   configDir = getOpenCodeConfigDir(),
   sourceConfigPath,
@@ -192,7 +192,7 @@ export function installYourLegion({
 }: InstallYourLegionOptions): InstallYourLegionResult {
   mkdirSync(configDir, { recursive: true });
   const domainRootPath = join(configDir, 'your-legion', 'domains');
-  const resolvedEnabledDomains = normalizeEnabledDomains(enabledDomains);
+  const resolvedEnabledDomains = normalizeEnabledDomains(configDir, enabledDomains);
 
   mkdirSync(domainRootPath, { recursive: true });
 
@@ -225,6 +225,7 @@ export function createDomainPack({
   configDir = getOpenCodeConfigDir(),
   domainID,
   components = [],
+  enable = false,
 }: CreateDomainPackOptions): CreateDomainPackResult {
   if (!DOMAIN_ID_PATTERN.test(domainID)) {
     throw new Error(`invalid domain id: ${domainID}`);
@@ -233,7 +234,6 @@ export function createDomainPack({
   const selectedComponents = normalizeDomainComponents(components);
   const domainRootPath = join(configDir, 'your-legion', 'domains', domainID);
   const componentPaths = selectedComponents.map(component => join(domainRootPath, component));
-  const manifestPath = join(domainRootPath, 'README.md');
   const descriptionPath = join(domainRootPath, 'DOMAIN.md');
 
   mkdirSync(domainRootPath, { recursive: true });
@@ -241,11 +241,11 @@ export function createDomainPack({
     mkdirSync(componentPath, { recursive: true });
   }
 
-  if (!existsSync(manifestPath)) {
-    writeFileSync(manifestPath, domainManifest(domainID));
-  }
   if (!existsSync(descriptionPath)) {
     writeFileSync(descriptionPath, domainDescriptionTemplate(domainID, selectedComponents));
+  }
+  if (enable) {
+    enableDomainInLegionariesConfig(configDir, domainID);
   }
 
   return {
@@ -253,7 +253,8 @@ export function createDomainPack({
     domainID,
     domainRootPath,
     componentPaths,
-    manifestPath,
+    descriptionPath,
+    enabled: enable,
     enablementSnippet: `domains:\n  ${domainID}: true\n`,
   };
 }

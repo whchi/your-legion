@@ -20,7 +20,7 @@ import {
 function printUsage() {
   console.log(`Usage:
   bunx @whchi/your-legion install [--config-dir <path>] [--domains <ids>]
-  bunx @whchi/your-legion create-domain <domain-id> [--config-dir <path>] [--components <ids>]
+  bunx @whchi/your-legion create-domain <domain-id> [--config-dir <path>] [--components <ids>] [--enable]
   bunx @whchi/your-legion trace [--worktree <path>] [--config-dir <path>] [--limit <n>]
   bunx @whchi/your-legion trace-check [--worktree <path>] [--config-dir <path>]
   bunx @whchi/your-legion domain-scenarios
@@ -37,6 +37,10 @@ function csvOption(name: string) {
     ?.split(',')
     .map(value => value.trim())
     .filter(Boolean);
+}
+
+function hasFlag(name: string) {
+  return process.argv.includes(name);
 }
 
 const command = process.argv[2];
@@ -62,7 +66,7 @@ if (command === 'install') {
     console.log(`Backed up existing config to ${result.legionariesBackupPath}`);
   }
   console.log(`Updated ${result.opencodeConfigPath}`);
-  console.log(`Available domains: ${AVAILABLE_DOMAIN_IDS.join(', ')} (default: coding)`);
+  console.log(`Available bundled domains: ${AVAILABLE_DOMAIN_IDS.join(', ')} (default: coding)`);
   console.log(`Enabled domains: ${result.enabledDomains.join(', ')}`);
   process.exit(0);
 }
@@ -78,6 +82,7 @@ if (command === 'create-domain') {
     domainID,
     configDir: optionValue('--config-dir'),
     components: csvOption('--components') as DomainComponentDir[] | undefined,
+    enable: hasFlag('--enable'),
   });
 
   console.log(`Created domain ${result.domainID} at ${result.domainRootPath}`);
@@ -89,8 +94,12 @@ if (command === 'create-domain') {
     }`,
   );
   console.log(`Available components: ${DOMAIN_COMPONENT_DIRS.join(', ')}`);
-  console.log('Enable it with:');
-  console.log(result.enablementSnippet.trimEnd());
+  if (result.enabled) {
+    console.log(`Enabled domain ${result.domainID} in ${result.configDir}/legionaries.yaml`);
+  } else {
+    console.log('Enable it with:');
+    console.log(result.enablementSnippet.trimEnd());
+  }
   process.exit(0);
 }
 
