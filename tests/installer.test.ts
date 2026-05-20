@@ -333,7 +333,16 @@ test('create-domain cli can enable the domain in legionaries.yaml', t => {
 
   const output = execFileSync(
     'bun',
-    ['src/cli.ts', 'create-domain', 'product-ops', '--config-dir', configDir, '--components', 'decisions,skills', '--enable'],
+    [
+      'src/cli.ts',
+      'create-domain',
+      'product-ops',
+      '--config-dir',
+      configDir,
+      '--components',
+      'decisions,skills',
+      '--enable',
+    ],
     { cwd: rootDir, encoding: 'utf8' },
   );
   const config = YAML.parse(fs.readFileSync(path.join(configDir, 'legionaries.yaml'), 'utf8'));
