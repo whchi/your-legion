@@ -72,8 +72,11 @@ This creates:
 
 ```text
 ~/.config/opencode/your-legion/domains/marketing/
+├── DOMAIN.md
 └── README.md
 ```
+
+Edit `DOMAIN.md` with semantic routing guidance: when to use the marketing domain, when not to use it, and the domain-root relative `Workflows`, `Decisions`, `Examples`, and `Skills` paths. Do not use `README.md` for domain routing; it is human-facing only.
 
 Add only the component folders that carry real knowledge. For a marketing pack with campaign workflow, brand decisions, examples, and a domain skill, either create those folders yourself or scaffold them explicitly:
 
@@ -99,6 +102,13 @@ Return:
 - success metric
 ```
 
+List that skill in `DOMAIN.md` with a path relative to the marketing domain root:
+
+```md
+Skills:
+- `skills/campaign-brief/SKILL.md`
+```
+
 Enable it:
 
 ```yaml
@@ -107,7 +117,7 @@ domains:
   marketing: true
 ```
 
-After restart, Your Legion injects namespaced entries such as `marketing/campaign-brief` into the Domain Skill Index.
+After restart, Your Legion injects the marketing description and namespaced entries such as `marketing/campaign-brief` into the Domain Catalog.
 
 Agent scripts can call the same scaffold behavior directly:
 
@@ -124,7 +134,7 @@ createDomainPack({
 
 ## Mixed Coding And Marketing Work
 
-Mixed-domain work should be split by responsibility inside the Task Context Envelope. The enabled domain list is only an index; the active domain list is the task-local contract.
+Mixed-domain work should be split by responsibility inside the Task Context Envelope. The Domain Catalog describes which domains are available; `Active domains` is the task-local contract for a specific delegation.
 
 Good delegation shape:
 
@@ -155,6 +165,7 @@ bunx @whchi/your-legion trace-check --worktree .
 ```
 
 `delegation` events show which domains and skills were requested. `domain-read` events show which domain docs or domain skills were actually read.
+`trace-check` fails if a delegation declared a domain skill but the matching skill file was never read.
 
 For repeatable validation, use the fixed scenario set:
 
@@ -202,7 +213,7 @@ The filename, YAML `name`, and `custom_agents` key must match. Custom agents run
 
 ## Override A Bundled Domain Component
 
-Use an override when you want to replace one bundled or convention-discovered component by id:
+Use an override when you want to replace one component id already declared in the selected `DOMAIN.md`:
 
 ```yaml
 domains:
@@ -216,7 +227,7 @@ Relative paths resolve from the directory containing `legionaries.yaml`. Use thi
 
 ## Disable A Domain Component
 
-Use `false` when one convention-discovered component should not appear in the index:
+Use `false` when one component declared in `DOMAIN.md` should not appear in the index:
 
 ```yaml
 domains:

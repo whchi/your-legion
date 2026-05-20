@@ -59,6 +59,7 @@ export type DomainUsageTraceEvent = {
   timestamp: string
   worktree: string
   sessionID?: string
+  delegationID?: string
   scenarioID?: string
   event: 'delegation' | 'domain-read'
   targetAgent?: string
@@ -111,6 +112,7 @@ function scenario({
   const activeDomainLines = activeDomains
     .map((domain) => `- ${domain.id}: ${domain.responsibility}`)
     .join('\n')
+  const activeDomainEvidence = activeDomainLines || 'none'
 
   return {
     id,
@@ -120,9 +122,9 @@ ${task}
 When delegating, include "Scenario: ${id}" in the Task Context Envelope.
 Expected delegation evidence:
 Active domains:
-${activeDomainLines}
+${activeDomainEvidence}
 Domain refs: ${domainRefs.length === 0 ? 'none' : domainRefs.join(', ')}
-Domain skills: ${domainSkills.join(', ')}`,
+Domain skills: ${domainSkills.length === 0 ? 'none' : domainSkills.join(', ')}`,
     expectedActiveDomains: activeDomains.map((domain) => domain.id),
     expectedDomainRefs: domainRefs,
     expectedDomainSkills: domainSkills,
@@ -130,6 +132,20 @@ Domain skills: ${domainSkills.join(', ')}`,
 }
 
 export const DOMAIN_USAGE_SCENARIOS: DomainUsageScenario[] = [
+  scenario({
+    id: 'no-domain-no-catalog',
+    title: 'No domain when no catalog is configured',
+    task: 'Ask Your Legion a simple repo-neutral question in a workspace with no enabled domains.',
+    activeDomains: [],
+    domainSkills: [],
+  }),
+  scenario({
+    id: 'no-domain-ambiguous',
+    title: 'No domain when no description clearly matches',
+    task: 'Ask Your Legion to summarize a generic project note that does not clearly match any configured domain description.',
+    activeDomains: [],
+    domainSkills: [],
+  }),
   scenario({
     id: 'coding-only',
     title: 'Coding only',
@@ -172,7 +188,7 @@ export const DOMAIN_USAGE_SCENARIOS: DomainUsageScenario[] = [
     activeDomains: [
       { id: 'accounting', responsibility: 'review accounting treatment' },
     ],
-    domainSkills: ['accounting/accounting-review'],
+    domainSkills: ['accounting/apply-accounting-review'],
   }),
   scenario({
     id: 'coding-finance',
@@ -194,7 +210,7 @@ export const DOMAIN_USAGE_SCENARIOS: DomainUsageScenario[] = [
       { id: 'accounting', responsibility: 'define accounting treatment rules' },
     ],
     domainRefs: ['coding/implementation-loop'],
-    domainSkills: ['coding/make-code-change', 'accounting/accounting-review'],
+    domainSkills: ['coding/make-code-change', 'accounting/apply-accounting-review'],
   }),
   scenario({
     id: 'accounting-finance',
@@ -204,7 +220,7 @@ export const DOMAIN_USAGE_SCENARIOS: DomainUsageScenario[] = [
       { id: 'accounting', responsibility: 'review accounting treatment' },
       { id: 'finance', responsibility: 'analyze financial impact' },
     ],
-    domainSkills: ['accounting/accounting-review', 'finance/financial-analysis'],
+    domainSkills: ['accounting/apply-accounting-review', 'finance/financial-analysis'],
   }),
   scenario({
     id: 'finance-marketing',
@@ -514,12 +530,92 @@ function createTraceEvent(
   }
 }
 
+function delegationIDFor({
+  sessionID,
+  targetAgent,
+  scenarioID,
+  envelope,
+}: {
+  sessionID?: string
+  targetAgent?: string
+  scenarioID?: string
+  envelope: TaskContextEnvelope
+}) {
+  const hash = createHash('sha256')
+    .update(
+      JSON.stringify({
+        sessionID,
+        targetAgent,
+        scenarioID,
+        objective: envelope.objective,
+        activeDomains: envelope.activeDomains,
+        domainRefs: envelope.domainRefs,
+        domainSkills: envelope.domainSkills,
+        contextRefs: envelope.contextRefs,
+      }),
+    )
+    .digest('hex')
+    .slice(0, TRACE_HASH_LENGTH)
+
+  return `del_${hash}`
+}
+
+export function analyzeDomainUsageTraceEvents(events: DomainUsageTraceEvent[]) {
+  const diagnostics = events.flatMap((event) =>
+    event.warnings.map((warning) => `${event.timestamp} ${event.event}: ${warning}`),
+  )
+  const readsByDelegation = new Map<string, Set<string>>()
+  const latestDelegationBySession = new Map<string, string>()
+
+  for (const event of events) {
+    if (event.event === 'delegation') {
+      if (event.delegationID && event.sessionID) {
+        latestDelegationBySession.set(event.sessionID, event.delegationID)
+      }
+      continue
+    }
+
+    const delegationID =
+      event.delegationID ??
+      (event.sessionID ? latestDelegationBySession.get(event.sessionID) : undefined)
+    if (!delegationID) {
+      continue
+    }
+
+    const reads = readsByDelegation.get(delegationID) ?? new Set<string>()
+    for (const domainSkill of event.domainSkills) {
+      reads.add(domainSkill)
+    }
+    readsByDelegation.set(delegationID, reads)
+  }
+
+  for (const event of events) {
+    if (event.event !== 'delegation') {
+      continue
+    }
+
+    const delegationID = event.delegationID
+    const reads = delegationID ? readsByDelegation.get(delegationID) : undefined
+    for (const domainSkill of event.domainSkills) {
+      if (!reads?.has(domainSkill)) {
+        diagnostics.push(
+          `${event.timestamp} delegation: declared domain skill was not read: ${domainSkill}`,
+        )
+      }
+    }
+  }
+
+  return diagnostics
+}
+
 function findDomainComponentByPath(domainPacks: DomainPack[], filePath: string) {
   const index = domainIndex(domainPacks)
   return index.paths.get(resolve(filePath))
 }
 
 export function createDomainUsageTraceHooks(options: CreateDomainUsageTraceHooksOptions) {
+  const latestDelegationBySession = new Map<string, string>()
+
   function write(event: DomainUsageTraceEvent) {
     appendDomainUsageTraceEvent({
       configDir: options.configDir,
@@ -542,13 +638,25 @@ export function createDomainUsageTraceHooks(options: CreateDomainUsageTraceHooks
 
       const envelope = parseTaskContextEnvelope(prompt)
       const result = validateDomainUsageContract(envelope, options.domainPacks)
+      const sessionID = extractSessionID(input)
+      const targetAgent = stringArg(args, ['subagent_type', 'agent', 'category'])
+      const delegationID = delegationIDFor({
+        sessionID,
+        targetAgent,
+        scenarioID: envelope.scenarioID,
+        envelope,
+      })
+      if (sessionID) {
+        latestDelegationBySession.set(sessionID, delegationID)
+      }
 
       write(
         createTraceEvent(options, {
-          sessionID: extractSessionID(input),
+          sessionID,
+          delegationID,
           scenarioID: envelope.scenarioID,
           event: 'delegation',
-          targetAgent: stringArg(args, ['subagent_type', 'agent', 'category']),
+          targetAgent,
           activeDomains: envelope.activeDomains,
           domainRefs: envelope.domainRefs,
           domainSkills: envelope.domainSkills,
@@ -564,6 +672,7 @@ export function createDomainUsageTraceHooks(options: CreateDomainUsageTraceHooks
 
       const args = extractArgs(output)
       const filePath = stringArg(args, ['filePath', 'path', 'file'])
+      const sessionID = extractSessionID(input)
       if (!filePath) {
         return
       }
@@ -575,7 +684,8 @@ export function createDomainUsageTraceHooks(options: CreateDomainUsageTraceHooks
 
       write(
         createTraceEvent(options, {
-          sessionID: extractSessionID(input),
+          sessionID,
+          delegationID: sessionID ? latestDelegationBySession.get(sessionID) : undefined,
           event: 'domain-read',
           activeDomains: [],
           domainRefs: component.isSkill ? [] : [component.ref],

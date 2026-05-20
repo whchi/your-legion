@@ -119,11 +119,12 @@ Use `LEGIONARIES_CONFIG` for an explicit config path.
 
 ## Domain Pack Directories
 
-Your Legion uses global convention directories for optional domain packs:
+Your Legion uses global directories for optional domain packs:
 
 ```text
 ~/.config/opencode/your-legion/domains/
 └── <domain-id>/
+    ├── DOMAIN.md   # domain description used in routing
     ├── README.md
     ├── workflows/   # optional
     ├── decisions/   # optional
@@ -145,7 +146,7 @@ For an explicit config directory, useful in tests or agent scripts:
 bunx @whchi/your-legion create-domain marketing --config-dir ~/.config/opencode
 ```
 
-By default this creates only `README.md`. Component folders are optional capability facets; create them only when that domain has real versioned knowledge for the facet.
+By default this creates `DOMAIN.md` and `README.md`. `DOMAIN.md` is the only description and component catalog used in the Domain Catalog; `README.md` is for humans. Component folders are optional capability facets; create them only when that domain has real versioned knowledge for the facet. Runtime only includes component paths listed in `DOMAIN.md`; unlisted folders are treated as absent.
 
 To scaffold selected component folders in one command:
 
@@ -155,7 +156,7 @@ bunx @whchi/your-legion create-domain marketing --components workflows,decisions
 
 Available components are `workflows`, `decisions`, `examples`, and `skills`. The command does not edit `legionaries.yaml`; enable the domain after creating it.
 
-Enable conventional or bundled domain packs in `legionaries.yaml`:
+Enable global or bundled domain packs in `legionaries.yaml`:
 
 ```yaml
 domains:
@@ -165,7 +166,7 @@ domains:
   accounting: true
 ```
 
-The bundled `coding` domain is enabled by the default config. The other bundled domains become available when enabled. You can add files under `~/.config/opencode/your-legion/domains/<domain-id>/` to extend or override bundled workflows, decisions, examples, and skills.
+The bundled `coding` domain is enabled by the default config. The other bundled domains become available when enabled. To replace a bundled domain, add a global `DOMAIN.md` under `~/.config/opencode/your-legion/domains/<domain-id>/` and list the component paths that should be exposed.
 
 If you already keep shared skills in your harness/global skill directory, mount the exact file path into a domain with an override:
 
@@ -186,7 +187,7 @@ bunx @whchi/your-legion trace --worktree . --limit 10
 bunx @whchi/your-legion trace-check --worktree .
 ```
 
-Trace events are stored under `~/.config/opencode/your-legion/traces/`. Contract warnings are warn-only at runtime, but `trace-check` exits non-zero so local verification can catch vague active domains, unknown domain refs, or unknown domain skills.
+Trace events are stored under `~/.config/opencode/your-legion/traces/`. Contract warnings are warn-only at runtime, but `trace-check` exits non-zero so local verification can catch vague active domains, unknown domain refs, unknown domain skills, or a declared domain skill that was never read.
 
 For a fixed acceptance flow, print the built-in domain scenario prompts:
 

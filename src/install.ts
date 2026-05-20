@@ -93,6 +93,11 @@ function domainManifest(domainID: string) {
 
 This domain pack is a context and knowledge boundary for Your Legion.
 
+Use \`DOMAIN.md\` for the short semantic description that appears in the
+Domain Catalog. This \`README.md\` is human-facing documentation only.
+When adding components, list domain-root relative paths in \`DOMAIN.md\`, for
+example \`workflows/example-workflow.md\` or \`skills/example-skill/SKILL.md\`.
+
 Component folders are optional capability facets. Create only the folders that
 carry real, versioned knowledge for this domain:
 
@@ -110,6 +115,34 @@ Enable it in \`legionaries.yaml\`:
 domains:
   ${domainID}: true
 \`\`\`
+`
+}
+
+function domainDescriptionTemplate(domainID: string, components: DomainComponentDir[]) {
+  const sections = components.map((component) => {
+    switch (component) {
+      case 'workflows':
+        return `Workflows:
+- \`workflows/example-workflow.md\``
+      case 'decisions':
+        return `Decisions:
+- \`decisions/example-decision.md\``
+      case 'examples':
+        return `Examples:
+- \`examples/example-output.md\``
+      case 'skills':
+        return `Skills:
+- \`skills/example-skill/SKILL.md\``
+    }
+  })
+
+  return `# ${domainID} Domain
+
+Use this domain when the task involves ...
+
+Do not use this domain when ...
+
+${sections.join('\n\n')}
 `
 }
 
@@ -205,6 +238,7 @@ export function createDomainPack({
   const domainRootPath = join(configDir, 'your-legion', 'domains', domainID)
   const componentPaths = selectedComponents.map((component) => join(domainRootPath, component))
   const manifestPath = join(domainRootPath, 'README.md')
+  const descriptionPath = join(domainRootPath, 'DOMAIN.md')
 
   mkdirSync(domainRootPath, { recursive: true })
   for (const componentPath of componentPaths) {
@@ -213,6 +247,9 @@ export function createDomainPack({
 
   if (!existsSync(manifestPath)) {
     writeFileSync(manifestPath, domainManifest(domainID))
+  }
+  if (!existsSync(descriptionPath)) {
+    writeFileSync(descriptionPath, domainDescriptionTemplate(domainID, selectedComponents))
   }
 
   return {

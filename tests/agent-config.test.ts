@@ -73,8 +73,12 @@ test('orchestrator prompt treats active domains as task-local responsibilities',
   const { BASE_AGENT_DEFINITIONS } = await import('../src/agents/index.ts')
   const orchestrator = BASE_AGENT_DEFINITIONS.orchestrator
 
-  assert.match(orchestrator.prompt, /enabled domains.*index/i)
-  assert.match(orchestrator.prompt, /Active domains.*task-local/i)
+  assert.match(orchestrator.prompt, /compare the task with the Domain Catalog/i)
+  assert.match(orchestrator.prompt, /Activate every domain whose description materially applies/i)
+  assert.match(orchestrator.prompt, /If no domain description clearly applies/i)
+  assert.match(orchestrator.prompt, /Active domains: none/i)
+  assert.match(orchestrator.prompt, /Domain refs: none/i)
+  assert.match(orchestrator.prompt, /Domain skills: none/i)
   assert.match(orchestrator.prompt, /coding: implement UI/i)
   assert.match(orchestrator.prompt, /marketing: write launch copy/i)
   assert.match(orchestrator.prompt, /Do not blend domain assumptions/i)

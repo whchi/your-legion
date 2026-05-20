@@ -4,7 +4,7 @@ A plugin-first OpenCode multi-agent system inspired by [`oh-my-openagent`](https
 
 It provides five protected system agents and YAML-defined custom agents. The plugin injects configured agents into OpenCode at startup and reads per-agent model settings from `legionaries.yaml`.
 
-It also supports convention-first domain packs for a shared domain index and reusable domain capability documents. Domain packs let the same system and custom agents reference task-specific context such as engineering, marketing, or financial analytics without registering those documents as harness-level skills.
+It also supports `DOMAIN.md`-driven domain packs for a shared Domain Catalog and reusable domain capability documents. Domain packs let the same system and custom agents reference task-specific context such as engineering, marketing, or financial analytics without registering those documents as harness-level skills.
 
 ![](docs/architecture.svg)
 
@@ -90,6 +90,7 @@ Domain packs live under your global OpenCode config:
 
 ```text
 ~/.config/opencode/your-legion/domains/{domain-id}/
+├── DOMAIN.md   # domain description used in the Domain Catalog
 ├── README.md
 ├── workflows/   # optional repeatable procedures
 ├── decisions/   # optional guardrails and constraints
@@ -98,8 +99,10 @@ Domain packs live under your global OpenCode config:
 ```
 
 These component folders are optional. A domain should contain the facets that carry real knowledge, not empty folders created for symmetry.
+`DOMAIN.md` is the only domain description contract used for routing; `README.md` is human-facing documentation and is not used to select domains.
+Runtime component discovery also comes from `DOMAIN.md`: list domain-root relative paths such as `workflows/campaign-planning.md` or `skills/campaign-brief/SKILL.md`. If a folder or path is not listed in `DOMAIN.md`, it is treated as absent.
 
-Enable a conventional domain pack with:
+Enable a domain pack with:
 
 ```yaml
 domains:
@@ -120,11 +123,11 @@ domains:
 
 Custom agents can be added by placing a YAML file under `src/custom-agents/`, then adding a matching `custom_agents` model entry.
 
-Domain skills are injected into agent prompts as a namespaced Domain Skill Index such as `marketing/campaign-brief`. Agents read the exact configured path; Your Legion does not register domain skills as top-level harness skills.
+Domain descriptions and skills are injected into agent prompts as a Domain Catalog with namespaced entries such as `marketing/campaign-brief`. Agents read the exact configured path; Your Legion does not register domain skills as top-level harness skills.
 
-Delegations use a compact Task Context Envelope with `Objective`, `Active domains`, `Domain refs`, `Domain skills`, `Context refs`, `Constraints`, `Expected output`, and `Verification`. Enabled domain packs are an index; `Active domains` marks the task-local context for a specific delegation.
+Delegations use a compact Task Context Envelope with `Objective`, `Active domains`, `Domain refs`, `Domain skills`, `Context refs`, `Constraints`, `Expected output`, and `Verification`. The orchestrator compares the task with the Domain Catalog and activates every domain whose description materially applies. If no domain is configured or no domain description clearly matches, it should use no-domain delegation: `Active domains: none`, `Domain refs: none`, and `Domain skills: none`.
 
-Your Legion records warn-only domain usage evidence under `~/.config/opencode/your-legion/traces/`. Use `bunx @whchi/your-legion trace` to inspect recent delegation and domain-read events, and `bunx @whchi/your-legion trace-check` to fail CI or local acceptance when a delegation used unknown or vague domain context.
+Your Legion records warn-only domain usage evidence under `~/.config/opencode/your-legion/traces/`. Use `bunx @whchi/your-legion trace` to inspect recent delegation and domain-read events, and `bunx @whchi/your-legion trace-check` to fail CI or local acceptance when a delegation used unknown or vague domain context or declared a domain skill without reading its file.
 
 For a fixed domain-routing smoke test, run `bunx @whchi/your-legion domain-scenarios`, ask the printed prompts in OpenCode, then run `bunx @whchi/your-legion domain-scenario-check --worktree .`. The fixed set covers coding, marketing, finance, accounting, and their mixed-domain pairs.
 
@@ -144,9 +147,9 @@ Your Legion uses direct specialist routing.
 
 ## Commands
 
-- `bunx @whchi/your-legion create-domain <domain-id> [--components workflows,decisions,examples,skills]`: scaffolds a global domain pack. By default it creates only `README.md`; use `--components` to add selected optional folders.
+- `bunx @whchi/your-legion create-domain <domain-id> [--components workflows,decisions,examples,skills]`: scaffolds a global domain pack. By default it creates `DOMAIN.md` and `README.md`; use `--components` to add selected optional folders.
 - `bunx @whchi/your-legion trace [--worktree <path>] [--limit <n>]`: prints recent domain usage evidence for a worktree.
-- `bunx @whchi/your-legion trace-check [--worktree <path>]`: exits non-zero when recorded domain usage warnings exist.
+- `bunx @whchi/your-legion trace-check [--worktree <path>]`: exits non-zero when recorded domain usage warnings exist or a declared domain skill was not read.
 - `bunx @whchi/your-legion domain-scenarios`: prints the fixed domain scenario prompts.
 - `bunx @whchi/your-legion domain-scenario-check [--worktree <path>]`: verifies trace evidence for the fixed domain scenario set.
 - `/dio`: a devotio-inspired completion loop that keeps the current session moving until the assistant emits `<dio_complete>...</dio_complete>`, `/dio-stop` is run, or the iteration guard is reached.

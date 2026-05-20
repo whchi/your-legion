@@ -11,6 +11,7 @@ import {
   installYourLegion,
 } from './install.ts'
 import {
+  analyzeDomainUsageTraceEvents,
   DOMAIN_USAGE_SCENARIOS,
   evaluateDomainUsageScenarios,
   readDomainUsageTraceEvents,
@@ -116,9 +117,7 @@ if (command === 'trace-check') {
     worktree,
     configDir: optionValue('--config-dir'),
   })
-  const warnings = events.flatMap((event) =>
-    event.warnings.map((warning) => `${event.timestamp} ${event.event}: ${warning}`),
-  )
+  const warnings = analyzeDomainUsageTraceEvents(events)
 
   if (warnings.length > 0) {
     console.error(warnings.join('\n'))

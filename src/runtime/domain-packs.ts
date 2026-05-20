@@ -1,5 +1,5 @@
-import { existsSync, readdirSync, statSync } from 'node:fs'
-import { dirname, extname, join, resolve } from 'node:path'
+import { existsSync, readFileSync } from 'node:fs'
+import { basename, dirname, join, resolve } from 'node:path'
 import { homedir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 
@@ -14,6 +14,14 @@ const DOMAIN_COMPONENTS: DomainComponentKind[] = [
   'examples',
   'skills',
 ]
+const DOMAIN_DESCRIPTION_FILE = 'DOMAIN.md'
+const DOMAIN_DESCRIPTION_MAX_CHARS = 1200
+const DOMAIN_COMPONENT_HEADINGS: Record<DomainComponentKind, string> = {
+  workflows: 'Workflows:',
+  decisions: 'Decisions:',
+  examples: 'Examples:',
+  skills: 'Skills:',
+}
 
 export type DomainPackComponent = {
   id: string
@@ -23,6 +31,9 @@ export type DomainPackComponent = {
 export type DomainPack = {
   id: string
   root: string
+  description: string
+  descriptionPath?: string
+  descriptionTruncated: boolean
   components: Record<DomainComponentKind, DomainPackComponent[]>
 }
 
@@ -43,63 +54,6 @@ function resolveConfiguredPath(filePath: string, baseDir: string) {
   return resolve(expandedPath.startsWith('/') ? expandedPath : join(baseDir, expandedPath))
 }
 
-function sortedDirectoryEntries(dir: string) {
-  if (!existsSync(dir)) {
-    return []
-  }
-
-  return readdirSync(dir).sort((left, right) => left.localeCompare(right))
-}
-
-function discoverMarkdownFiles(dir: string): DomainPackComponent[] {
-  return sortedDirectoryEntries(dir)
-    .map((entry) => join(dir, entry))
-    .filter((filePath) => statSync(filePath).isFile() && extname(filePath) === '.md')
-    .map((filePath) => ({
-      id: filePath.slice(dirname(filePath).length + 1, -'.md'.length),
-      path: filePath,
-    }))
-}
-
-function discoverSkillFiles(dir: string): DomainPackComponent[] {
-  const components: DomainPackComponent[] = []
-
-  for (const entry of sortedDirectoryEntries(dir)) {
-    const entryPath = join(dir, entry)
-    const stats = statSync(entryPath)
-
-    if (stats.isFile() && extname(entryPath) === '.md') {
-      components.push({
-        id: entry.slice(0, -'.md'.length),
-        path: entryPath,
-      })
-      continue
-    }
-
-    if (stats.isDirectory()) {
-      const skillPath = join(entryPath, 'SKILL.md')
-      if (existsSync(skillPath)) {
-        components.push({
-          id: entry,
-          path: skillPath,
-        })
-      }
-    }
-  }
-
-  return components
-}
-
-function discoverConventionComponents(
-  root: string,
-  component: DomainComponentKind,
-): DomainPackComponent[] {
-  const componentDir = join(root, component)
-  return component === 'skills'
-    ? discoverSkillFiles(componentDir)
-    : discoverMarkdownFiles(componentDir)
-}
-
 function normalizeDomainConfig(config: DomainConfig) {
   return config === true ? {} : config
 }
@@ -116,6 +70,10 @@ function applyOverrides(
   for (const [id, override] of Object.entries(overrides)) {
     if (override === false) {
       byID.delete(id)
+      continue
+    }
+
+    if (!byID.has(id)) {
       continue
     }
 
@@ -139,6 +97,93 @@ function resolveBundledDomainRoot(domain: string) {
   return existsSync(bundledRoot) ? bundledRoot : join(runtimeRoot, '..', 'domains', domain)
 }
 
+function domainMarkdownListItems(markdown: string, heading: string) {
+  const lines = markdown.split(/\r?\n/)
+  const headingIndex = lines.findIndex((line) => line.trim() === heading)
+  if (headingIndex === -1) {
+    return []
+  }
+
+  const items: string[] = []
+  for (const line of lines.slice(headingIndex + 1)) {
+    if (/^#+\s/.test(line) || /^[A-Z][A-Za-z ]+:$/.test(line.trim())) {
+      break
+    }
+
+    const match = line.match(/^\s*-\s+`([^`]+)`\s*$/)
+    if (match) {
+      items.push(match[1].trim())
+    }
+  }
+
+  return items
+}
+
+function componentIDFromDeclaredPath(kind: DomainComponentKind, relativePath: string) {
+  if (kind === 'skills' && relativePath.endsWith('/SKILL.md')) {
+    return basename(dirname(relativePath))
+  }
+
+  return basename(relativePath, '.md')
+}
+
+function declaredDomainComponents({
+  descriptionPath,
+  description,
+  kind,
+}: {
+  descriptionPath?: string
+  description: string
+  kind: DomainComponentKind
+}) {
+  if (!descriptionPath) {
+    return []
+  }
+
+  const domainRoot = dirname(descriptionPath)
+  return domainMarkdownListItems(description, DOMAIN_COMPONENT_HEADINGS[kind])
+    .filter((relativePath) => relativePath.startsWith(`${kind}/`))
+    .map((relativePath) => ({
+      id: componentIDFromDeclaredPath(kind, relativePath),
+      path: join(domainRoot, relativePath),
+    }))
+    .filter((component) => existsSync(component.path))
+    .sort((left, right) => left.id.localeCompare(right.id))
+}
+
+function truncateDescription(description: string) {
+  const normalized = description.trim()
+  if (normalized.length <= DOMAIN_DESCRIPTION_MAX_CHARS) {
+    return {
+      description: normalized,
+      truncated: false,
+    }
+  }
+
+  return {
+    description: `${normalized.slice(0, DOMAIN_DESCRIPTION_MAX_CHARS).trimEnd()}\n[truncated]`,
+    truncated: true,
+  }
+}
+
+function resolveDomainDescription(root: string, bundledRoot: string, domain: string) {
+  const globalDescriptionPath = join(root, DOMAIN_DESCRIPTION_FILE)
+  const bundledDescriptionPath = join(bundledRoot, DOMAIN_DESCRIPTION_FILE)
+  const descriptionPath = existsSync(globalDescriptionPath)
+    ? globalDescriptionPath
+    : existsSync(bundledDescriptionPath)
+      ? bundledDescriptionPath
+      : undefined
+  const rawDescription = descriptionPath ? readFileSync(descriptionPath, 'utf8') : domain
+  const { description, truncated } = truncateDescription(rawDescription)
+
+  return {
+    description,
+    descriptionPath,
+    descriptionTruncated: truncated,
+  }
+}
+
 export function resolveDomainPacks({
   configDir,
   configPath,
@@ -152,13 +197,15 @@ export function resolveDomainPacks({
       const root = resolveDomainRoot(resolvedConfigDir, id)
       const bundledRoot = resolveBundledDomainRoot(id)
       const components = {} as Record<DomainComponentKind, DomainPackComponent[]>
+      const description = resolveDomainDescription(root, bundledRoot, id)
 
       for (const component of DOMAIN_COMPONENTS) {
         components[component] = applyOverrides(
-          [
-            ...discoverConventionComponents(bundledRoot, component),
-            ...discoverConventionComponents(root, component),
-          ],
+          declaredDomainComponents({
+            descriptionPath: description.descriptionPath,
+            description: description.description,
+            kind: component,
+          }),
           config,
           component,
           overrideBaseDir,
@@ -168,6 +215,7 @@ export function resolveDomainPacks({
       return {
         id,
         root,
+        ...description,
         components,
       }
     })
@@ -184,7 +232,7 @@ function formatComponent(kind: DomainComponentKind, pack: DomainPack) {
   return [
     `  ${title}:`,
     ...components.map(
-      (component) => `  - \`${pack.id}/${component.id}\` -> ${component.path}`,
+      (component) => `  - \`${pack.id}/${component.id}\` (Path: ${component.path})`,
     ),
   ]
 }
@@ -202,19 +250,25 @@ export function buildDomainPromptSection(domainPacks: DomainPack[]) {
   }
 
   const lines = [
-    '## Domain Packs',
+    '## Domain Catalog',
     '',
-    'Your Legion domain packs are configured capability documents, not harness top-level skills.',
-    'Enabled domain packs are an index, not automatically active task context.',
-    "Use the Task Context Envelope's Active domains to decide which domain context applies to the current delegation.",
-    'Use domain skills from the configured Domain Skill Index by reading the exact path listed below.',
+    'Use the Domain Catalog like skill descriptions.',
+    'Compare the task against the domain descriptions before delegation.',
+    'Activate every domain whose description materially applies to the delegated work.',
+    'A task may activate multiple domains when multiple descriptions materially apply.',
+    'If no domain description clearly applies, use no-domain delegation: Active domains: none, Domain refs: none, Domain skills: none.',
+    'Use domain skills from the configured Domain Catalog by reading the exact path listed below.',
     'Avoid harness-level skill resolution for these entries unless the user explicitly asks for an external harness skill.',
     '',
-    'Enabled domain packs:',
+    'Available domains:',
   ]
 
   for (const pack of domainPacks) {
-    lines.push(`- \`${pack.id}\` (${pack.root})`)
+    lines.push('', `### \`${pack.id}\``, `Root: ${pack.root}`, 'Description:', pack.description)
+
+    if (pack.descriptionTruncated) {
+      lines.push(`Description truncated at ${DOMAIN_DESCRIPTION_MAX_CHARS} characters.`)
+    }
 
     if (countDomainPackComponents(pack) === 0) {
       lines.push(

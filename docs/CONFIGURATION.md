@@ -1,6 +1,6 @@
 # Configuration
 
-Your Legion reads per-agent model, reasoning settings, and enabled domain packs from `legionaries.yaml` at startup. The plugin injects required system agents, configured YAML custom agents, and a Domain Skill Index into OpenCode automatically.
+Your Legion reads per-agent model, reasoning settings, and enabled domain packs from `legionaries.yaml` at startup. The plugin injects required system agents, configured YAML custom agents, and a Domain Catalog into OpenCode automatically.
 
 For copy-paste recipes, see [`EXAMPLES.md`](./EXAMPLES.md). This page is the reference for how the config is resolved and validated.
 
@@ -42,7 +42,7 @@ If you want to disable custom agents, set `custom_agents: {}` or omit the whole 
 | `system_agents.<name>.reasoning.effort` | no | Reasoning effort level for supported providers |
 | `custom_agents.<name>.model` | yes when a custom agent is present | Provider and model ID in `provider/model-id` format |
 | `custom_agents.<name>.reasoning.effort` | no | Reasoning effort level for supported providers |
-| `domains.<id>` | no | Enables a global convention-first domain pack or declares path overrides |
+| `domains.<id>` | no | Enables a bundled or global `DOMAIN.md`-declared domain pack, with optional same-id path overrides |
 
 ### Reasoning Effort
 
@@ -126,7 +126,7 @@ Custom agents run as `subagent`. Any permission key not listed in the YAML is se
 
 ## Domain Packs
 
-Domain packs provide a shared domain index for the same system and custom agents. They are for reusable workflows, decisions, examples, and domain-local skills. They are not registered as harness-level skills and they are not automatically active task memory.
+Domain packs provide a shared Domain Catalog for the same system and custom agents. They are self-describing capabilities with reusable workflows, decisions, examples, and domain-local skills. They are not registered as harness-level skills and they are not automatically active task memory.
 
 Use domain packs for reusable context. Use the Task Context Envelope for the specific context that applies to one delegation.
 
@@ -137,7 +137,7 @@ Your Legion ships four bundled domains:
 | `coding` | `coding/make-code-change` | implementing code, tests, config, or code-coupled docs |
 | `marketing` | `marketing/campaign-brief` | writing launch copy, campaign briefs, positioning, or audience-facing copy |
 | `finance` | `finance/financial-analysis` | analyzing pricing, runway, revenue, margin, cost, or financial tradeoffs |
-| `accounting` | `accounting/accounting-review` | reviewing accounting treatment, recognition, classification, timing, or disclosure questions |
+| `accounting` | `accounting/apply-accounting-review` | reviewing accounting treatment, recognition, classification, timing, or disclosure questions |
 
 The installer defaults to `coding` only. To install with all bundled domains enabled:
 
@@ -155,7 +155,17 @@ domains:
   accounting: true
 ```
 
-Enable only the domains you want active in the shared index. Enabled domains are still just an index; a task becomes domain-specific only when the Task Context Envelope names it under `Active domains`.
+Enable only the domains you want available in the Domain Catalog. A task becomes domain-specific only when the orchestrator decides that a domain description materially applies and names it under `Active domains`.
+
+Each domain's routing description comes only from `DOMAIN.md`. `README.md` is human-facing documentation and is never used as a fallback for domain routing. Resolution order is:
+
+```text
+global DOMAIN.md
+bundled DOMAIN.md
+fallback: domain id
+```
+
+Keep `DOMAIN.md` short and semantic. It should describe when the domain applies and when it does not apply, then list available `Workflows`, `Decisions`, `Examples`, and `Skills` with domain-root relative component paths. Do not write keyword trigger rules.
 
 The orchestrator activates domain context per delegation through the Task Context Envelope:
 
@@ -170,7 +180,17 @@ Expected output:
 Verification:
 ```
 
-Use `Active domains` to state the task-local responsibility for each domain, such as `coding: implement UI` or `marketing: write launch copy`. Use `Domain refs` for workflows, decisions, and examples from the Domain Skill Index. Use `Domain skills` for namespaced domain skills such as `coding/make-code-change`. Keep the envelope compact and pass ordinary repo files in `Context refs` instead of copying long documents.
+Before delegation, the orchestrator compares the task with the Domain Catalog. Use `Active domains` to state the task-local responsibility for each domain, such as `coding: implement UI` or `marketing: write launch copy`. Use `Domain refs` for workflows, decisions, and examples from the Domain Catalog. Use `Domain skills` for namespaced domain skills such as `coding/make-code-change`. Keep the envelope compact and pass ordinary repo files in `Context refs` instead of copying long documents.
+
+If no domain is configured or no domain description clearly matches the task, use no-domain delegation:
+
+```text
+Active domains: none
+Domain refs: none
+Domain skills: none
+```
+
+No-domain fallback is normal behavior, not a contract warning.
 
 Example mixed-domain envelope:
 
@@ -199,10 +219,10 @@ Your Legion records warn-only runtime evidence for domain usage. The plugin obse
 ~/.config/opencode/your-legion/traces/<worktree-hash>.jsonl
 ```
 
-Each event records the worktree, session id when available, event type, target agent, active domains, domain refs, domain skills, and contract warnings. This lets you answer two acceptance questions:
+Each event records the worktree, session id when available, delegation id when available, event type, target agent, active domains, domain refs, domain skills, and contract warnings. This lets you answer two acceptance questions:
 
 - Correct domain: `Active domains` in a `delegation` event must name the domain and responsibility that matches the task.
-- Skill usage: `Domain skills` in a `delegation` event shows requested skills; `domain-read` events show domain skill files the agent actually read.
+- Skill usage: `Domain skills` in a `delegation` event shows requested skills; `domain-read` events show domain skill files the agent actually read. `trace-check` fails when a delegation declares a domain skill but no matching skill read is recorded for that delegation.
 
 Inspect recent evidence:
 
@@ -228,11 +248,13 @@ bunx @whchi/your-legion domain-scenarios
 
 Ask the printed prompts in OpenCode. The fixed set currently checks:
 
+- `no-domain-no-catalog`: must use `Active domains: none`, `Domain refs: none`, and `Domain skills: none` when no domain catalog is configured.
+- `no-domain-ambiguous`: must use no-domain delegation when enabled domains exist but no domain description clearly matches.
 - `coding-only`: must activate only `coding` and request `coding/make-code-change`.
 - `marketing-only`: must activate only `marketing` and request `marketing/campaign-brief`.
 - `coding-marketing`: must activate both domains with separate responsibilities and request both domain skills.
 - `finance-only`: must activate only `finance` and request `finance/financial-analysis`.
-- `accounting-only`: must activate only `accounting` and request `accounting/accounting-review`.
+- `accounting-only`: must activate only `accounting` and request `accounting/apply-accounting-review`.
 - `coding-finance`: must activate `coding` and `finance` with separate responsibilities.
 - `coding-accounting`: must activate `coding` and `accounting` with separate responsibilities.
 - `accounting-finance`: must activate `accounting` and `finance` with separate responsibilities.
@@ -258,6 +280,7 @@ After installation, global domain pack files live under:
 ```text
 ~/.config/opencode/your-legion/domains/
 └── <domain-id>/
+    ├── DOMAIN.md   # domain description used in the Domain Catalog
     ├── README.md
     ├── workflows/   # optional repeatable procedures
     ├── decisions/   # optional guardrails and constraints
@@ -265,7 +288,23 @@ After installation, global domain pack files live under:
     └── skills/      # optional domain-local skill instructions
 ```
 
-The four component folders are optional capability facets, not a required domain template. A domain is useful when at least one component contains real, versioned knowledge. Do not create empty `workflows/`, `decisions/`, `examples/`, or `skills/` folders just to make every domain look the same.
+`DOMAIN.md` is required for a useful description-driven domain. The four component folders are optional capability facets, not a required domain template. A domain is useful when `DOMAIN.md` describes a real capability and lists the relevant `Workflows`, `Decisions`, `Examples`, and `Skills` that actually exist. Do not create empty `workflows/`, `decisions/`, `examples/`, or `skills/` folders just to make every domain look the same.
+
+List domain-root relative paths directly in `DOMAIN.md`; do not use aliases, arrows, id-to-path mappings, or repeat the domain id. The domain file itself should be enough to locate the required files:
+
+```md
+Workflows:
+- `workflows/accounting-review.md`
+
+Decisions:
+- `decisions/accounting-guardrails.md`
+
+Examples:
+- `examples/accounting-treatment.md`
+
+Skills:
+- `skills/apply-accounting-review/SKILL.md`
+```
 
 Scaffold a domain manifest:
 
@@ -276,6 +315,7 @@ bunx @whchi/your-legion create-domain marketing
 This creates:
 
 ```text
+~/.config/opencode/your-legion/domains/marketing/DOMAIN.md
 ~/.config/opencode/your-legion/domains/marketing/README.md
 ```
 
@@ -293,7 +333,7 @@ bun src/cli.ts create-domain marketing --config-dir /tmp/opencode --components d
 
 Available component ids are `workflows`, `decisions`, `examples`, and `skills`. The CLI prints the created path, the selected components, and the `legionaries.yaml` enablement snippet.
 
-Enable a domain that follows this convention with:
+Enable a domain with:
 
 ```yaml
 domains:
@@ -303,24 +343,32 @@ domains:
   accounting: true
 ```
 
-For `marketing: true`, Your Legion automatically scans:
+For `marketing: true`, Your Legion reads the component paths listed in `DOMAIN.md`. It does not scan folders to invent catalog entries. If a component kind or file path is not listed in `DOMAIN.md`, runtime treats it as absent even when the file exists on disk.
 
-```text
-~/.config/opencode/your-legion/domains/marketing/workflows/*.md
-~/.config/opencode/your-legion/domains/marketing/decisions/*.md
-~/.config/opencode/your-legion/domains/marketing/examples/*.md
-~/.config/opencode/your-legion/domains/marketing/skills/*.md
-~/.config/opencode/your-legion/domains/marketing/skills/*/SKILL.md
+Example `DOMAIN.md` component catalog:
+
+```md
+Workflows:
+- `workflows/campaign-planning.md`
+
+Decisions:
+- `decisions/brand-voice.md`
+
+Examples:
+- `examples/launch-copy.md`
+
+Skills:
+- `skills/campaign-brief/SKILL.md`
 ```
 
 Folder meanings:
 
 | Folder | File shape | Purpose | Injected as |
 |--------|------------|---------|-------------|
-| `workflows/` | `*.md` | Repeatable domain procedures, such as implementation loops, campaign planning, financial review, or accounting review | `domain-id/file-name` under `Workflows` |
-| `decisions/` | `*.md` | Stable guardrails, policies, and domain decisions that should constrain agent behavior | `domain-id/file-name` under `Decisions` |
-| `examples/` | `*.md` | Concrete examples, output shapes, and reference artifacts agents can compare against | `domain-id/file-name` under `Examples` |
-| `skills/` | `*.md` or `<skill-id>/SKILL.md` | Domain-local skill instructions. These are read from exact paths and are not registered as harness top-level skills | `domain-id/skill-id` under `Skills` |
+| `workflows/` | `*.md` | Repeatable domain procedures, such as implementation loops, campaign planning, financial review, or accounting review | Only when listed as `workflows/file-name.md` under `Workflows` |
+| `decisions/` | `*.md` | Stable guardrails, policies, and domain decisions that should constrain agent behavior | Only when listed as `decisions/file-name.md` under `Decisions` |
+| `examples/` | `*.md` | Concrete examples, output shapes, and reference artifacts agents can compare against | Only when listed as `examples/file-name.md` under `Examples` |
+| `skills/` | `<skill-id>/SKILL.md` | Domain-local skill instructions. These are read from exact paths and are not registered as harness top-level skills | Only when listed as `skills/skill-id/SKILL.md` under `Skills` |
 
 Use the facets by intent:
 
@@ -335,6 +383,7 @@ Example global domain pack:
 
 ```text
 ~/.config/opencode/your-legion/domains/finance/
+├── DOMAIN.md
 ├── workflows/
 │   └── financial-review.md
 ├── decisions/
@@ -346,7 +395,23 @@ Example global domain pack:
         └── SKILL.md
 ```
 
-With `domains.finance: true`, those files appear in the Domain Skill Index as:
+The matching `DOMAIN.md` must list the domain-root relative paths:
+
+```md
+Workflows:
+- `workflows/financial-review.md`
+
+Decisions:
+- `decisions/financial-guardrails.md`
+
+Examples:
+- `examples/financial-summary.md`
+
+Skills:
+- `skills/financial-analysis/SKILL.md`
+```
+
+With `domains.finance: true`, those files appear in the Domain Catalog as:
 
 ```text
 finance/financial-review
@@ -355,15 +420,15 @@ finance/financial-summary
 finance/financial-analysis
 ```
 
-Each discovered document is injected into agent prompts as a namespaced entry, for example `marketing/campaign-brief`. Agents are instructed to read the exact path from the Domain Skill Index instead of invoking the harness skill resolver.
+Each declared document is injected into agent prompts as a namespaced entry, for example `marketing/campaign-brief`. Agents are instructed to read the exact path from the Domain Catalog instead of invoking the harness skill resolver.
 
 For a full marketing domain pack example, see [`EXAMPLES.md`](./EXAMPLES.md#add-a-marketing-domain-pack).
 
-Bundled domain components are loaded first, then global convention files under `~/.config/opencode/your-legion/domains/<domain-id>/`, then explicit overrides. This means a global `coding` component with the same id replaces the bundled component with that id.
+Bundled `DOMAIN.md` is used unless a global `DOMAIN.md` exists for the same domain. A global `DOMAIN.md` replaces the bundled domain description and component catalog for that domain. Explicit overrides can replace or disable component ids that are already declared in the selected `DOMAIN.md`; they do not add undeclared components.
 
 ### Domain Overrides
 
-Any component can be extended or overridden by id:
+Any component declared in `DOMAIN.md` can be overridden by id:
 
 ```yaml
 domains:
@@ -378,10 +443,10 @@ domains:
 
 Override rules:
 
-- Missing component maps still use convention discovery.
-- A new id adds an extra component.
-- A matching id replaces the convention-discovered path.
-- `false` disables a convention-discovered component.
+- Missing component maps use the paths declared in `DOMAIN.md`.
+- A matching id replaces the declared path.
+- `false` disables a declared component.
+- A new id that is not listed in `DOMAIN.md` is ignored; add it to `DOMAIN.md` first if the domain should expose it.
 
 ```yaml
 domains:
@@ -413,7 +478,7 @@ Prefer repo-relative override paths when a domain decision should be versioned w
 - Different agents may use different providers in the same config.
 - Model values must use `provider/model-id` format.
 - Code review is handled by the `/code-review` command by default; the bundled `code-reviewer` custom agent is enabled in `legionaries.yaml` as an example.
-- Domain packs add domain-local skill indexes to the same agents. They do not create new agents by themselves, and enabled domains become active only when named in a Task Context Envelope.
+- Domain packs add domain descriptions and domain-local skill entries to the same agents through the Domain Catalog. They do not create new agents by themselves, and enabled domains become active only when their `DOMAIN.md` description materially applies and they are named in a Task Context Envelope.
 
 ## DIO Command
 

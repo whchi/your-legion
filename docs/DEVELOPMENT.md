@@ -9,7 +9,7 @@ This document covers repository development for `your-legion`. User-facing insta
 - `src/config/legionaries.ts` reads and validates `legionaries.yaml`.
 - `src/runtime/agent-definition-provider.ts` loads protected system agent factories and YAML custom agents.
 - `src/runtime/build-agent-config.ts` merges model maps with agent providers and injects `/dio` commands.
-- `src/runtime/domain-packs.ts` resolves convention-first global domain packs and builds the Domain Skill Index.
+- `src/runtime/domain-packs.ts` resolves `DOMAIN.md`-declared domain packs and builds the Domain Catalog.
 - `src/runtime/dio-loop.ts` owns the in-memory DIO session loop.
 - The plugin injects `default_agent`, the full `agent` map, and plugin commands at startup.
 
@@ -99,6 +99,8 @@ bun src/cli.ts trace-check --worktree .
 
 The check expects these scenarios to have matching `delegation` evidence with no contract warnings:
 
+- `no-domain-no-catalog`
+- `no-domain-ambiguous`
 - `coding-only`
 - `marketing-only`
 - `coding-marketing`
@@ -111,9 +113,9 @@ The check expects these scenarios to have matching `delegation` evidence with no
 
 ## Domain Pack Development
 
-Domain component folders are optional capability facets. Do not scaffold all four folders unless the domain actually has all four kinds of knowledge.
+Domain routing is description-driven. `DOMAIN.md` is the only domain description and component catalog used in the Domain Catalog; `README.md` is human-facing and does not participate in routing. Domain component folders are optional capability facets. Do not scaffold all four folders unless the domain actually has all four kinds of knowledge. Runtime only includes component paths listed in `DOMAIN.md`; folders or files that are not listed are treated as absent.
 
-Create a domain manifest only:
+Create a domain manifest and routing description:
 
 ```bash
 bun src/cli.ts create-domain marketing-ops --config-dir /tmp/opencode
@@ -142,13 +144,23 @@ Component meanings:
 
 An enabled domain with no discovered components is allowed, but runtime evidence will warn when an agent uses it as active task context. That warning is intentional: it keeps placeholder domains from looking like validated knowledge boundaries.
 
+If no domain is configured, or no enabled domain description clearly matches a task, the expected delegation is:
+
+```text
+Active domains: none
+Domain refs: none
+Domain skills: none
+```
+
+That no-domain fallback is normal behavior and should not produce a warning.
+
 ## Customization
 
 - Edit `src/agents/*.ts` to change system prompts, permissions, descriptions, or modes.
 - Edit `legionaries.yaml` to mix providers, update per-agent models, tune reasoning settings, and enable custom agents.
 - Add custom agents under `src/custom-agents/*.yaml`, then add a matching `custom_agents` mapping.
 - Add domain packs under `~/.config/opencode/your-legion/domains/<domain-id>/`, then enable them with `domains.<domain-id>: true`.
-- Use `domains.<domain-id>.<component>.<id>.path` only when a component needs to be mounted from a non-conventional path or to override a conventional file.
+- Use `domains.<domain-id>.<component>.<id>.path` only when a component id already listed in `DOMAIN.md` needs to be mounted from another path.
 - Built-in domain packs live under `src/domains/` and are copied to `dist/domains` by `bun run build`.
 - Domain usage evidence is implemented in `src/runtime/domain-usage-contract.ts`; update parser, trace, and CLI tests when changing the envelope contract.
 - Add a new required agent by updating `src/agents/`, `src/agents/index.ts`, `src/shared/agent-types.ts`, `legionaries.yaml`, and the routing guidance in `src/agents/orchestrator.ts`.
@@ -167,8 +179,8 @@ Your Legion uses direct specialist routing rather than a category-first runtime.
 - `planner` is runtime-limited to `docs/**/*.md` edits; code changes belong to `builder`.
 - Code review is command-owned by `/code-review` by default; `code-reviewer` is the bundled YAML custom-agent example.
 - `legionaries.yaml` configures per-agent models, reasoning, and custom-agent enablement. It does not decide which system agent gets selected.
-- Domain packs add a shared domain index and namespaced domain skills to existing agents. They do not create new agents, and their skills are not registered with the harness skill resolver.
-- Runtime trace events make domain usage observable. `delegation` events show requested active domains and skills; `domain-read` events show which domain component paths were read.
+- Domain packs add a shared Domain Catalog and namespaced domain skills to existing agents. They do not create new agents, and their skills are not registered with the harness skill resolver.
+- Runtime trace events make domain usage observable. `delegation` events show requested active domains and skills; `domain-read` events show which domain component paths were read. `trace-check` fails when a delegation declares a domain skill but no matching skill read is recorded.
 - Fixed acceptance scenarios live with the domain usage contract and cover coding, marketing, finance, accounting, and mixed-domain pairs.
 
 ## Routing Boundaries

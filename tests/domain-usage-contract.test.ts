@@ -146,6 +146,24 @@ Verification: inspect output`)
   assert.match(result.warnings.join('\n'), /active domain has no discovered components: empty-domain/i)
 })
 
+test('domain usage validator accepts no-domain delegation when no domain applies', async () => {
+  const { parseTaskContextEnvelope, validateDomainUsageContract } = await import(
+    '../src/runtime/domain-usage-contract.ts'
+  )
+  const envelope = parseTaskContextEnvelope(`Task Context Envelope:
+Active domains: none
+Domain refs: none
+Domain skills: none
+Verification: inspect answer`)
+
+  const result = validateDomainUsageContract(envelope, [])
+
+  assert.deepEqual(envelope.activeDomains, [])
+  assert.deepEqual(envelope.domainRefs, [])
+  assert.deepEqual(envelope.domainSkills, [])
+  assert.deepEqual(result.warnings, [])
+})
+
 test('domain trace hooks write warn-only delegation and domain-read evidence', async (t) => {
   const {
     createDomainUsageTraceHooks,
@@ -240,12 +258,99 @@ test('trace CLI prints events and trace-check fails when warnings exist', async 
   assert.match(result.stderr + result.stdout, /unknown domain skill: coding\/missing/)
 })
 
+test('trace-check fails when a declared domain skill was not read', async (t) => {
+  const { appendDomainUsageTraceEvent } = await import('../src/runtime/domain-usage-contract.ts')
+  const configDir = makeTempDir(t, 'domain-trace-missing-skill-read')
+  const worktree = path.join(configDir, 'project')
+
+  appendDomainUsageTraceEvent({
+    configDir,
+    worktree,
+    event: {
+      version: 1,
+      timestamp: '2026-05-20T00:00:00.000Z',
+      worktree,
+      sessionID: 'ses_missing_read',
+      delegationID: 'del_missing_read',
+      event: 'delegation',
+      targetAgent: 'builder',
+      activeDomains: [{ id: 'coding', responsibility: 'implement code' }],
+      domainRefs: [],
+      domainSkills: ['coding/make-code-change'],
+      warnings: [],
+    },
+  })
+
+  const result = spawnSync(
+    'bun',
+    ['src/cli.ts', 'trace-check', '--worktree', worktree, '--config-dir', configDir],
+    { cwd: rootDir, encoding: 'utf8' },
+  )
+
+  assert.notEqual(result.status, 0)
+  assert.match(
+    result.stderr + result.stdout,
+    /declared domain skill was not read: coding\/make-code-change/i,
+  )
+})
+
+test('trace-check accepts a declared domain skill read under the same delegation', async (t) => {
+  const { appendDomainUsageTraceEvent } = await import('../src/runtime/domain-usage-contract.ts')
+  const configDir = makeTempDir(t, 'domain-trace-skill-read')
+  const worktree = path.join(configDir, 'project')
+
+  appendDomainUsageTraceEvent({
+    configDir,
+    worktree,
+    event: {
+      version: 1,
+      timestamp: '2026-05-20T00:00:00.000Z',
+      worktree,
+      sessionID: 'ses_read',
+      delegationID: 'del_read',
+      event: 'delegation',
+      targetAgent: 'builder',
+      activeDomains: [{ id: 'coding', responsibility: 'implement code' }],
+      domainRefs: [],
+      domainSkills: ['coding/make-code-change'],
+      warnings: [],
+    },
+  })
+  appendDomainUsageTraceEvent({
+    configDir,
+    worktree,
+    event: {
+      version: 1,
+      timestamp: '2026-05-20T00:00:01.000Z',
+      worktree,
+      sessionID: 'ses_read',
+      delegationID: 'del_read',
+      event: 'domain-read',
+      activeDomains: [],
+      domainRefs: [],
+      domainSkills: ['coding/make-code-change'],
+      warnings: [],
+    },
+  })
+
+  const result = spawnSync(
+    'bun',
+    ['src/cli.ts', 'trace-check', '--worktree', worktree, '--config-dir', configDir],
+    { cwd: rootDir, encoding: 'utf8' },
+  )
+
+  assert.equal(result.status, 0)
+  assert.match(result.stdout, /Domain usage trace check passed/)
+})
+
 test('domain scenarios define the fixed domain validation set', async () => {
   const { DOMAIN_USAGE_SCENARIOS } = await import('../src/runtime/domain-usage-contract.ts')
 
   assert.deepEqual(
     DOMAIN_USAGE_SCENARIOS.map((scenario) => scenario.id),
     [
+      'no-domain-no-catalog',
+      'no-domain-ambiguous',
       'coding-only',
       'marketing-only',
       'coding-marketing',
@@ -257,15 +362,17 @@ test('domain scenarios define the fixed domain validation set', async () => {
       'finance-marketing',
     ],
   )
-  assert.deepEqual(DOMAIN_USAGE_SCENARIOS[0].expectedActiveDomains, ['coding'])
-  assert.deepEqual(DOMAIN_USAGE_SCENARIOS[1].expectedActiveDomains, ['marketing'])
-  assert.deepEqual(DOMAIN_USAGE_SCENARIOS[2].expectedActiveDomains, ['coding', 'marketing'])
-  assert.deepEqual(DOMAIN_USAGE_SCENARIOS[3].expectedActiveDomains, ['finance'])
-  assert.deepEqual(DOMAIN_USAGE_SCENARIOS[4].expectedActiveDomains, ['accounting'])
-  assert.deepEqual(DOMAIN_USAGE_SCENARIOS[5].expectedActiveDomains, ['coding', 'finance'])
-  assert.deepEqual(DOMAIN_USAGE_SCENARIOS[6].expectedActiveDomains, ['coding', 'accounting'])
-  assert.deepEqual(DOMAIN_USAGE_SCENARIOS[7].expectedActiveDomains, ['accounting', 'finance'])
-  assert.deepEqual(DOMAIN_USAGE_SCENARIOS[8].expectedActiveDomains, ['finance', 'marketing'])
+  assert.deepEqual(DOMAIN_USAGE_SCENARIOS[0].expectedActiveDomains, [])
+  assert.deepEqual(DOMAIN_USAGE_SCENARIOS[1].expectedActiveDomains, [])
+  assert.deepEqual(DOMAIN_USAGE_SCENARIOS[2].expectedActiveDomains, ['coding'])
+  assert.deepEqual(DOMAIN_USAGE_SCENARIOS[3].expectedActiveDomains, ['marketing'])
+  assert.deepEqual(DOMAIN_USAGE_SCENARIOS[4].expectedActiveDomains, ['coding', 'marketing'])
+  assert.deepEqual(DOMAIN_USAGE_SCENARIOS[5].expectedActiveDomains, ['finance'])
+  assert.deepEqual(DOMAIN_USAGE_SCENARIOS[6].expectedActiveDomains, ['accounting'])
+  assert.deepEqual(DOMAIN_USAGE_SCENARIOS[7].expectedActiveDomains, ['coding', 'finance'])
+  assert.deepEqual(DOMAIN_USAGE_SCENARIOS[8].expectedActiveDomains, ['coding', 'accounting'])
+  assert.deepEqual(DOMAIN_USAGE_SCENARIOS[9].expectedActiveDomains, ['accounting', 'finance'])
+  assert.deepEqual(DOMAIN_USAGE_SCENARIOS[10].expectedActiveDomains, ['finance', 'marketing'])
 })
 
 test('domain scenario check passes only when all fixed scenarios have matching evidence', async (t) => {
@@ -286,11 +393,11 @@ test('domain scenario check passes only when all fixed scenarios have matching e
       worktree,
       sessionID: 'ses_scenarios',
       event: 'delegation',
-      scenarioID: 'coding-only',
+      scenarioID: DOMAIN_USAGE_SCENARIOS[0].id,
       targetAgent: 'builder',
-      activeDomains: [{ id: 'coding', responsibility: 'implement and verify code' }],
-      domainRefs: ['coding/implementation-loop'],
-      domainSkills: ['coding/make-code-change'],
+      activeDomains: [],
+      domainRefs: [],
+      domainSkills: [],
       warnings: [],
     },
   })

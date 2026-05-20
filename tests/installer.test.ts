@@ -150,6 +150,15 @@ test('createDomainPack scaffolds a domain manifest without forcing component fol
   assert.equal(result.domainRootPath, path.join(configDir, 'your-legion', 'domains', 'marketing-ops'))
   assert.deepEqual(result.componentPaths, [])
   assert.equal(fs.existsSync(path.join(result.domainRootPath, 'README.md')), true)
+  assert.equal(fs.existsSync(path.join(result.domainRootPath, 'DOMAIN.md')), true)
+  assert.match(
+    fs.readFileSync(path.join(result.domainRootPath, 'DOMAIN.md'), 'utf8'),
+    /Use this domain when/,
+  )
+  assert.doesNotMatch(
+    fs.readFileSync(path.join(result.domainRootPath, 'DOMAIN.md'), 'utf8'),
+    /example-(workflow|decision|output|skill)/,
+  )
   assert.equal(fs.existsSync(path.join(result.domainRootPath, 'workflows')), false)
   assert.equal(fs.existsSync(path.join(result.domainRootPath, 'decisions')), false)
   assert.equal(fs.existsSync(path.join(result.domainRootPath, 'examples')), false)
@@ -176,6 +185,11 @@ test('createDomainPack scaffolds only selected optional component folders', asyn
   assert.equal(fs.existsSync(path.join(result.domainRootPath, 'decisions')), true)
   assert.equal(fs.existsSync(path.join(result.domainRootPath, 'examples')), false)
   assert.equal(fs.existsSync(path.join(result.domainRootPath, 'skills')), true)
+  const domainDescription = fs.readFileSync(path.join(result.domainRootPath, 'DOMAIN.md'), 'utf8')
+  assert.doesNotMatch(domainDescription, /Workflows:/)
+  assert.doesNotMatch(domainDescription, /Examples:/)
+  assert.match(domainDescription, /Decisions:\n- `decisions\/example-decision\.md`/)
+  assert.match(domainDescription, /Skills:\n- `skills\/example-skill\/SKILL\.md`/)
 })
 
 test('createDomainPack rejects non kebab-case domain ids', async (t) => {
@@ -309,7 +323,7 @@ test('build publishes the installer template under dist', () => {
     fs.readFileSync(path.join(rootDir, 'src', 'domains', 'finance', 'skills', 'financial-analysis', 'SKILL.md'), 'utf8'),
   )
   assert.equal(
-    fs.readFileSync(path.join(rootDir, 'dist', 'domains', 'accounting', 'skills', 'accounting-review', 'SKILL.md'), 'utf8'),
-    fs.readFileSync(path.join(rootDir, 'src', 'domains', 'accounting', 'skills', 'accounting-review', 'SKILL.md'), 'utf8'),
+    fs.readFileSync(path.join(rootDir, 'dist', 'domains', 'accounting', 'skills', 'apply-accounting-review', 'SKILL.md'), 'utf8'),
+    fs.readFileSync(path.join(rootDir, 'src', 'domains', 'accounting', 'skills', 'apply-accounting-review', 'SKILL.md'), 'utf8'),
   )
 })
