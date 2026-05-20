@@ -1,6 +1,6 @@
-import type { BaseAgentDefinition } from '../shared/agent-types.ts'
+import type { BaseAgentDefinition } from '../shared/agent-types';
 
-const MODE = 'subagent' as const
+const MODE = 'subagent' as const;
 
 const PROMPT = `# Explorer
 
@@ -39,12 +39,11 @@ Return:
 - the files or symbols that matter most
 - a concise explanation of what each one is responsible for
 - Domain evidence: domain refs and domain skills actually read, or none
-- likely next files to inspect if deeper work is needed`
+- likely next files to inspect if deeper work is needed`;
 
 export function createExplorerAgent(_model: string): BaseAgentDefinition {
   return {
-    description:
-      'Read-only codebase explorer for discovery, impact analysis, and pattern lookup',
+    description: 'Read-only codebase explorer for discovery, impact analysis, and pattern lookup',
     mode: MODE,
     permission: {
       read: 'allow',
@@ -61,6 +60,6 @@ export function createExplorerAgent(_model: string): BaseAgentDefinition {
       websearch: 'deny',
     },
     prompt: PROMPT,
-  }
+  };
 }
-createExplorerAgent.mode = MODE
+createExplorerAgent.mode = MODE;

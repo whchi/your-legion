@@ -1,6 +1,6 @@
-import type { BaseAgentDefinition } from '../shared/agent-types.ts'
+import type { BaseAgentDefinition } from '../shared/agent-types';
 
-const MODE = 'subagent' as const
+const MODE = 'subagent' as const;
 
 const PROMPT = `# Planner
 
@@ -56,12 +56,11 @@ If the envelope lacks correctness-critical context, ask instead of guessing.
 - Do not drift into implementation.
 - Favor small, shippable plans over broad speculative roadmaps.
 
-Return the saved document path, Domain evidence, and a concise summary of the plan you wrote.`
+Return the saved document path, Domain evidence, and a concise summary of the plan you wrote.`;
 
 export function createPlannerAgent(_model: string): BaseAgentDefinition {
   return {
-    description:
-      'Planning specialist that writes specs, architecture notes, and implementation plans',
+    description: 'Planning specialist that writes specs, architecture notes, and implementation plans',
     mode: MODE,
     permission: {
       read: 'allow',
@@ -81,6 +80,6 @@ export function createPlannerAgent(_model: string): BaseAgentDefinition {
       websearch: 'deny',
     },
     prompt: PROMPT,
-  }
+  };
 }
-createPlannerAgent.mode = MODE
+createPlannerAgent.mode = MODE;

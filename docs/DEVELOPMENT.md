@@ -36,7 +36,7 @@ No frontmatter rewrite step is required.
 ## Local Development
 
 - Install dependencies with `bun install`.
-- Run tests with `node --test tests/*.test.ts`.
+- Run tests with `bun test`.
 - Build the published plugin entrypoint with `bun run build`.
 - Temporary test artifacts belong under `temp/`, which is gitignored.
 

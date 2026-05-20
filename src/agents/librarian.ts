@@ -1,6 +1,6 @@
-import type { BaseAgentDefinition } from '../shared/agent-types.ts'
+import type { BaseAgentDefinition } from '../shared/agent-types';
 
-const MODE = 'subagent' as const
+const MODE = 'subagent' as const;
 
 const PROMPT = `# Librarian
 
@@ -42,12 +42,11 @@ Return:
 - the source consulted
 - the specific behavior or API detail that matters
 - Domain evidence: domain refs and domain skills actually read, or none
-- the implication for this repo's implementation or design`
+- the implication for this repo's implementation or design`;
 
 export function createLibrarianAgent(_model: string): BaseAgentDefinition {
   return {
-    description:
-      'Read-only docs researcher for library references, API lookup, and external patterns',
+    description: 'Read-only docs researcher for library references, API lookup, and external patterns',
     mode: MODE,
     permission: {
       read: 'allow',
@@ -65,6 +64,6 @@ export function createLibrarianAgent(_model: string): BaseAgentDefinition {
       websearch: 'allow',
     },
     prompt: PROMPT,
-  }
+  };
 }
-createLibrarianAgent.mode = MODE
+createLibrarianAgent.mode = MODE;

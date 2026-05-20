@@ -1,6 +1,6 @@
-import type { BaseAgentDefinition } from '../shared/agent-types.ts'
+import type { BaseAgentDefinition } from '../shared/agent-types';
 
-const MODE = 'subagent' as const
+const MODE = 'subagent' as const;
 
 const PROMPT = `# Builder
 
@@ -51,12 +51,11 @@ Return:
 - what was implemented
 - Domain evidence: domain refs and domain skills actually read, or none
 - verification commands run and outcomes
-- any remaining follow-up or risk`
+- any remaining follow-up or risk`;
 
 export function createBuilderAgent(_model: string): BaseAgentDefinition {
   return {
-    description:
-      'Implementation specialist for approved plans, code changes, tests, and UI work',
+    description: 'Implementation specialist for approved plans, code changes, tests, and UI work',
     mode: MODE,
     permission: {
       read: 'allow',
@@ -73,6 +72,6 @@ export function createBuilderAgent(_model: string): BaseAgentDefinition {
       websearch: 'deny',
     },
     prompt: PROMPT,
-  }
+  };
 }
-createBuilderAgent.mode = MODE
+createBuilderAgent.mode = MODE;

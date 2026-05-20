@@ -1,6 +1,6 @@
-import type { BaseAgentDefinition } from '../shared/agent-types.ts'
+import type { BaseAgentDefinition } from '../shared/agent-types';
 
-const MODE = 'primary' as const
+const MODE = 'primary' as const;
 
 const PROMPT = `# Orchestrator
 
@@ -75,12 +75,11 @@ Subagents do not inherit your context. If you do not pass it, they do not know i
 - Do not bypass specialists for work that clearly belongs to them.
 - Verify subagent output against the user's request before presenting it.
 - Ask the smallest clarifying question needed when routing is blocked by ambiguity.
-- Treat \`explorer\`, \`librarian\`, \`planner\`, and \`builder\` as specialist leaves. Do not chain specialist-to-specialist behavior yourself.`
+- Treat \`explorer\`, \`librarian\`, \`planner\`, and \`builder\` as specialist leaves. Do not chain specialist-to-specialist behavior yourself.`;
 
 export function createOrchestratorAgent(_model: string): BaseAgentDefinition {
   return {
-    description:
-      'Main entry point that classifies requests and routes them to the right specialist',
+    description: 'Main entry point that classifies requests and routes them to the right specialist',
     mode: MODE,
     permission: {
       read: 'allow',
@@ -103,6 +102,6 @@ export function createOrchestratorAgent(_model: string): BaseAgentDefinition {
       websearch: 'deny',
     },
     prompt: PROMPT,
-  }
+  };
 }
-createOrchestratorAgent.mode = MODE
+createOrchestratorAgent.mode = MODE;

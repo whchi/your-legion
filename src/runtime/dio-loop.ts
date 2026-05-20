@@ -1,170 +1,164 @@
-const DIO_COMPLETE_PATTERN = /<dio_complete>[\s\S]*?<\/dio_complete>/
-const DEFAULT_MAX_ITERATIONS = 100
+const DIO_COMPLETE_PATTERN = /<dio_complete>[\s\S]*?<\/dio_complete>/;
+const DEFAULT_MAX_ITERATIONS = 100;
 
 type OpenCodeClient = {
   session?: {
-    messages?: (input: { path: { id: string } }) => Promise<unknown>
+    messages?: (input: { path: { id: string } }) => Promise<unknown>;
     prompt?: (input: {
-      path: { id: string }
+      path: { id: string };
       body: {
-        parts: Array<{ type: 'text'; text: string }>
-      }
-    }) => Promise<unknown>
-  }
+        parts: Array<{ type: 'text'; text: string }>;
+      };
+    }) => Promise<unknown>;
+  };
   tui?: {
     showToast?: (input: {
       body: {
-        message: string
-        variant?: 'success' | 'warning' | 'error' | 'info'
-      }
-    }) => Promise<unknown>
-  }
-}
+        message: string;
+        variant?: 'success' | 'warning' | 'error' | 'info';
+      };
+    }) => Promise<unknown>;
+  };
+};
 
 export type DioLoopState = {
-  sessionID: string
-  objective: string
-  iteration: number
-  maxIterations: number
-}
+  sessionID: string;
+  objective: string;
+  iteration: number;
+  maxIterations: number;
+};
 
 export type CreateDioLoopHooksOptions = {
-  client: OpenCodeClient
-  maxIterations?: number
-}
+  client: OpenCodeClient;
+  maxIterations?: number;
+};
 
 function textFromPart(part: unknown): string {
   if (!part || typeof part !== 'object') {
-    return ''
+    return '';
   }
 
-  const record = part as Record<string, unknown>
-  const value = record.text ?? record.content ?? record.value
-  return typeof value === 'string' ? value : ''
+  const record = part as Record<string, unknown>;
+  const value = record.text ?? record.content ?? record.value;
+  return typeof value === 'string' ? value : '';
 }
 
 function textFromMessages(value: unknown): string {
-  const data =
-    value && typeof value === 'object' && 'data' in value
-      ? (value as { data: unknown }).data
-      : value
+  const data = value && typeof value === 'object' && 'data' in value ? (value as { data: unknown }).data : value;
 
   if (!Array.isArray(data)) {
-    return ''
+    return '';
   }
 
-  const hasRoleMetadata = data.some((message) => {
+  const hasRoleMetadata = data.some(message => {
     if (!message || typeof message !== 'object') {
-      return false
+      return false;
     }
 
-    const info = (message as Record<string, unknown>).info
-    return Boolean(info && typeof info === 'object' && 'role' in info)
-  })
+    const info = (message as Record<string, unknown>).info;
+    return Boolean(info && typeof info === 'object' && 'role' in info);
+  });
 
   return data
-    .flatMap((message) => {
+    .flatMap(message => {
       if (!message || typeof message !== 'object') {
-        return []
+        return [];
       }
 
-      const record = message as Record<string, unknown>
-      const info = record.info
-      const role =
-        info && typeof info === 'object'
-          ? (info as Record<string, unknown>).role
-          : undefined
+      const record = message as Record<string, unknown>;
+      const info = record.info;
+      const role = info && typeof info === 'object' ? (info as Record<string, unknown>).role : undefined;
 
       if (hasRoleMetadata && role !== 'assistant') {
-        return []
+        return [];
       }
 
-      const parts = record.parts
-      return Array.isArray(parts) ? parts.map(textFromPart) : []
+      const parts = record.parts;
+      return Array.isArray(parts) ? parts.map(textFromPart) : [];
     })
-    .join('\n')
+    .join('\n');
 }
 
 function textFromChatParts(output: unknown): string {
   if (!output || typeof output !== 'object') {
-    return ''
+    return '';
   }
 
-  const parts = (output as Record<string, unknown>).parts
-  return Array.isArray(parts) ? parts.map(textFromPart).join('\n') : ''
+  const parts = (output as Record<string, unknown>).parts;
+  return Array.isArray(parts) ? parts.map(textFromPart).join('\n') : '';
 }
 
 function extractSessionID(input: unknown): string | undefined {
   if (!input || typeof input !== 'object') {
-    return undefined
+    return undefined;
   }
 
-  const record = input as Record<string, unknown>
-  const direct = record.sessionID ?? record.sessionId
+  const record = input as Record<string, unknown>;
+  const direct = record.sessionID ?? record.sessionId;
   if (typeof direct === 'string') {
-    return direct
+    return direct;
   }
 
-  const properties = record.properties
+  const properties = record.properties;
   if (properties && typeof properties === 'object') {
-    const propertyRecord = properties as Record<string, unknown>
-    const propertySessionID = propertyRecord.sessionID ?? propertyRecord.sessionId
+    const propertyRecord = properties as Record<string, unknown>;
+    const propertySessionID = propertyRecord.sessionID ?? propertyRecord.sessionId;
     if (typeof propertySessionID === 'string') {
-      return propertySessionID
+      return propertySessionID;
     }
 
-    const session = propertyRecord.session
+    const session = propertyRecord.session;
     if (session && typeof session === 'object') {
-      const sessionID = (session as Record<string, unknown>).id
+      const sessionID = (session as Record<string, unknown>).id;
       if (typeof sessionID === 'string') {
-        return sessionID
+        return sessionID;
       }
     }
   }
 
-  return undefined
+  return undefined;
 }
 
 function extractCommandName(input: unknown): string | undefined {
   if (!input || typeof input !== 'object') {
-    return undefined
+    return undefined;
   }
 
-  const record = input as Record<string, unknown>
-  const name = record.name ?? record.command
-  return typeof name === 'string' ? name.replace(/^\//, '') : undefined
+  const record = input as Record<string, unknown>;
+  const name = record.name ?? record.command;
+  return typeof name === 'string' ? name.replace(/^\//, '') : undefined;
 }
 
 function extractCommandArguments(input: unknown) {
   if (!input || typeof input !== 'object') {
-    return ''
+    return '';
   }
 
-  const args = (input as Record<string, unknown>).arguments
+  const args = (input as Record<string, unknown>).arguments;
   if (typeof args === 'string') {
-    return args.trim()
+    return args.trim();
   }
 
   if (args && typeof args === 'object' && 'text' in args) {
-    const text = (args as { text: unknown }).text
-    return typeof text === 'string' ? text.trim() : ''
+    const text = (args as { text: unknown }).text;
+    return typeof text === 'string' ? text.trim() : '';
   }
 
-  return ''
+  return '';
 }
 
 function parseRawDioCommand(text: string) {
-  const trimmed = text.trim()
-  const match = trimmed.match(/^\/(dio-stop|dio)(?:\s+([\s\S]*))?$/)
+  const trimmed = text.trim();
+  const match = trimmed.match(/^\/(dio-stop|dio)(?:\s+([\s\S]*))?$/);
 
   if (!match) {
-    return undefined
+    return undefined;
   }
 
   return {
     command: match[1],
     arguments: (match[2] ?? '').trim(),
-  }
+  };
 }
 
 function continuationPrompt(state: DioLoopState) {
@@ -174,27 +168,20 @@ ${state.objective}
 
 You have not yet emitted the exact completion marker. Continue the work, verify the result, and only when the objective is genuinely complete include:
 
-<dio_complete>what was completed and verified</dio_complete>`
+<dio_complete>what was completed and verified</dio_complete>`;
 }
 
-async function showToast(
-  client: OpenCodeClient,
-  message: string,
-  variant: 'success' | 'warning' | 'error' | 'info',
-) {
+async function showToast(client: OpenCodeClient, message: string, variant: 'success' | 'warning' | 'error' | 'info') {
   await client.tui?.showToast?.({
     body: {
       message,
       variant,
     },
-  })
+  });
 }
 
-export function createDioLoopHooks({
-  client,
-  maxIterations = DEFAULT_MAX_ITERATIONS,
-}: CreateDioLoopHooksOptions) {
-  const sessions = new Map<string, DioLoopState>()
+export function createDioLoopHooks({ client, maxIterations = DEFAULT_MAX_ITERATIONS }: CreateDioLoopHooksOptions) {
+  const sessions = new Map<string, DioLoopState>();
 
   function start(sessionID: string, objective: string) {
     sessions.set(sessionID, {
@@ -202,34 +189,34 @@ export function createDioLoopHooks({
       objective: objective || 'Continue the current task until it is complete.',
       iteration: 0,
       maxIterations,
-    })
+    });
   }
 
   async function cancel(sessionID: string) {
-    sessions.delete(sessionID)
-    await showToast(client, 'DIO loop cancelled', 'warning')
+    sessions.delete(sessionID);
+    await showToast(client, 'DIO loop cancelled', 'warning');
   }
 
   async function maybeContinue(sessionID: string) {
-    const state = sessions.get(sessionID)
+    const state = sessions.get(sessionID);
     if (!state) {
-      return
+      return;
     }
 
-    const messages = await client.session?.messages?.({ path: { id: sessionID } })
+    const messages = await client.session?.messages?.({ path: { id: sessionID } });
     if (DIO_COMPLETE_PATTERN.test(textFromMessages(messages))) {
-      sessions.delete(sessionID)
-      await showToast(client, 'DIO loop complete', 'success')
-      return
+      sessions.delete(sessionID);
+      await showToast(client, 'DIO loop complete', 'success');
+      return;
     }
 
     if (state.iteration >= state.maxIterations) {
-      sessions.delete(sessionID)
-      await showToast(client, 'DIO loop stopped at iteration limit', 'warning')
-      return
+      sessions.delete(sessionID);
+      await showToast(client, 'DIO loop stopped at iteration limit', 'warning');
+      return;
     }
 
-    state.iteration += 1
+    state.iteration += 1;
     await client.session?.prompt?.({
       path: { id: sessionID },
       body: {
@@ -240,60 +227,60 @@ export function createDioLoopHooks({
           },
         ],
       },
-    })
+    });
   }
 
   return {
     getState(sessionID: string) {
-      return sessions.get(sessionID)
+      return sessions.get(sessionID);
     },
     async 'command.executed'(input: unknown) {
-      const command = extractCommandName(input)
-      const sessionID = extractSessionID(input)
+      const command = extractCommandName(input);
+      const sessionID = extractSessionID(input);
       if (!command || !sessionID) {
-        return
+        return;
       }
 
       if (command === 'dio') {
-        start(sessionID, extractCommandArguments(input))
+        start(sessionID, extractCommandArguments(input));
       }
 
       if (command === 'dio-stop') {
-        await cancel(sessionID)
+        await cancel(sessionID);
       }
     },
     async 'chat.message'(input: unknown, output: unknown) {
-      const sessionID = extractSessionID(input)
+      const sessionID = extractSessionID(input);
       if (!sessionID) {
-        return
+        return;
       }
 
-      const command = parseRawDioCommand(textFromChatParts(output))
+      const command = parseRawDioCommand(textFromChatParts(output));
       if (!command) {
-        return
+        return;
       }
 
       if (command.command === 'dio') {
-        start(sessionID, command.arguments)
+        start(sessionID, command.arguments);
       }
 
       if (command.command === 'dio-stop') {
-        await cancel(sessionID)
+        await cancel(sessionID);
       }
     },
     async event({ event }: { event: unknown }) {
       if (!event || typeof event !== 'object') {
-        return
+        return;
       }
 
       if ((event as Record<string, unknown>).type !== 'session.idle') {
-        return
+        return;
       }
 
-      const sessionID = extractSessionID(event)
+      const sessionID = extractSessionID(event);
       if (sessionID) {
-        await maybeContinue(sessionID)
+        await maybeContinue(sessionID);
       }
     },
-  }
+  };
 }
