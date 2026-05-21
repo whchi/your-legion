@@ -1,6 +1,6 @@
 {
   "name": "@whchi/your-legion",
-  "version": "0.0.10-dev",
+  "version": "0.0.10",
   "description": "Plugin-first OpenCode multi-agent system inspired by oh-my-openagent",
   "homepage": "https://github.com/whchi/your-legion#readme",
   "bugs": {
@@ -19,7 +19,7 @@
   },
   "main": "dist/server.js",
   "bin": {
-    "your-legion": "dist/cli.js"
+    "your-legion": "./dist/cli.js"
   },
   "directories": {
     "doc": "docs",
