@@ -17,6 +17,7 @@ export type InstallYourLegionOptions = {
   sourceConfigPath: string;
   now?: Date;
   enabledDomains?: string[];
+  addDomains?: string[];
 };
 
 export type InstallYourLegionResult = {
@@ -26,6 +27,7 @@ export type InstallYourLegionResult = {
   opencodeConfigPath: string;
   domainRootPath: string;
   enabledDomains: string[];
+  configAction: 'created' | 'preserved' | 'replaced' | 'updated';
 };
 
 export type CreateDomainPackOptions = {
@@ -153,15 +155,24 @@ function normalizeEnabledDomains(configDir: string, enabledDomains: string[] = [
 }
 
 function writeLegionariesConfigWithDomains(
-  sourceConfigPath: string,
+  baseConfigPath: string,
   targetConfigPath: string,
   enabledDomains: string[],
 ) {
-  const raw = readFileSync(sourceConfigPath, 'utf8');
+  const raw = readFileSync(baseConfigPath, 'utf8');
   const parsed = YAML.parse(raw) as Record<string, unknown>;
 
   parsed.domains = Object.fromEntries(enabledDomains.map(domain => [domain, true]));
   writeFileSync(targetConfigPath, YAML.stringify(parsed));
+}
+
+function readEnabledDomains(configPath: string) {
+  const parsed = (YAML.parse(readFileSync(configPath, 'utf8')) ?? {}) as Record<string, unknown>;
+  if (!parsed.domains || typeof parsed.domains !== 'object' || Array.isArray(parsed.domains)) {
+    return [];
+  }
+
+  return Object.keys(parsed.domains as Record<string, unknown>);
 }
 
 function enableDomainInLegionariesConfig(configDir: string, domainID: string) {
@@ -197,27 +208,49 @@ export function installYourLegion({
   sourceConfigPath,
   now = new Date(),
   enabledDomains,
+  addDomains,
 }: InstallYourLegionOptions): InstallYourLegionResult {
+  if (enabledDomains !== undefined && addDomains !== undefined) {
+    throw new Error('use either --domains or --add-domains, not both');
+  }
+
   mkdirSync(configDir, { recursive: true });
   const domainRootPath = join(configDir, 'your-legion', 'domains');
-  const resolvedEnabledDomains = normalizeEnabledDomains(configDir, enabledDomains);
+  const normalizedReplacementDomains =
+    enabledDomains === undefined ? undefined : normalizeEnabledDomains(configDir, enabledDomains);
+  const normalizedAddDomains = addDomains === undefined ? undefined : normalizeEnabledDomains(configDir, addDomains);
 
   mkdirSync(domainRootPath, { recursive: true });
 
   const legionariesConfigPath = join(configDir, 'legionaries.yaml');
   let legionariesBackupPath: string | undefined;
+  let configAction: InstallYourLegionResult['configAction'];
 
-  if (existsSync(legionariesConfigPath)) {
+  const configExists = existsSync(legionariesConfigPath);
+  const shouldWriteConfig = !configExists || normalizedReplacementDomains !== undefined || normalizedAddDomains !== undefined;
+
+  if (configExists && shouldWriteConfig) {
     legionariesBackupPath = `${legionariesConfigPath}.bak.${backupTimestamp(now)}`;
     copyFileSync(legionariesConfigPath, legionariesBackupPath);
   }
 
-  if (enabledDomains === undefined) {
+  if (!configExists && normalizedReplacementDomains === undefined && normalizedAddDomains === undefined) {
     copyFileSync(sourceConfigPath, legionariesConfigPath);
+    configAction = 'created';
+  } else if (normalizedReplacementDomains !== undefined) {
+    writeLegionariesConfigWithDomains(sourceConfigPath, legionariesConfigPath, normalizedReplacementDomains);
+    configAction = configExists ? 'replaced' : 'created';
+  } else if (normalizedAddDomains !== undefined) {
+    const baseConfigPath = configExists ? legionariesConfigPath : sourceConfigPath;
+    const existingDomains = configExists ? readEnabledDomains(legionariesConfigPath) : [...DEFAULT_DOMAIN_IDS];
+    const mergedDomains = [...new Set([...existingDomains, ...normalizedAddDomains])];
+    writeLegionariesConfigWithDomains(baseConfigPath, legionariesConfigPath, mergedDomains);
+    configAction = configExists ? 'updated' : 'created';
   } else {
-    writeLegionariesConfigWithDomains(sourceConfigPath, legionariesConfigPath, resolvedEnabledDomains);
+    configAction = 'preserved';
   }
   const opencodeConfigPath = registerPlugin(configDir);
+  const resolvedEnabledDomains = readEnabledDomains(legionariesConfigPath);
 
   return {
     configDir,
@@ -226,6 +259,7 @@ export function installYourLegion({
     opencodeConfigPath,
     domainRootPath,
     enabledDomains: resolvedEnabledDomains,
+    configAction,
   };
 }
 

@@ -23,21 +23,37 @@ your-legion install
 
 The rest of these docs use `bunx @whchi/your-legion ...` so every command is executable without assuming a global install.
 
-The installer writes:
+On first install, the installer writes:
 
 - `~/.config/opencode/opencode.json`, or updates an existing `~/.config/opencode/opencode.jsonc`
 - `~/.config/opencode/legionaries.yaml`
 - `~/.config/opencode/your-legion/domains/`
 
-The installer enables `coding` by default. To pick bundled domains, pass a comma-separated `--domains` list:
+On reinstall, `install` preserves an existing `legionaries.yaml` unless you explicitly ask to change domains. It still ensures the plugin is registered and the base domain directory exists.
+
+The first install enables `coding` by default.
+
+To replace the enabled domain list, pass a comma-separated `--domains` list:
 
 ```bash
 bunx @whchi/your-legion install --domains coding,marketing,finance,accounting
 ```
 
-Available bundled domains are `coding`, `marketing`, `finance`, and `accounting`. `--domains` also accepts a custom domain after that domain has been created under `~/.config/opencode/your-legion/domains/<domain-id>/DOMAIN.md`.
+To add domains without removing the existing enabled domains, use `--add-domains`:
 
-If `legionaries.yaml` already exists, it is backed up first using this format:
+```bash
+bunx @whchi/your-legion install --add-domains marketing,finance
+```
+
+Available bundled domains are `coding`, `marketing`, `finance`, and `accounting`. `--domains` and `--add-domains` also accept a custom domain after that domain has been created under `~/.config/opencode/your-legion/domains/<domain-id>/DOMAIN.md`.
+
+`--domains` and `--add-domains` are mutually exclusive:
+
+- `install`: first install creates config with `coding`; reinstall preserves existing config.
+- `install --domains coding,marketing`: replaces `domains:` with exactly `coding` and `marketing`.
+- `install --add-domains marketing,finance`: keeps existing `domains:` and adds `marketing` and `finance`.
+
+If `legionaries.yaml` already exists and the command will change it, it is backed up first using this format:
 
 ```text
 ~/.config/opencode/legionaries.yaml.bak.2026-01-25T11-18-28-014Z
@@ -167,8 +183,10 @@ To create first and enable during install:
 
 ```bash
 bunx @whchi/your-legion create-domain product-ops --components decisions,skills
-bunx @whchi/your-legion install --domains coding,product-ops
+bunx @whchi/your-legion install --add-domains product-ops
 ```
+
+Use `--domains coding,product-ops` only when you intentionally want to replace the full enabled domain list.
 
 Enable global or bundled domain packs in `legionaries.yaml`:
 

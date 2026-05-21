@@ -141,10 +141,18 @@ Your Legion ships four bundled domains:
 | `finance` | `finance/financial-analysis` | analyzing pricing, runway, revenue, margin, cost, or financial tradeoffs |
 | `accounting` | `accounting/apply-accounting-review` | reviewing accounting treatment, recognition, classification, timing, or disclosure questions |
 
-The installer defaults to `coding` only. To install with all bundled domains enabled:
+The first install defaults to `coding` only. A reinstall without domain flags preserves the existing `legionaries.yaml`.
+
+To replace the enabled domain list with all bundled domains:
 
 ```bash
 bunx @whchi/your-legion install --domains coding,marketing,finance,accounting
+```
+
+To add domains without removing existing enabled domains:
+
+```bash
+bunx @whchi/your-legion install --add-domains marketing,finance
 ```
 
 The equivalent `legionaries.yaml` setting is:
@@ -346,8 +354,10 @@ Or create it first and include it in install:
 
 ```bash
 bunx @whchi/your-legion create-domain product-ops --components decisions,skills
-bunx @whchi/your-legion install --domains coding,product-ops
+bunx @whchi/your-legion install --add-domains product-ops
 ```
+
+Use `--domains coding,product-ops` only when you intentionally want to replace the full enabled domain list.
 
 Enable a domain with:
 

@@ -20,7 +20,7 @@ import { runYourLegionCheck } from './runtime/checks';
 
 function printUsage() {
   console.log(`Usage:
-  bunx @whchi/your-legion install [--config-dir <path>] [--domains <ids>]
+  bunx @whchi/your-legion install [--config-dir <path>] [--domains <ids>] [--add-domains <ids>]
   bunx @whchi/your-legion create-domain <domain-id> [--config-dir <path>] [--components <ids>] [--enable]
   bunx @whchi/your-legion check [--worktree <path>] [--config-dir <path>] [--scenarios]
   bunx @whchi/your-legion trace [--worktree <path>] [--config-dir <path>] [--limit <n>]
@@ -57,13 +57,21 @@ if (command === 'install') {
   const distConfigPath = resolve(distDir, 'legionaries.yaml');
   const sourceConfigPath = existsSync(distConfigPath) ? distConfigPath : resolve(distDir, '..', 'legionaries.yaml');
   const domains = optionValue('--domains');
+  const addDomains = optionValue('--add-domains');
   const result = installYourLegion({
     sourceConfigPath,
     configDir: optionValue('--config-dir'),
     enabledDomains: domains ? domains.split(',') : undefined,
+    addDomains: addDomains ? addDomains.split(',') : undefined,
   });
 
-  console.log(`Wrote ${result.legionariesConfigPath}`);
+  const actionLabel = {
+    created: 'Created',
+    preserved: 'Preserved',
+    replaced: 'Replaced',
+    updated: 'Updated',
+  }[result.configAction];
+  console.log(`${actionLabel} ${result.legionariesConfigPath}`);
   if (result.legionariesBackupPath) {
     console.log(`Backed up existing config to ${result.legionariesBackupPath}`);
   }

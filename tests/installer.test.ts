@@ -107,11 +107,11 @@ test('installer accepts existing custom global domains in --domains', async t =>
   assert.deepEqual(result.enabledDomains, ['coding', 'product-ops']);
 });
 
-test('installer backs up an existing global legionaries.yaml before overwriting', async t => {
-  const configDir = makeTempDir(t, 'your-legion-install-backup');
+test('installer preserves an existing global legionaries.yaml on reinstall', async t => {
+  const configDir = makeTempDir(t, 'your-legion-install-preserve');
   const sourceConfigPath = path.join(rootDir, 'legionaries.yaml');
   const existingConfigPath = path.join(configDir, 'legionaries.yaml');
-  fs.writeFileSync(existingConfigPath, 'agents:\n  old: openai/old\n');
+  fs.writeFileSync(existingConfigPath, 'domains:\n  coding: true\n  product-ops: true\n');
   const { installYourLegion } = await import('../src/install');
 
   const result = installYourLegion({
@@ -120,11 +120,77 @@ test('installer backs up an existing global legionaries.yaml before overwriting'
     now: new Date('2026-01-25T11:18:28.014Z'),
   });
 
+  assert.equal(result.configAction, 'preserved');
+  assert.equal(result.legionariesBackupPath, undefined);
+  assert.equal(fs.readFileSync(existingConfigPath, 'utf8'), 'domains:\n  coding: true\n  product-ops: true\n');
+  assert.deepEqual(result.enabledDomains, ['coding', 'product-ops']);
+});
+
+test('installer replaces enabled domains when --domains is provided', async t => {
+  const configDir = makeTempDir(t, 'your-legion-install-replace-domains');
+  const sourceConfigPath = path.join(rootDir, 'legionaries.yaml');
+  const existingConfigPath = path.join(configDir, 'legionaries.yaml');
+  fs.writeFileSync(existingConfigPath, 'domains:\n  coding: true\n  product-ops: true\n');
+  const { installYourLegion } = await import('../src/install');
+
+  const result = installYourLegion({
+    configDir,
+    sourceConfigPath,
+    enabledDomains: ['coding', 'marketing'],
+    now: new Date('2026-01-25T11:18:28.014Z'),
+  });
+  const config = YAML.parse(fs.readFileSync(existingConfigPath, 'utf8'));
   const backupPath = path.join(configDir, 'legionaries.yaml.bak.2026-01-25T11-18-28-014Z');
 
+  assert.equal(result.configAction, 'replaced');
   assert.equal(result.legionariesBackupPath, backupPath);
-  assert.equal(fs.readFileSync(backupPath, 'utf8'), 'agents:\n  old: openai/old\n');
-  assert.equal(fs.readFileSync(existingConfigPath, 'utf8'), fs.readFileSync(sourceConfigPath, 'utf8'));
+  assert.equal(fs.readFileSync(backupPath, 'utf8'), 'domains:\n  coding: true\n  product-ops: true\n');
+  assert.deepEqual(config.domains, {
+    coding: true,
+    marketing: true,
+  });
+});
+
+test('installer merges enabled domains when --add-domains is provided', async t => {
+  const configDir = makeTempDir(t, 'your-legion-install-add-domains');
+  const sourceConfigPath = path.join(rootDir, 'legionaries.yaml');
+  const existingConfigPath = path.join(configDir, 'legionaries.yaml');
+  fs.writeFileSync(existingConfigPath, 'domains:\n  coding: true\n  product-ops: true\n');
+  const { installYourLegion } = await import('../src/install');
+
+  const result = installYourLegion({
+    configDir,
+    sourceConfigPath,
+    addDomains: ['marketing', 'finance'],
+    now: new Date('2026-01-25T11:18:28.014Z'),
+  });
+  const config = YAML.parse(fs.readFileSync(existingConfigPath, 'utf8'));
+
+  assert.equal(result.configAction, 'updated');
+  assert.match(result.legionariesBackupPath ?? '', /legionaries\.yaml\.bak\.2026-01-25T11-18-28-014Z$/);
+  assert.deepEqual(config.domains, {
+    coding: true,
+    'product-ops': true,
+    marketing: true,
+    finance: true,
+  });
+});
+
+test('installer rejects using replace and add domain modes together', async t => {
+  const configDir = makeTempDir(t, 'your-legion-install-domain-mode-conflict');
+  const sourceConfigPath = path.join(rootDir, 'legionaries.yaml');
+  const { installYourLegion } = await import('../src/install');
+
+  assert.throws(
+    () =>
+      installYourLegion({
+        configDir,
+        sourceConfigPath,
+        enabledDomains: ['coding'],
+        addDomains: ['marketing'],
+      }),
+    /use either --domains or --add-domains/i,
+  );
 });
 
 test('installer preserves existing plugin entries while registering Your Legion once', async t => {
@@ -365,7 +431,51 @@ test('install cli accepts pickable domains with coding as default', t => {
   const config = YAML.parse(fs.readFileSync(path.join(configDir, 'legionaries.yaml'), 'utf8'));
 
   assert.match(output, /Enabled domains: coding, marketing, finance, accounting/);
+  assert.match(output, /Created .*legionaries\.yaml/);
   assert.deepEqual(Object.keys(config.domains), ['coding', 'marketing', 'finance', 'accounting']);
+});
+
+test('install cli preserves existing domains on reinstall without domain flags', t => {
+  const configDir = makeTempDir(t, 'your-legion-install-cli-preserve');
+
+  execFileSync('bun', ['src/cli.ts', 'install', '--config-dir', configDir, '--domains', 'coding,marketing'], {
+    cwd: rootDir,
+    encoding: 'utf8',
+  });
+  const output = execFileSync('bun', ['src/cli.ts', 'install', '--config-dir', configDir], {
+    cwd: rootDir,
+    encoding: 'utf8',
+  });
+  const config = YAML.parse(fs.readFileSync(path.join(configDir, 'legionaries.yaml'), 'utf8'));
+
+  assert.match(output, /Preserved .*legionaries\.yaml/);
+  assert.deepEqual(config.domains, {
+    coding: true,
+    marketing: true,
+  });
+});
+
+test('install cli adds domains without removing existing domains', t => {
+  const configDir = makeTempDir(t, 'your-legion-install-cli-add-domains');
+
+  execFileSync('bun', ['src/cli.ts', 'install', '--config-dir', configDir, '--domains', 'coding,marketing'], {
+    cwd: rootDir,
+    encoding: 'utf8',
+  });
+  const output = execFileSync(
+    'bun',
+    ['src/cli.ts', 'install', '--config-dir', configDir, '--add-domains', 'finance,accounting'],
+    { cwd: rootDir, encoding: 'utf8' },
+  );
+  const config = YAML.parse(fs.readFileSync(path.join(configDir, 'legionaries.yaml'), 'utf8'));
+
+  assert.match(output, /Updated .*legionaries\.yaml/);
+  assert.deepEqual(config.domains, {
+    coding: true,
+    marketing: true,
+    finance: true,
+    accounting: true,
+  });
 });
 
 test('install cli accepts a previously created custom domain', t => {

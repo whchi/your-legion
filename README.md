@@ -57,10 +57,18 @@ bun install -g @whchi/your-legion
 your-legion install
 ```
 
-The installer enables `coding` by default. To pick all bundled domains:
+On first install, the installer enables `coding` by default. On reinstall, `install` preserves the existing `legionaries.yaml` and only refreshes plugin registration.
+
+To replace the enabled domain list with all bundled domains:
 
 ```bash
 bunx @whchi/your-legion install --domains coding,marketing,finance,accounting
+```
+
+To add domains without removing existing enabled domains:
+
+```bash
+bunx @whchi/your-legion install --add-domains marketing,finance
 ```
 
 For full setup, manual install, config paths, backups, and uninstall instructions, see [`INSTALLATION.md`](./docs/INSTALLATION.md).
@@ -134,7 +142,7 @@ For a fixed domain-routing smoke test, run `bunx @whchi/your-legion domain-scena
 
 The paper references behind description-driven domain selection and trace-based runtime evidence are summarized in [`academic-papers-summary.md`](./docs/academic-papers-summary.md).
 
-The bundled domains are `coding`, `marketing`, `finance`, and `accounting`. `coding` is enabled by default; enable the others with `--domains` during install or by editing `legionaries.yaml`.
+The bundled domains are `coding`, `marketing`, `finance`, and `accounting`. `coding` is enabled by default on first install. Use `--add-domains` to add domains on reinstall, `--domains` to replace the enabled list, or edit `legionaries.yaml` directly.
 
 For hands-on examples of custom agents, marketing domain packs, mixed coding plus marketing work, and domain overrides, see [`EXAMPLES.md`](./docs/EXAMPLES.md).
 
@@ -150,6 +158,7 @@ Your Legion uses direct specialist routing.
 
 ## Commands
 
+- `bunx @whchi/your-legion install [--domains <ids>] [--add-domains <ids>]`: installs or refreshes the plugin registration. First install writes `legionaries.yaml` with `coding` enabled. Reinstall without domain flags preserves existing config. `--domains` replaces the enabled domain list; `--add-domains` merges into it.
 - `bunx @whchi/your-legion create-domain <domain-id> [--components workflows,decisions,examples,skills] [--enable]`: scaffolds a new global domain pack. By default it creates only `DOMAIN.md`; use `--components` to add selected optional folders, and `--enable` to write the domain into `legionaries.yaml`. Existing global domains and bundled domain ids are rejected.
 - `bunx @whchi/your-legion check [--worktree <path>] [--scenarios]`: runs the main acceptance checks. By default it validates `DOMAIN.md` declarations and runtime trace evidence; `--scenarios` also verifies the fixed scenario set.
 - `bunx @whchi/your-legion trace [--worktree <path>] [--limit <n>]`: prints recent domain usage evidence for a worktree.
