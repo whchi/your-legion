@@ -55,7 +55,9 @@ Domain packs live in:
 ~/.config/opencode/your-legion/domains/<domain-id>/
 ```
 
-Bundled domains are copied into the package and used when no global domain with the same id exists.
+The installer materializes enabled bundled domains into this directory when they do not have `DOMAIN.md`. For example, `bunx @whchi/your-legion install` writes `~/.config/opencode/your-legion/domains/coding/` because `coding` is enabled by default. Existing global domain folders with `DOMAIN.md` are preserved and not overwritten.
+
+Bundled domains are also copied into the package and used when no global domain with the same id exists, such as manual config setups that skipped the installer.
 
 `DOMAIN.md` is the source of truth. It should contain:
 

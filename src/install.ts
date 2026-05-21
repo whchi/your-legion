@@ -1,5 +1,5 @@
-import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { copyFileSync, cpSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import YAML from 'yaml';
 
 import { getOpenCodeConfigDir } from './config/legionaries';
@@ -197,6 +197,39 @@ function normalizeEnabledDomains(configDir: string, enabledDomains: string[] = [
   return normalized.length === 0 ? [...DEFAULT_DOMAIN_IDS] : normalized;
 }
 
+function resolveBundledDomainsRoot(sourceConfigPath: string) {
+  const sourceDir = dirname(sourceConfigPath);
+  const distDomainsPath = join(sourceDir, 'domains');
+  if (existsSync(distDomainsPath)) {
+    return distDomainsPath;
+  }
+
+  return join(sourceDir, 'src', 'domains');
+}
+
+function materializeBundledDomainPacks(configDir: string, sourceConfigPath: string, enabledDomains: string[]) {
+  const bundled = new Set<string>(AVAILABLE_DOMAIN_IDS);
+  const bundledDomainsRoot = resolveBundledDomainsRoot(sourceConfigPath);
+  const globalDomainsRoot = join(configDir, 'your-legion', 'domains');
+
+  for (const domain of enabledDomains) {
+    if (!bundled.has(domain)) {
+      continue;
+    }
+
+    const sourceDomainPath = join(bundledDomainsRoot, domain);
+    const targetDomainPath = join(globalDomainsRoot, domain);
+    if (!existsSync(sourceDomainPath) || existsSync(join(targetDomainPath, 'DOMAIN.md'))) {
+      continue;
+    }
+
+    cpSync(sourceDomainPath, targetDomainPath, {
+      recursive: true,
+      force: false,
+    });
+  }
+}
+
 function writeLegionariesConfigWithDomains(
   baseConfigPath: string,
   targetConfigPath: string,
@@ -294,6 +327,7 @@ export function installYourLegion({
   }
   const opencodeConfigPath = registerPlugin(configDir);
   const resolvedEnabledDomains = readEnabledDomains(legionariesConfigPath);
+  materializeBundledDomainPacks(configDir, sourceConfigPath, resolvedEnabledDomains);
 
   return {
     configDir,

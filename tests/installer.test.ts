@@ -57,6 +57,66 @@ test('installer defaults enabled domains to coding', async t => {
   assert.deepEqual(config.domains, { coding: true });
 });
 
+test('installer materializes enabled bundled domain packs under the global domains directory', async t => {
+  const configDir = makeTempDir(t, 'your-legion-install-materialized-domains');
+  const sourceConfigPath = path.join(rootDir, 'legionaries.yaml');
+  const { installYourLegion } = await import('../src/install');
+
+  installYourLegion({
+    configDir,
+    sourceConfigPath,
+    enabledDomains: ['coding', 'marketing'],
+    now: new Date('2026-01-25T11:18:28.014Z'),
+  });
+
+  assert.equal(fs.existsSync(path.join(configDir, 'your-legion', 'domains', 'coding', 'DOMAIN.md')), true);
+  assert.equal(
+    fs.existsSync(path.join(configDir, 'your-legion', 'domains', 'coding', 'workflows', 'implementation-loop.md')),
+    true,
+  );
+  assert.equal(
+    fs.existsSync(path.join(configDir, 'your-legion', 'domains', 'coding', 'skills', 'make-code-change', 'SKILL.md')),
+    true,
+  );
+  assert.equal(fs.existsSync(path.join(configDir, 'your-legion', 'domains', 'marketing', 'DOMAIN.md')), true);
+});
+
+test('installer preserves existing global domain packs when materializing bundled domains', async t => {
+  const configDir = makeTempDir(t, 'your-legion-install-preserve-global-domain');
+  const sourceConfigPath = path.join(rootDir, 'legionaries.yaml');
+  const globalCodingPath = path.join(configDir, 'your-legion', 'domains', 'coding');
+  fs.mkdirSync(globalCodingPath, { recursive: true });
+  fs.writeFileSync(path.join(globalCodingPath, 'DOMAIN.md'), '# Custom Coding Domain\n');
+  const { installYourLegion } = await import('../src/install');
+
+  installYourLegion({
+    configDir,
+    sourceConfigPath,
+    enabledDomains: ['coding'],
+    now: new Date('2026-01-25T11:18:28.014Z'),
+  });
+
+  assert.equal(fs.readFileSync(path.join(globalCodingPath, 'DOMAIN.md'), 'utf8'), '# Custom Coding Domain\n');
+});
+
+test('installer repairs incomplete bundled domain folders that do not have DOMAIN.md', async t => {
+  const configDir = makeTempDir(t, 'your-legion-install-repair-incomplete-domain');
+  const sourceConfigPath = path.join(rootDir, 'legionaries.yaml');
+  const globalCodingPath = path.join(configDir, 'your-legion', 'domains', 'coding');
+  fs.mkdirSync(globalCodingPath, { recursive: true });
+  const { installYourLegion } = await import('../src/install');
+
+  installYourLegion({
+    configDir,
+    sourceConfigPath,
+    enabledDomains: ['coding'],
+    now: new Date('2026-01-25T11:18:28.014Z'),
+  });
+
+  assert.equal(fs.existsSync(path.join(globalCodingPath, 'DOMAIN.md')), true);
+  assert.equal(fs.existsSync(path.join(globalCodingPath, 'skills', 'make-code-change', 'SKILL.md')), true);
+});
+
 test('installer writes selected pickable domains into legionaries.yaml', async t => {
   const configDir = makeTempDir(t, 'your-legion-install-selected-domains');
   const sourceConfigPath = path.join(rootDir, 'legionaries.yaml');

@@ -23,7 +23,7 @@ Install the plugin and restart OpenCode:
 bunx @whchi/your-legion install
 ```
 
-The installer registers the plugin, writes `~/.config/opencode/legionaries.yaml`, and creates the base global domain pack directory.
+The installer registers the plugin, writes `~/.config/opencode/legionaries.yaml`, and materializes enabled bundled domain packs under `~/.config/opencode/your-legion/domains/`. The first install enables and writes `coding` by default.
 
 After restart, try a small routing check:
 
@@ -57,7 +57,7 @@ bun install -g @whchi/your-legion
 your-legion install
 ```
 
-On first install, the installer enables `coding` by default. On reinstall, `install` preserves the existing `legionaries.yaml` and only refreshes plugin registration.
+On first install, the installer enables `coding` by default and writes the bundled `coding` domain pack to `~/.config/opencode/your-legion/domains/coding/`. On reinstall, `install` preserves the existing `legionaries.yaml`, refreshes plugin registration, and materializes any enabled bundled domain pack that is still missing from the global domains directory.
 
 To replace the enabled domain list with all bundled domains:
 
@@ -142,7 +142,7 @@ For a fixed domain-routing smoke test, run `bunx @whchi/your-legion domain-scena
 
 The paper references behind description-driven domain selection and trace-based runtime evidence are summarized in [`academic-papers-summary.md`](./docs/academic-papers-summary.md).
 
-The bundled domains are `coding`, `marketing`, `finance`, and `accounting`. `coding` is enabled by default on first install. Use `--add-domains` to add domains on reinstall, `--domains` to replace the enabled list, or edit `legionaries.yaml` directly.
+The bundled domains are `coding`, `marketing`, `finance`, and `accounting`. `coding` is enabled by default on first install. Enabled bundled domains are copied into the global domains directory when their `DOMAIN.md` is missing; existing global domain folders with `DOMAIN.md` are preserved. Use `--add-domains` to add domains on reinstall, `--domains` to replace the enabled list, or edit `legionaries.yaml` directly.
 
 For hands-on examples of custom agents, marketing domain packs, mixed coding plus marketing work, and domain overrides, see [`EXAMPLES.md`](./docs/EXAMPLES.md).
 
@@ -158,7 +158,7 @@ Your Legion uses direct specialist routing.
 
 ## Commands
 
-- `bunx @whchi/your-legion install [--domains <ids>] [--add-domains <ids>]`: installs or refreshes the plugin registration. First install writes `legionaries.yaml` with `coding` enabled. Reinstall without domain flags preserves existing config. `--domains` replaces the enabled domain list; `--add-domains` merges into it.
+- `bunx @whchi/your-legion install [--domains <ids>] [--add-domains <ids>]`: installs or refreshes the plugin registration. First install writes `legionaries.yaml` with `coding` enabled and materializes enabled bundled domain packs under `~/.config/opencode/your-legion/domains/`. Reinstall without domain flags preserves existing config. `--domains` replaces the enabled domain list; `--add-domains` merges into it.
 - `bunx @whchi/your-legion create-domain <domain-id> [--components workflows,decisions,examples,skills] [--enable]`: scaffolds a new global domain pack. By default it creates only `DOMAIN.md`; use `--components` to add selected optional folders and matching placeholder files, and `--enable` to write the domain into `legionaries.yaml`. Existing global domains and bundled domain ids are rejected.
 - `bunx @whchi/your-legion check [--worktree <path>] [--scenarios]`: runs the main acceptance checks. By default it validates `DOMAIN.md` declarations and runtime trace evidence; `--scenarios` also verifies the fixed scenario set.
 - `bunx @whchi/your-legion trace [--worktree <path>] [--limit <n>]`: prints recent domain usage evidence for a worktree.

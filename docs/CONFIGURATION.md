@@ -141,9 +141,9 @@ Your Legion ships four bundled domains:
 | `finance` | `finance/financial-analysis` | analyzing pricing, runway, revenue, margin, cost, or financial tradeoffs |
 | `accounting` | `accounting/apply-accounting-review` | reviewing accounting treatment, recognition, classification, timing, or disclosure questions |
 
-The first install defaults to `coding` only. A reinstall without domain flags preserves the existing `legionaries.yaml`.
+The first install defaults to `coding` only and materializes the bundled `coding` pack under `~/.config/opencode/your-legion/domains/coding/`. A reinstall without domain flags preserves the existing `legionaries.yaml` and copies any enabled bundled domain pack that is still missing from the global domains directory.
 
-To replace the enabled domain list with all bundled domains:
+To replace the enabled domain list with all bundled domains and materialize their files under the global domains directory:
 
 ```bash
 bunx @whchi/your-legion install --domains coding,marketing,finance,accounting
@@ -300,6 +300,8 @@ After installation, global domain pack files live under:
 
 `DOMAIN.md` is required for a useful description-driven domain. The four component folders are optional capability facets, not a required domain template. A domain is useful when `DOMAIN.md` describes a real capability and lists the relevant `Workflows`, `Decisions`, `Examples`, and `Skills` that actually exist. Do not create empty `workflows/`, `decisions/`, `examples/`, or `skills/` folders just to make every domain look the same.
 
+The installer copies enabled bundled domains (`coding`, `marketing`, `finance`, `accounting`) into this directory when the corresponding folder does not have `DOMAIN.md`. It does not overwrite an existing global domain folder with `DOMAIN.md`, so local edits to a materialized bundled domain remain under your control.
+
 List domain-root relative paths directly in `DOMAIN.md`; do not use aliases, arrows, id-to-path mappings, or repeat the domain id. The domain file itself should be enough to locate the required files:
 
 ```md
@@ -450,7 +452,7 @@ Each declared document is injected into agent prompts as a namespaced entry, for
 
 For a full marketing domain pack example, see [`EXAMPLES.md`](./EXAMPLES.md#add-a-marketing-domain-pack).
 
-Bundled `DOMAIN.md` is used unless a global `DOMAIN.md` exists for the same domain. A global `DOMAIN.md` replaces the bundled domain description and component catalog for that domain. Explicit overrides can replace or disable component ids that are already declared in the selected `DOMAIN.md`; they do not add undeclared components.
+Bundled `DOMAIN.md` is used unless a global `DOMAIN.md` exists for the same domain. Normal installer usage materializes enabled bundled domains into the global directory, so the global copy becomes the editable source for that install. A global `DOMAIN.md` replaces the bundled domain description and component catalog for that domain. Explicit overrides can replace or disable component ids that are already declared in the selected `DOMAIN.md`; they do not add undeclared components.
 
 ### Domain Overrides
 

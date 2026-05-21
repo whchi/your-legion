@@ -28,12 +28,13 @@ On first install, the installer writes:
 - `~/.config/opencode/opencode.json`
 - `~/.config/opencode/legionaries.yaml`
 - `~/.config/opencode/your-legion/domains/`
+- `~/.config/opencode/your-legion/domains/coding/`
 
 The installer intentionally writes `opencode.json`. It does not modify existing `opencode.jsonc` files.
 
-On reinstall, `install` preserves an existing `legionaries.yaml` unless you explicitly ask to change domains. It still ensures the plugin is registered and the base domain directory exists.
+On reinstall, `install` preserves an existing `legionaries.yaml` unless you explicitly ask to change domains. It still ensures the plugin is registered and materializes any enabled bundled domain pack that is missing from the global domains directory.
 
-The first install enables `coding` by default.
+The first install enables `coding` by default and writes the bundled `coding` domain pack under `~/.config/opencode/your-legion/domains/coding/`.
 
 To replace the enabled domain list, pass a comma-separated `--domains` list:
 
@@ -47,7 +48,7 @@ To add domains without removing the existing enabled domains, use `--add-domains
 bunx @whchi/your-legion install --add-domains marketing,finance
 ```
 
-Available bundled domains are `coding`, `marketing`, `finance`, and `accounting`. `--domains` and `--add-domains` also accept a custom domain after that domain has been created under `~/.config/opencode/your-legion/domains/<domain-id>/DOMAIN.md`.
+Available bundled domains are `coding`, `marketing`, `finance`, and `accounting`. Enabled bundled domains are copied into `~/.config/opencode/your-legion/domains/<domain-id>/` when that folder does not have `DOMAIN.md`. Existing global domain folders with `DOMAIN.md` are preserved and not overwritten. `--domains` and `--add-domains` also accept a custom domain after that domain has been created under `~/.config/opencode/your-legion/domains/<domain-id>/DOMAIN.md`.
 
 `--domains` and `--add-domains` are mutually exclusive:
 
@@ -149,7 +150,7 @@ Your Legion uses global directories for optional domain packs:
     └── skills/      # optional
 ```
 
-The installer creates the base `domains/` directory. Add domain folders only for the domains you want to enable.
+The installer creates the base `domains/` directory and copies enabled bundled domain packs into it when missing. Add custom domain folders only for new domain ids you want to enable.
 
 Create a domain pack manifest with the CLI:
 
@@ -200,7 +201,7 @@ domains:
   accounting: true
 ```
 
-The bundled `coding` domain is enabled by the default config. The other bundled domains become available when enabled. To replace a bundled domain intentionally, author a global `DOMAIN.md` under `~/.config/opencode/your-legion/domains/<domain-id>/` yourself and list the component paths that should be exposed. `create-domain` refuses bundled ids because it is a new-domain scaffold command.
+The bundled `coding` domain is enabled by the default config. The other bundled domains are materialized when enabled through `install --domains ...` or `install --add-domains ...`. To customize a bundled domain intentionally, edit the global copy under `~/.config/opencode/your-legion/domains/<domain-id>/` and list the component paths that should be exposed. Future installs preserve existing global domain folders that contain `DOMAIN.md` instead of overwriting them. `create-domain` refuses bundled ids because it is a new-domain scaffold command.
 
 If you already keep shared skills in your harness/global skill directory, mount the exact file path into a domain with an override:
 
