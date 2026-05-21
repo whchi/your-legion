@@ -22,6 +22,7 @@ export type BaseAgentDefinition = {
   mode: AgentMode;
   permission: PermissionConfig;
   prompt: string;
+  tools?: Record<string, boolean>;
 };
 
 /**

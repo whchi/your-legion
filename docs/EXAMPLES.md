@@ -4,7 +4,7 @@ This page is the fastest path from "installed" to "I know how to shape this syst
 
 ## Minimal `legionaries.yaml`
 
-Use this when you want one provider and no custom agents:
+Use this in the global `~/.config/opencode/legionaries.yaml` when you want one provider and no custom agents:
 
 ```yaml
 system_agents:
@@ -29,7 +29,7 @@ Every required system agent must be listed. `custom_agents: {}` disables YAML cu
 
 ## Mixed Providers
 
-Use this when you want a stronger router and planner, with cheaper implementation and discovery models:
+Use this in the global runtime config when you want a stronger router and planner, with cheaper implementation and discovery models:
 
 ```yaml
 system_agents:
@@ -68,7 +68,7 @@ Scaffold the domain manifest:
 bunx @whchi/your-legion create-domain marketing
 ```
 
-Use a new custom id here. `create-domain` refuses existing global domains and bundled domain ids, so do not use it to recreate `coding`, `marketing`, `finance`, or `accounting`.
+Use a new custom id here. `create-domain` refuses existing global domains and bundled domain ids, so do not use it to recreate `coding`, `marketing`, `finance`, or `accounting`. To use the bundled marketing domain, enable it with `install --add-domains marketing` or `domains.marketing: true` instead.
 
 This creates:
 
@@ -166,6 +166,8 @@ Avoid vague active domains like `coding, marketing`. Name what each domain owns.
 
 After the run, inspect runtime evidence:
 
+> **NOTICE:** In Your Legion CLI commands, `--worktree` means the OpenCode workspace/project path used to key trace evidence. It does not require a Git worktree.
+
 ```bash
 bunx @whchi/your-legion check --worktree .
 bunx @whchi/your-legion trace --worktree . --limit 10
@@ -188,7 +190,7 @@ bunx @whchi/your-legion check --worktree . --scenarios
 
 ## Add A Custom Agent
 
-Create `src/custom-agents/scribe.yaml`:
+Create `src/custom-agents/scribe.yaml` in the worktree where OpenCode runs:
 
 ```yaml
 name: scribe
@@ -206,7 +208,7 @@ prompt: |-
   Write concise release notes from repository context.
 ```
 
-Enable it in `legionaries.yaml`:
+Enable it in the global `legionaries.yaml`:
 
 ```yaml
 custom_agents:

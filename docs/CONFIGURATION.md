@@ -1,6 +1,6 @@
 # Configuration
 
-Your Legion reads per-agent model, reasoning settings, and enabled domain packs from `legionaries.yaml` at startup. The plugin injects required system agents, configured YAML custom agents, and a Domain Catalog into OpenCode automatically.
+Your Legion reads per-agent model, reasoning settings, custom-agent enablement, and enabled domain packs from the global `legionaries.yaml` at startup. The plugin injects required system agents, configured YAML custom agents, and a Domain Catalog into OpenCode automatically.
 
 For copy-paste recipes, see [`EXAMPLES.md`](./EXAMPLES.md). This page is the reference for how the config is resolved and validated.
 
@@ -37,7 +37,7 @@ If you want to disable custom agents, set `custom_agents: {}` or omit the whole 
 
 | Field | Required | Description |
 |-------|----------|-------------|
-| `system_agents.<name>.model` | yes for required system agents, yes when an optional system agent is present | Provider and model ID in `provider/model-id` format |
+| `system_agents.<name>.model` | yes for required system agents | Provider and model ID in `provider/model-id` format |
 | `system_agents.<name>.reasoning.effort` | no | Reasoning effort level for supported providers |
 | `custom_agents.<name>.model` | yes when a custom agent is present | Provider and model ID in `provider/model-id` format |
 | `custom_agents.<name>.reasoning.effort` | no | Reasoning effort level for supported providers |
@@ -91,11 +91,11 @@ custom_agents:
 
 ## Custom Agents
 
-Place custom agent YAML files in:
+Custom agent definitions are discovered from bundled package examples and from the active worktree. To define one in a worktree, place the YAML file in:
 
 - `src/custom-agents/*.yaml`
 
-The filename without `.yaml` is the discovered agent key. The file's `name` must match that key and the `custom_agents` entry.
+The filename without `.yaml` is the discovered agent key. The file's `name` must match that key and the global `custom_agents` entry.
 
 ```yaml
 name: scribe
@@ -121,7 +121,7 @@ custom_agents:
       effort: low
 ```
 
-Custom agents run as `subagent`. Any permission key not listed in the YAML is set to `deny`. Custom agents cannot use system agent names such as `builder`, `planner`, or `explorer`.
+Custom agents run as `subagent`. Any permission key not listed in the YAML is set to `deny`. Custom agents cannot use system agent names such as `builder`, `planner`, or `explorer`. A worktree definition with the same name as a bundled custom agent overrides the bundled definition; the model mapping still comes from the global runtime config.
 
 ## Domain Packs
 
@@ -235,6 +235,8 @@ Each event records the worktree, session id when available, delegation id when a
 
 Inspect recent evidence:
 
+> **NOTICE:** In Your Legion CLI commands, `--worktree` means the OpenCode workspace/project path used to key trace evidence. It does not require a Git worktree.
+
 ```bash
 bunx @whchi/your-legion check --worktree .
 bunx @whchi/your-legion trace --worktree . --limit 10
@@ -278,7 +280,7 @@ bunx @whchi/your-legion check --worktree . --scenarios
 
 The scenario check passes only when every fixed scenario has matching `delegation` evidence with no contract warnings.
 
-The bundled `coding` domain is enabled by the default config. It includes:
+The installed config enables the bundled `coding` domain on first install. It includes:
 
 - `coding/implementation-loop`
 - `coding/engineering-guardrails`
@@ -484,9 +486,9 @@ domains:
         path: ~/my-skills/custom-launch-plan.md
 ```
 
-Relative override paths resolve from the directory containing `legionaries.yaml`. `~` expands to the current user's home directory.
+Relative override paths resolve from the directory containing the active `legionaries.yaml`, which is normally `~/.config/opencode/`. `~` expands to the current user's home directory.
 
-Prefer repo-relative override paths when a domain decision should be versioned with a project.
+Use absolute paths when a domain decision should point at a repo-versioned document.
 
 ## Agent Descriptions
 
@@ -501,7 +503,7 @@ Prefer repo-relative override paths when a domain decision should be versioned w
 
 ## Routing Notes
 
-- `legionaries.yaml` controls **model and reasoning settings** per agent and enables custom agents. It does **not** decide primary system routing.
+- Global `legionaries.yaml` controls **model and reasoning settings** per agent, enables custom agents, and enables domain packs. It does **not** decide primary system routing.
 - Different agents may use different providers in the same config.
 - Model values must use `provider/model-id` format.
 - Code review is handled by the `/code-review` command by default; the bundled `code-reviewer` custom agent is enabled in `legionaries.yaml` as an example.

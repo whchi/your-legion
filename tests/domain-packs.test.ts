@@ -103,9 +103,14 @@ Skills:
   assert.match(result.agent.orchestrator.prompt, /marketing/);
   assert.match(result.agent.orchestrator.prompt, /marketing\/campaign-brief/);
   assert.match(result.agent.orchestrator.prompt, /domains\/marketing\/skills\/campaign-brief\/SKILL\.md/);
-  assert.match(result.agent.builder.prompt, /Use domain skills from the configured Domain Catalog/);
+  assert.match(result.agent.builder.prompt, /target specialists should read the exact paths/i);
   assert.match(result.agent.builder.prompt, /marketing\/campaign-brief/);
   assert.doesNotMatch(result.agent.builder.prompt, /use the harness skill tool for Your Legion domain skills/i);
+  assert.equal(result.agent.orchestrator.permission.external_directory, undefined);
+  assert.equal(result.agent.builder.permission.external_directory, 'allow');
+  assert.equal(result.agent.explorer.permission.external_directory, 'allow');
+  assert.equal(result.agent.planner.permission.external_directory, 'allow');
+  assert.equal(result.agent.librarian.permission.external_directory, 'allow');
 });
 
 test('runtime reads true domains from global legionaries config without project-level lookup', async t => {
@@ -190,6 +195,8 @@ Skills:
   assert.match(result.agent.orchestrator.prompt, /Active domains: none/i);
   assert.match(result.agent.orchestrator.prompt, /Domain refs: none/i);
   assert.match(result.agent.orchestrator.prompt, /Domain skills: none/i);
+  assert.match(result.agent.orchestrator.prompt, /Routing agents should pass Domain refs and Domain skills/i);
+  assert.match(result.agent.orchestrator.prompt, /target specialists should read the exact paths/i);
   assert.match(result.agent.orchestrator.prompt, /coding\/make-code-change/);
   assert.match(result.agent.orchestrator.prompt, /marketing\/campaign-brief/);
   assert.doesNotMatch(result.agent.orchestrator.prompt, /registered as harness-level skills/i);
@@ -402,7 +409,7 @@ test('default coding domain resolves from bundled domain files', async () => {
   assert.match(result.agent.orchestrator.prompt, /coding\/engineering-guardrails/);
   assert.match(result.agent.orchestrator.prompt, /coding\/change-report/);
   assert.match(result.agent.orchestrator.prompt, /coding\/make-code-change/);
-  assert.match(result.agent.builder.prompt, /Use domain skills from the configured Domain Catalog/);
+  assert.match(result.agent.builder.prompt, /target specialists should read the exact paths/i);
 });
 
 test('bundled coding marketing finance and accounting domains resolve when enabled', async t => {

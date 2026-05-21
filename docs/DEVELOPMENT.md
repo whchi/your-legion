@@ -6,7 +6,7 @@ This document covers repository development for `your-legion`. User-facing insta
 
 - OpenCode loads the published package from the `plugin` array.
 - `src/index.ts` registers a server hook that mutates OpenCode config in place.
-- `src/config/legionaries.ts` reads and validates `legionaries.yaml`.
+- `src/config/legionaries.ts` reads and validates the global runtime `legionaries.yaml`.
 - `src/runtime/agent-definition-provider.ts` loads protected system agent factories and YAML custom agents.
 - `src/runtime/build-agent-config.ts` merges model maps with agent providers and injects `/dio` commands.
 - `src/runtime/domain-packs.ts` resolves `DOMAIN.md`-declared domain packs and builds the Domain Catalog.
@@ -62,7 +62,9 @@ If the package has already been built and installed, the equivalent installed co
 bunx @whchi/your-legion domain-scenarios
 ```
 
-Copy each printed scenario prompt into an OpenCode session that has this plugin loaded for the same worktree. Each prompt includes a `Scenario: <id>` marker; keep that marker in the prompt so the runtime trace can associate the delegation with the fixed scenario.
+> **NOTICE:** In Your Legion CLI commands, `--worktree` means the OpenCode workspace/project path used to key trace evidence. It does not require a Git worktree.
+
+Copy each printed scenario prompt into an OpenCode session that has this plugin loaded for the same workspace/project path. Each prompt includes a `Scenario: <id>` marker; keep that marker in the prompt so the runtime trace can associate the delegation with the fixed scenario.
 
 After running all prompts, validate the recorded trace from the repo checkout:
 
@@ -76,10 +78,10 @@ The equivalent installed command is:
 bunx @whchi/your-legion check --worktree . --scenarios
 ```
 
-If you are validating a different worktree or config directory, pass both paths explicitly:
+If you are validating a different workspace/project path or config directory, pass both paths explicitly:
 
 ```bash
-bun src/cli.ts check --worktree /path/to/worktree --config-dir ~/.config/opencode --scenarios
+bun src/cli.ts check --worktree /path/to/workspace --config-dir ~/.config/opencode --scenarios
 ```
 
 Full local flow:
@@ -166,7 +168,7 @@ That no-domain fallback is normal behavior and should not produce a warning.
 ## Customization
 
 - Edit `src/agents/*.ts` to change system prompts, permissions, descriptions, or modes.
-- Edit `legionaries.yaml` to mix providers, update per-agent models, tune reasoning settings, and enable custom agents.
+- Edit the global `legionaries.yaml`, or pass `LEGIONARIES_CONFIG`, when testing runtime provider maps, per-agent models, reasoning settings, custom-agent enablement, and domain enablement. The repo `legionaries.yaml` is the installer template and a test fixture.
 - Add custom agents under `src/custom-agents/*.yaml`, then add a matching `custom_agents` mapping.
 - Add domain packs under `~/.config/opencode/your-legion/domains/<domain-id>/`, then enable them with `domains.<domain-id>: true`.
 - Use `domains.<domain-id>.<component>.<id>.path` only when a component id already listed in `DOMAIN.md` needs to be mounted from another path.
@@ -180,22 +182,25 @@ That no-domain fallback is normal behavior and should not produce a warning.
 
 Your Legion uses direct specialist routing rather than a category-first runtime.
 
-- The `orchestrator` performs turn-local intent classification to choose one concrete subagent.
+- The `orchestrator` performs turn-local intent clarification to choose one concrete subagent.
+- The `orchestrator` asks the user for missing intent details when needed; it does not inspect repo files to make execution context for another agent.
 - These intents are routing heuristics only. They are not runtime categories, model aliases, or execution profiles.
 - Multi-step work should go through `planner` first when sequencing is unclear, then `builder` executes approved implementation work.
+- Clear execution work goes directly to `builder`; `builder` gathers any needed repo context, runs commands, edits, and verifies.
 - `planner`, `builder`, `explorer`, and `librarian` are leaf specialists.
 - Leaf specialists should not orchestrate other leaf specialists.
 - `planner` is runtime-limited to `docs/**/*.md` edits; code changes belong to `builder`.
 - Code review is command-owned by `/code-review` by default; `code-reviewer` is the bundled YAML custom-agent example.
-- `legionaries.yaml` configures per-agent models, reasoning, and custom-agent enablement. It does not decide which system agent gets selected.
+- Global `legionaries.yaml` configures per-agent models, reasoning, custom-agent enablement, and enabled domain packs. It does not decide which system agent gets selected.
 - Domain packs add a shared Domain Catalog and namespaced domain skills to existing agents. They do not create new agents, and their skills are not registered with the harness skill resolver.
 - Runtime trace events make domain usage observable. `delegation` events show requested active domains, refs, and skills; `domain-read` events show which domain component paths were read. `check` fails when `DOMAIN.md` declarations are invalid, a delegation declares unknown domain evidence, or declared domain refs/skills are not read.
 - Fixed acceptance scenarios live with the domain usage contract and cover coding, marketing, finance, accounting, and mixed-domain pairs.
 
 ## Routing Boundaries
 
-- `builder` owns implementation work, including backend, frontend, tests, config, refactors, accessibility, and UI interaction quality.
-- `explorer` vs `librarian`: `explorer` owns repo-local discovery and impact tracing; `librarian` owns external documentation, API confirmation, and package behavior lookup.
+- `builder` owns implementation and execution work, including backend, frontend, tests, config, refactors, accessibility, UI interaction quality, analysis, copy, and structured reviews.
+- `explorer` owns requested discovery over known repo or local files; it is not a context pre-reader for `builder`.
+- `librarian` owns requested discovery over third-party documentation, API confirmation, package behavior, and version-specific external references.
 - `orchestrator` vs `planner`: `orchestrator` handles turn-local routing; `planner` handles decomposition and implementation plans when work needs sequencing.
 
 ## Related Docs
@@ -203,4 +208,3 @@ Your Legion uses direct specialist routing rather than a category-first runtime.
 - `AGENTS.md`: plugin internals and runtime architecture
 - `docs/DOMAIN_OBSERVABILITY.md`: runtime domain evidence and fixed scenario validation
 - `docs/academic-papers-summary.md`: paper references and claim boundaries for domain routing and runtime evidence
-- `docs/your-legion/custom-agents-and-dio.md`: custom agent and DIO implementation reference

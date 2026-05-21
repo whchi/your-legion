@@ -52,6 +52,7 @@ test('orchestrator prompt requires a compact task context envelope for delegatio
   const { BASE_AGENT_DEFINITIONS } = await import('../src/agents/index');
   const orchestrator = BASE_AGENT_DEFINITIONS.orchestrator;
 
+  assert.match(orchestrator.prompt, /Every `task` tool prompt must start with `Task Context Envelope:/i);
   assert.match(orchestrator.prompt, /Task Context Envelope/i);
   assert.match(orchestrator.prompt, /Scenario:/);
   assert.match(orchestrator.prompt, /Objective:/);
@@ -78,6 +79,108 @@ test('orchestrator prompt treats active domains as task-local responsibilities',
   assert.match(orchestrator.prompt, /coding: implement UI/i);
   assert.match(orchestrator.prompt, /marketing: write launch copy/i);
   assert.match(orchestrator.prompt, /Do not blend domain assumptions/i);
+});
+
+test('orchestrator prompt constrains domain evidence fields to catalog ids', async () => {
+  const { BASE_AGENT_DEFINITIONS } = await import('../src/agents/index');
+  const orchestrator = BASE_AGENT_DEFINITIONS.orchestrator;
+
+  assert.match(orchestrator.prompt, /Active domains.*domain-id: responsibility/i);
+  assert.match(orchestrator.prompt, /Domain refs.*catalog ids only/i);
+  assert.match(orchestrator.prompt, /Domain skills.*catalog ids only/i);
+  assert.match(orchestrator.prompt, /Do not include paths, prose, explanations, or parenthetical notes/i);
+  assert.match(orchestrator.prompt, /Domain refs: finance\/financial-review, finance\/financial-guardrails/i);
+  assert.match(orchestrator.prompt, /Domain skills: finance\/financial-analysis/i);
+});
+
+test('orchestrator prompt treats builder as the execution specialist', async () => {
+  const { BASE_AGENT_DEFINITIONS } = await import('../src/agents/index');
+  const orchestrator = BASE_AGENT_DEFINITIONS.orchestrator;
+  const builder = BASE_AGENT_DEFINITIONS.builder;
+
+  assert.match(builder.description, /execution specialist/i);
+  assert.match(builder.prompt, /execution specialist/i);
+  assert.match(orchestrator.prompt, /builder.*execution specialist/i);
+  assert.match(orchestrator.prompt, /non-code deliverables/i);
+});
+
+test('orchestrator prompt avoids execution and handles failed delegation explicitly', async () => {
+  const { BASE_AGENT_DEFINITIONS } = await import('../src/agents/index');
+  const orchestrator = BASE_AGENT_DEFINITIONS.orchestrator;
+
+  assert.match(orchestrator.prompt, /Do not attempt unavailable tools/i);
+  assert.match(orchestrator.prompt, /edit\/bash/i);
+  assert.match(orchestrator.prompt, /delegate to `builder` before implementation inspection/i);
+  assert.match(orchestrator.prompt, /empty result/i);
+  assert.match(orchestrator.prompt, /retry once/i);
+  assert.match(orchestrator.prompt, /do not complete executor work yourself/i);
+  assert.match(orchestrator.prompt, /Return the delegated specialist's full deliverable/i);
+  assert.match(orchestrator.prompt, /Do not replace the deliverable with a summary/i);
+});
+
+test('orchestrator prompt defines routing as intent clarification and delegation only', async () => {
+  const { BASE_AGENT_DEFINITIONS } = await import('../src/agents/index');
+  const orchestrator = BASE_AGENT_DEFINITIONS.orchestrator;
+
+  assert.match(orchestrator.prompt, /primary responsibilities are intent clarification, delegation, and final reporting/i);
+  assert.match(orchestrator.prompt, /interact with the user until intent is clear/i);
+  assert.match(orchestrator.prompt, /do not gather repo or local-file context yourself/i);
+  assert.match(orchestrator.prompt, /do not pre-read context for `builder`/i);
+  assert.match(orchestrator.prompt, /if the task is clear, delegate directly to `builder`/i);
+  assert.match(orchestrator.prompt, /Ignore benchmark metadata/i);
+  assert.match(orchestrator.prompt, /route by the actual user task/i);
+});
+
+test('orchestrator tool surface only permits routing and clarification', async () => {
+  const { BASE_AGENT_DEFINITIONS } = await import('../src/agents/index');
+  const orchestrator = BASE_AGENT_DEFINITIONS.orchestrator;
+
+  assert.equal(orchestrator.tools?.task, true);
+  assert.equal(orchestrator.tools?.question, true);
+
+  for (const tool of ['read', 'glob', 'grep', 'lsp', 'skill', 'todowrite', 'bash', 'edit', 'write']) {
+    assert.equal(orchestrator.tools?.[tool], false, `${tool} should not be available to orchestrator`);
+  }
+  assert.deepEqual(
+    Object.keys(orchestrator.tools ?? {}).filter(tool => /codegraph|context-mode|ctx_/.test(tool)),
+    [],
+    'orchestrator should not mention dev-environment tool names',
+  );
+});
+
+test('specialist prompts keep explorer and librarian focused on information gathering boundaries', async () => {
+  const { BASE_AGENT_DEFINITIONS } = await import('../src/agents/index');
+  const explorer = BASE_AGENT_DEFINITIONS.explorer;
+  const librarian = BASE_AGENT_DEFINITIONS.librarian;
+
+  assert.match(explorer.prompt, /known repo or local-file information/i);
+  assert.match(explorer.prompt, /grep|rg/i);
+  assert.match(explorer.prompt, /Do not execute approved tasks for `builder`/i);
+  assert.match(librarian.prompt, /third-party or external documentation/i);
+  assert.match(librarian.prompt, /unknown outside the current repo/i);
+  assert.match(librarian.prompt, /Do not execute approved tasks for `builder`/i);
+});
+
+test('orchestrator prompt passes domain evidence to the executor instead of pre-reading it', async () => {
+  const { BASE_AGENT_DEFINITIONS } = await import('../src/agents/index');
+  const orchestrator = BASE_AGENT_DEFINITIONS.orchestrator;
+
+  assert.match(orchestrator.prompt, /Do not use `explorer` to pre-read Domain refs or Domain skills/i);
+  assert.match(orchestrator.prompt, /let the target specialist read them/i);
+  assert.match(orchestrator.prompt, /Do not use `explorer` to list, inspect, or summarize domain files/i);
+  assert.match(orchestrator.prompt, /Do not use `explorer` to inspect workspace structure/i);
+  assert.match(orchestrator.prompt, /make exactly one `builder` delegation/i);
+  assert.match(orchestrator.prompt, /If you already used `explorer` during a clear execution task/i);
+  assert.match(orchestrator.prompt, /Domain Catalog is authoritative/i);
+  assert.match(orchestrator.prompt, /Do not ask `explorer` to check whether listed domain files exist/i);
+});
+
+test('orchestrator prompt preserves planner write boundary when delegating', async () => {
+  const { BASE_AGENT_DEFINITIONS } = await import('../src/agents/index');
+  const orchestrator = BASE_AGENT_DEFINITIONS.orchestrator;
+
+  assert.match(orchestrator.prompt, /Do not add read-only constraints to `planner`/i);
+  assert.match(orchestrator.prompt, /docs\/\*\*\/\*\.md/i);
 });
 
 test('leaf specialists cannot delegate to other subagents', async () => {

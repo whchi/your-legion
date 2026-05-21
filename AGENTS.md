@@ -20,7 +20,7 @@ There is no markdown frontmatter rewrite step.
 - `src/agents/*.ts`: descriptions, modes, permissions, and prompts
 - `src/agents/index.ts`: registry of all managed Your Legion agents
 - `src/shared/agent-types.ts`: shared names and runtime config types
-- `legionaries.yaml`: system/custom provider-model mapping plus optional reasoning settings
+- global `legionaries.yaml`: system/custom provider-model mapping, reasoning settings, and enabled domain packs
 - `src/config/legionaries.ts`: YAML loading and validation
 - `src/runtime/agent-definition-provider.ts`: system and YAML custom agent provider loading
 - `src/runtime/build-agent-config.ts`: final runtime config assembly
@@ -41,19 +41,21 @@ Repo-local `.opencode/agents/*.md` files are intentionally not part of the runti
 
 - Mode: `primary`
 - Role: default entry point and intent-based router
-- Owns the intent gate and routes work to the right specialist
+- Owns intent clarification, delegation, and final reporting
+- Does not explore repo/local files or pre-read context for `builder`
 
 ### `explorer`
 
 - Mode: `subagent`
-- Role: read-only codebase discovery specialist
+- Role: read-only known repo/local-file discovery specialist
 - Read-only leaf with no shell, edits, or delegation
+- Uses local search/read tools to collect facts when discovery is the requested deliverable
 
 ### `librarian`
 
 - Mode: `subagent`
-- Role: read-only documentation and API reference specialist
-- Read-only leaf focused on external references
+- Role: read-only third-party documentation and API reference specialist
+- Read-only leaf focused on external references unknown outside the current repo
 - Prefer Context7 MCP for library and framework docs before falling back to web fetch/search
 
 ### `planner`
@@ -65,8 +67,8 @@ Repo-local `.opencode/agents/*.md` files are intentionally not part of the runti
 ### `builder`
 
 - Mode: `subagent`
-- Role: implementation specialist
-- Handles code changes, tests, configuration, verification, and UI/frontend work
+- Role: execution specialist
+- Handles approved execution work, including code changes, tests, configuration, verification, UI/frontend work, analysis, copy, structured reviews, and code-coupled documentation
 
 ## Custom Agent Set
 
@@ -83,30 +85,34 @@ Repo-local `.opencode/agents/*.md` files are intentionally not part of the runti
 
 Your Legion uses direct specialist routing rather than a category-first runtime.
 
-- The `orchestrator` performs turn-local intent classification to choose one concrete subagent.
+- The `orchestrator` performs turn-local intent clarification to choose one concrete subagent.
+- The `orchestrator` asks the user for missing intent details when needed; it does not inspect repo files to make execution context for another agent.
 - These intents are routing heuristics only. They are not runtime categories, model aliases, or execution profiles.
-- Multi-step work should go through `planner` first when sequencing is unclear, then `builder` executes approved implementation work.
+- Multi-step work should go through `planner` first when sequencing is unclear, then `builder` executes approved work.
+- Clear execution work goes directly to `builder`; `builder` gathers any needed repo context, runs commands, edits, and verifies.
 - `planner`, `builder`, `explorer`, and `librarian` are leaf specialists.
 - Leaf specialists should not orchestrate other leaf specialists.
 - Code review is command-owned by `/code-review` by default; `code-reviewer` is a custom agent example and not part of the protected system set.
-- `legionaries.yaml` configures per-agent models, reasoning, custom-agent enablement, and domain pack enablement. It does not decide which agent gets selected.
+- Global `legionaries.yaml` configures per-agent models, reasoning, custom-agent enablement, and domain pack enablement. It does not decide which agent gets selected.
 - Custom agents are available to the orchestrator when configured and discovered; routing guidance is augmented at runtime with their descriptions.
-- `domains` in `legionaries.yaml` enables domain packs. Domain packs add a shared domain index and namespaced domain skills to the same agents; they do not create new runtime agents.
+- `domains` in global `legionaries.yaml` enables domain packs. Domain packs add a shared domain index and namespaced domain skills to the same agents; they do not create new runtime agents.
 - The orchestrator activates domain context per delegation with a compact Task Context Envelope. Enabled domains are an index; `Active domains` marks the task-local responsibilities.
 - Domain descriptions and component paths come only from `DOMAIN.md`.
-- Domain skills are read from explicit configured paths in the Domain Catalog and are intentionally not registered as harness top-level skills.
+- Routing agents pass relevant `Domain refs` and `Domain skills` in the Task Context Envelope; target specialists read the explicit configured paths from the Domain Catalog.
+- Domain skills are intentionally not registered as harness top-level skills.
 - No configured domain and no matching domain description both fall back to no-domain delegation: `Active domains: none`, `Domain refs: none`, `Domain skills: none`.
 - Domain usage is observable through warn-only trace events under `~/.config/opencode/your-legion/traces/`.
 
 ## Routing Boundaries
 
-- `builder` owns implementation work, including backend, frontend, tests, config, refactors, accessibility, and UI interaction quality.
-- `explorer` vs `librarian`: `explorer` owns repo-local discovery and impact tracing; `librarian` owns external documentation, API confirmation, and package behavior lookup.
+- `builder` owns execution work, including backend, frontend, tests, config, refactors, accessibility, UI interaction quality, concise analysis, copy, structured reviews, and code-coupled documentation.
+- `explorer` owns requested discovery over known repo or local files; it is not a context pre-reader for `builder`.
+- `librarian` owns requested discovery over third-party documentation, API confirmation, package behavior, and version-specific external references.
 - `orchestrator` vs `planner`: `orchestrator` handles turn-local routing; `planner` handles decomposition and implementation plans when work needs sequencing.
 
 ## Model Mapping
 
-- `legionaries.yaml` defines `system_agents` and `custom_agents`.
+- Global `legionaries.yaml` defines `system_agents`, `custom_agents`, and enabled `domains`.
 - `system_agents` must define all required managed agents.
 - `custom_agents` entries are injected only when a matching custom agent file is discovered.
 - Every present entry must define `model` using `provider/model-id` format.

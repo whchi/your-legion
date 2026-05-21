@@ -1,8 +1,10 @@
 # Your Legion
 
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/whchi/your-legion)
+
 A plugin-first OpenCode multi-agent system inspired by [`oh-my-openagent`](https://github.com/code-yeongyu/oh-my-openagent).
 
-It provides five protected system agents and YAML-defined custom agents. The plugin injects configured agents into OpenCode at startup and reads per-agent model settings from `legionaries.yaml`.
+It provides five protected system agents and YAML-defined custom agents. The plugin injects configured agents into OpenCode at startup and reads per-agent model settings from the global `~/.config/opencode/legionaries.yaml` runtime config.
 
 It also supports `DOMAIN.md`-driven domain packs for a shared Domain Catalog and reusable domain capability documents. Domain packs let the same system and custom agents reference task-specific context such as engineering, marketing, or financial analytics without registering those documents as harness-level skills.
 
@@ -31,13 +33,14 @@ After restart, try a small routing check:
 Explore where Your Legion builds the runtime agent config.
 ```
 
-The `orchestrator` should route repo discovery to `explorer`. For a code change, ask for the change directly; the orchestrator should route implementation to `builder`.
+The `orchestrator` should route repo discovery requests to `explorer`. For a clear code change, ask for the change directly; the orchestrator should route execution to `builder`, and `builder` should gather the needed repo context itself.
 
 Use these docs next:
 
 - Install and uninstall details: [`INSTALLATION.md`](./docs/INSTALLATION.md)
 - Config schema and field rules: [`CONFIGURATION.md`](./docs/CONFIGURATION.md)
 - Domain observability and validation: [`DOMAIN_OBSERVABILITY.md`](./docs/DOMAIN_OBSERVABILITY.md)
+- Orchestrator token benchmark: [`ORCHESTRATOR_BENCHMARK.md`](./docs/ORCHESTRATOR_BENCHMARK.md)
 - Copy-paste examples: [`EXAMPLES.md`](./docs/EXAMPLES.md)
 - Development notes: [`DEVELOPMENT.md`](./docs/DEVELOPMENT.md)
 - Academic references behind the domain/runtime design: [`academic-papers-summary.md`](./docs/academic-papers-summary.md)
@@ -75,7 +78,7 @@ For full setup, manual install, config paths, backups, and uninstall instruction
 
 ## Configuration
 
-Model mapping, provider selection, reasoning settings, custom-agent enablement, and domain pack enablement are configured in [`legionaries.yaml`](./legionaries.yaml). See [`CONFIGURATION.md`](./docs/CONFIGURATION.md) for the full schema and examples.
+Model mapping, provider selection, reasoning settings, custom-agent enablement, and domain pack enablement are configured in the installed global `~/.config/opencode/legionaries.yaml`. The repo [`legionaries.yaml`](./legionaries.yaml) is the installer template and development fixture. See [`CONFIGURATION.md`](./docs/CONFIGURATION.md) for the full schema and examples.
 
 Minimal usable config:
 
@@ -123,20 +126,22 @@ domains:
 
 ## Agents
 
-- `orchestrator`: default primary router
+- `orchestrator`: default primary router; clarifies intent, delegates, and reports back without repo exploration
 - `planner`: design doc and implementation plan writer with docs-only edit permissions
-- `builder`: implementation specialist for code, tests, and UI work
-- `explorer`: read-only codebase discovery specialist
-- `librarian`: read-only documentation and API reference specialist; prefers Context7 MCP for library docs
+- `builder`: execution specialist for approved work, including code, tests, UI work, analysis, copy, structured reviews, and code-coupled docs
+- `explorer`: read-only known repo/local-file discovery specialist
+- `librarian`: read-only third-party documentation and API reference specialist; prefers Context7 MCP for library docs
 - `code-reviewer`: bundled YAML custom agent example for read-only review
 
-Custom agents can be added by placing a YAML file under `src/custom-agents/`, then adding a matching `custom_agents` model entry.
+Custom agent definitions are discovered from bundled package examples and from the active worktree's `src/custom-agents/` directory. Enable one by adding a matching `custom_agents` model entry in the global `legionaries.yaml`.
 
-Domain descriptions and skills are injected into agent prompts as a Domain Catalog with namespaced entries such as `marketing/campaign-brief`. Agents read the exact configured path; Your Legion does not register domain skills as top-level harness skills.
+Domain descriptions and skills are injected into agent prompts as a Domain Catalog with namespaced entries such as `marketing/campaign-brief`. Routing agents pass relevant `Domain refs` and `Domain skills` in the Task Context Envelope; target specialists read the exact configured paths. Your Legion does not register domain skills as top-level harness skills.
 
 Delegations use a compact Task Context Envelope with `Objective`, `Active domains`, `Domain refs`, `Domain skills`, `Context refs`, `Constraints`, `Expected output`, and `Verification`. The orchestrator compares the task with the Domain Catalog and activates every domain whose description materially applies. If no domain is configured or no domain description clearly matches, it should use no-domain delegation: `Active domains: none`, `Domain refs: none`, and `Domain skills: none`.
 
 Your Legion records warn-only domain usage evidence under `~/.config/opencode/your-legion/traces/`. Use `bunx @whchi/your-legion check --worktree .` as the main acceptance command for static domain catalog validation and runtime trace validation. Use `bunx @whchi/your-legion trace` when you need raw delegation and domain-read events. See [`DOMAIN_OBSERVABILITY.md`](./docs/DOMAIN_OBSERVABILITY.md) for the full validation workflow.
+
+> **NOTICE:** In Your Legion CLI commands, `--worktree` means the OpenCode workspace/project path used to key trace evidence. It does not require a Git worktree.
 
 For a fixed domain-routing smoke test, run `bunx @whchi/your-legion domain-scenarios`, ask the printed prompts in OpenCode, then run `bunx @whchi/your-legion check --worktree . --scenarios`. The fixed set covers coding, marketing, finance, accounting, and their mixed-domain pairs.
 
@@ -152,16 +157,16 @@ Your Legion uses direct specialist routing.
 
 - The `orchestrator` classifies each turn into one dominant intent and chooses a concrete subagent.
 - Those intents are routing heuristics, not runtime categories or model profiles.
-- Multi-step work goes through `planner` first when sequencing is unclear, then `builder` executes approved implementation work.
+- Multi-step work goes through `planner` first when sequencing is unclear, then `builder` executes approved work.
 - Code review is owned by the `/code-review` command by default; the bundled `code-reviewer` custom agent is available for explicit advanced workflows.
-- `legionaries.yaml` controls model and reasoning settings per agent. It does not control routing.
+- Global `legionaries.yaml` controls model and reasoning settings per agent, plus which domain packs are available. It does not control primary specialist routing.
 
 ## Commands
 
 - `bunx @whchi/your-legion install [--domains <ids>] [--add-domains <ids>]`: installs or refreshes the plugin registration. First install writes `legionaries.yaml` with `coding` enabled and materializes enabled bundled domain packs under `~/.config/opencode/your-legion/domains/`. Reinstall without domain flags preserves existing config. `--domains` replaces the enabled domain list; `--add-domains` merges into it.
 - `bunx @whchi/your-legion create-domain <domain-id> [--components workflows,decisions,examples,skills] [--enable]`: scaffolds a new global domain pack. By default it creates only `DOMAIN.md`; use `--components` to add selected optional folders and matching placeholder files, and `--enable` to write the domain into `legionaries.yaml`. Existing global domains and bundled domain ids are rejected.
 - `bunx @whchi/your-legion check [--worktree <path>] [--scenarios]`: runs the main acceptance checks. By default it validates `DOMAIN.md` declarations and runtime trace evidence; `--scenarios` also verifies the fixed scenario set.
-- `bunx @whchi/your-legion trace [--worktree <path>] [--limit <n>]`: prints recent domain usage evidence for a worktree.
+- `bunx @whchi/your-legion trace [--worktree <path>] [--limit <n>]`: prints recent domain usage evidence for a workspace/project path.
 - `bunx @whchi/your-legion trace-check [--worktree <path>]`: low-level trace validation for contract warnings and declared domain refs or skills that were not read.
 - `bunx @whchi/your-legion domain-scenarios`: prints the fixed domain scenario prompts.
 - `bunx @whchi/your-legion domain-scenario-check [--worktree <path>]`: low-level fixed scenario validation; `check --scenarios` is the preferred entrypoint.

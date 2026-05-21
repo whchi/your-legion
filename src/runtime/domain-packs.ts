@@ -241,7 +241,7 @@ export function buildDomainPromptSection(domainPacks: DomainPack[]) {
     'Activate every domain whose description materially applies to the delegated work.',
     'A task may activate multiple domains when multiple descriptions materially apply.',
     'If no domain description clearly applies, use no-domain delegation: Active domains: none, Domain refs: none, Domain skills: none.',
-    'Use domain skills from the configured Domain Catalog by reading the exact path listed below.',
+    'Routing agents should pass Domain refs and Domain skills in the Task Context Envelope; target specialists should read the exact paths listed below.',
     'Avoid harness-level skill resolution for these entries unless the user explicitly asks for an external harness skill.',
     '',
     'Available domains:',

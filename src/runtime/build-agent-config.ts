@@ -102,7 +102,7 @@ function augmentOrchestratorForCustomAgents(
 
 ## Custom Agents
 
-The following project or global custom agents are available when they fit the user's explicit request or the dominant intent:
+The following bundled or worktree-discovered custom agents are available when they fit the user's explicit request or the dominant intent:
 
 ${promptLines.join('\n')}`,
   };
@@ -123,6 +123,27 @@ function augmentAgentsWithDomainPacks(agents: EffectiveAgentConfig['agent'], dom
 ${domainSection}`,
       },
     ]),
+  ) as EffectiveAgentConfig['agent'];
+}
+
+function allowDomainCatalogExternalReads(agents: EffectiveAgentConfig['agent']) {
+  return Object.fromEntries(
+    Object.entries(agents).map(([agentName, agent]) => {
+      if (agentName === DEFAULT_AGENT || agent.permission.read !== 'allow') {
+        return [agentName, agent];
+      }
+
+      return [
+        agentName,
+        {
+          ...agent,
+          permission: {
+            ...agent.permission,
+            external_directory: 'allow',
+          },
+        },
+      ];
+    }),
   ) as EffectiveAgentConfig['agent'];
 }
 
@@ -171,7 +192,11 @@ export async function buildEffectiveAgentConfig(options: LoadLegionariesConfigOp
     configPath,
     domains: configuredDomains,
   });
-  agent = augmentAgentsWithDomainPacks(agent, buildDomainPromptSection(domainPacks));
+  const domainSection = buildDomainPromptSection(domainPacks);
+  agent = augmentAgentsWithDomainPacks(agent, domainSection);
+  if (domainSection) {
+    agent = allowDomainCatalogExternalReads(agent);
+  }
 
   return {
     default_agent: DEFAULT_AGENT,

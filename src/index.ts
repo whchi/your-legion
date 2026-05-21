@@ -76,4 +76,12 @@ export {
   validateDomainUsageContract,
 } from './runtime/domain-usage-contract';
 export { checkStaticDomainCatalog, runYourLegionCheck } from './runtime/checks';
+export { summarizeOrchestrationBenchmark } from './runtime/orchestration-benchmark';
+export type {
+  BenchmarkSessionMetric,
+  BenchmarkTaskComparison,
+  BenchmarkVariant,
+  BenchmarkVariantTaskTypeSummary,
+  OrchestrationBenchmarkReport,
+} from './runtime/orchestration-benchmark';
 export { createDomainPack } from './install';

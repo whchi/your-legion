@@ -11,7 +11,6 @@ const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, '..');
 const legionariesConfigPath = path.join(rootDir, 'legionaries.yaml');
 const packageJsonPath = path.join(rootDir, 'package.json');
-const opencodeConfigPath = path.join(rootDir, 'opencode.json');
 const tempDir = path.join(rootDir, 'temp');
 
 function systemAgentsFrom(config: Record<string, any>): Record<string, any> {
@@ -96,12 +95,10 @@ test('plugin runtime supports alternate mixed legionaries config files', async (
   });
 });
 
-test('package metadata and project config use the published package name', () => {
+test('package metadata uses the published package name', () => {
   const pkg = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-  const projectConfig = JSON.parse(fs.readFileSync(opencodeConfigPath, 'utf8'));
 
   assert.equal(pkg.name, '@whchi/your-legion');
-  assert.deepEqual(projectConfig.plugin, ['@whchi/your-legion']);
 });
 
 test('package root exports the OpenCode plugin entrypoint', () => {
@@ -126,7 +123,7 @@ test('plugin entrypoint exports domain scaffold helper for agent scripts', async
 test('package publishes build and install artifacts from dist', () => {
   const pkg = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
 
-  assert.deepEqual(pkg.files, ['dist', 'README.md', 'docs', 'AGENTS.md']);
+  assert.deepEqual(pkg.files, ['dist', 'README.md']);
 });
 
 test('plugin server exposes a config hook that injects Your Legion agents', async () => {

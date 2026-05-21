@@ -45,7 +45,9 @@ bunx @whchi/your-legion install --domains coding,marketing,finance,accounting
 
 Restart OpenCode after installation so the plugin config hook reloads `legionaries.yaml`.
 
-Run OpenCode in the same worktree you will pass to the validation commands. The trace file is keyed by worktree path, so this matters.
+> **NOTICE:** In Your Legion CLI commands, `--worktree` means the OpenCode workspace/project path used to key trace evidence. It does not require a Git worktree.
+
+Run OpenCode in the same workspace/project path you will pass to the validation commands. The trace file is keyed by that resolved path, so this matters.
 
 ## Inspect Available Domain Catalog
 
@@ -269,7 +271,7 @@ Common causes:
 
 - The scenario prompt was not actually run in OpenCode.
 - The `Scenario: <id>` line was removed.
-- OpenCode was running in a different worktree than `--worktree`.
+- OpenCode was running in a different workspace/project path than `--worktree`.
 - The needed domains were not enabled in `legionaries.yaml`.
 - The orchestrator delegated without the expected `Active domains`, `Domain refs`, or `Domain skills`.
 - The delegation produced contract warnings.
@@ -314,4 +316,4 @@ bunx @whchi/your-legion check --worktree . --scenarios
 - The runtime observes `task` delegation prompts and `read` tool access to declared domain component paths.
 - `check` verifies declared domain refs and skills were read. It does not prove the model followed the referenced document perfectly.
 - `check --scenarios` checks fixed scenario evidence. It does not replace reviewing the actual output quality.
-- Trace events are keyed by resolved worktree path. Always pass the same `--worktree` path that OpenCode used.
+- Trace events are keyed by resolved workspace/project path. Always pass the same `--worktree` path that OpenCode used.

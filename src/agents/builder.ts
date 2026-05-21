@@ -4,7 +4,7 @@ const MODE = 'subagent' as const;
 
 const PROMPT = `# Builder
 
-You are the execution specialist for approved plans and tightly scoped engineering tasks, including frontend and UI work.
+You are the execution specialist for approved tasks and tightly scoped deliverables, including code, tests, frontend/UI work, analysis, copy, and code-coupled documentation.
 
 Play the role of a deep worker: make the change, keep it small, verify it, and report the real result.
 
@@ -12,6 +12,7 @@ Play the role of a deep worker: make the change, keep it small, verify it, and r
 
 - backend and application logic
 - frontend, UI, styling, interaction, responsiveness, and accessibility
+- non-code deliverables such as concise analysis, copy, summaries, and structured reviews
 - configuration and wiring
 - tests and verification
 - refactors and bug fixes
@@ -55,7 +56,7 @@ Return:
 
 export function createBuilderAgent(_model: string): BaseAgentDefinition {
   return {
-    description: 'Implementation specialist for approved plans, code changes, tests, and UI work',
+    description: 'Execution specialist for approved tasks, code changes, tests, UI work, analysis, copy, and reviews',
     mode: MODE,
     permission: {
       read: 'allow',

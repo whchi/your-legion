@@ -115,7 +115,7 @@ Use this plugin entry in whichever config file you choose:
 
 ## Legionaries Config
 
-Your Legion needs an agent model config named `legionaries.yaml`. The installer writes this to `~/.config/opencode/legionaries.yaml`.
+Your Legion needs an agent model and domain enablement config named `legionaries.yaml`. The installer writes this to `~/.config/opencode/legionaries.yaml`.
 
 The example file is here:
 
@@ -128,7 +128,7 @@ There is no project-level `legionaries.yaml` resolution. A `legionaries.yaml` fi
 LEGIONARIES_CONFIG=/absolute/path/to/legionaries.yaml opencode
 ```
 
-Use `LEGIONARIES_CONFIG` for an explicit config path.
+Use `LEGIONARIES_CONFIG` for an explicit config path. Without it, runtime does not look for `legionaries.yaml` in the worktree.
 
 ## Domain Pack Directories
 
@@ -195,7 +195,7 @@ domains:
   accounting: true
 ```
 
-The bundled `coding` domain is enabled by the default config. The other bundled domains are materialized when enabled through `install --domains ...` or `install --add-domains ...`. To customize a bundled domain intentionally, edit the global copy under `~/.config/opencode/your-legion/domains/<domain-id>/` and list the component paths that should be exposed. Future installs preserve existing global domain folders that contain `DOMAIN.md` instead of overwriting them. `create-domain` refuses bundled ids because it is a new-domain scaffold command.
+The first installed config enables the bundled `coding` domain. The other bundled domains are materialized when enabled through `install --domains ...` or `install --add-domains ...`. To customize a bundled domain intentionally, edit the global copy under `~/.config/opencode/your-legion/domains/<domain-id>/` and list the component paths that should be exposed. Future installs preserve existing global domain folders that contain `DOMAIN.md` instead of overwriting them. `create-domain` refuses bundled ids because it is a new-domain scaffold command.
 
 If you already keep shared skills in your harness/global skill directory, mount the exact file path into a domain with an override:
 
@@ -209,7 +209,9 @@ domains:
 
 Domain skills are injected into Your Legion prompts as explicit paths. They are not registered as top-level OpenCode, Codex, or Claude skills, and Your Legion does not create a separate shared skill directory.
 
-To verify domain usage after a session, inspect the trace for the current worktree:
+To verify domain usage after a session, inspect the trace for the current workspace/project path:
+
+> **NOTICE:** In Your Legion CLI commands, `--worktree` means the OpenCode workspace/project path used to key trace evidence. It does not require a Git worktree.
 
 ```bash
 bunx @whchi/your-legion check --worktree .

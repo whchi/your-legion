@@ -1,83 +1,82 @@
-        <svg viewBox="0 0 1000 600" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
-                <!-- Parchment Background -->
-                <rect width="1000" height="600" fill="#e8dcca" />
-                <!-- Subtle texture lines -->
-                <path d="M 100 50 Q 200 40 300 60 T 500 50 T 700 60 T 900 40" fill="none" stroke="#d4c3b3" stroke-width="1.5" opacity="0.6"/>
-                <path d="M 50 550 Q 150 560 250 540 T 450 550 T 650 540 T 850 560 T 950 550" fill="none" stroke="#d4c3b3" stroke-width="1.5" opacity="0.6"/>
+<svg viewBox="0 0 1100 760" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Your Legion architecture overview</title>
+  <desc id="desc">OpenCode loads the Your Legion plugin. The plugin reads global legionaries.yaml, bundled and global domain packs, builds agents and the Domain Catalog, then records domain usage traces.</desc>
 
-                <defs>
-                    <filter id="rough-paper">
-                        <feTurbulence type="fractalNoise" baseFrequency="0.04" result="noise" />
-                        <feDisplacementMap in="SourceGraphic" in2="noise" scale="4" xChannelSelector="R" yChannelSelector="G" />
-                    </filter>
-                    <marker id="ink-arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
-                        <path d="M 2 2 L 10 6 L 2 10" fill="none" stroke="#3e2723" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
-                    </marker>
-                </defs>
+  <rect width="1100" height="760" fill="#e8dcca" />
+  <path d="M 70 70 Q 190 50 310 70 T 550 70 T 790 70 T 1030 55" fill="none" stroke="#d4c3b3" stroke-width="1.5" opacity="0.6" />
+  <path d="M 60 705 Q 180 725 300 705 T 540 705 T 780 705 T 1040 720" fill="none" stroke="#d4c3b3" stroke-width="1.5" opacity="0.6" />
 
-                <!-- Title and Subtitle -->
-                <text x="50" y="50" font-family="'Cinzel', serif" font-size="14px" fill="#5d4037" letter-spacing="1px">YOUR LEGION</text>
-                <text x="50" y="90" font-family="'Cinzel', serif" font-size="32px" font-weight="bold" fill="#5d4037">Architecture Overview</text>
-                <text x="50" y="130" font-family="'Noto Serif TC', serif" font-size="16px" fill="#795548">A plugin layer that turns OpenCode into a configured multi-agent workspace.</text>
+  <defs>
+    <filter id="rough-paper">
+      <feTurbulence type="fractalNoise" baseFrequency="0.035" result="noise" />
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="2.5" xChannelSelector="R" yChannelSelector="G" />
+    </filter>
+    <marker id="ink-arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M 2 2 L 10 6 L 2 10" fill="none" stroke="#3e2723" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" />
+    </marker>
+  </defs>
 
-                <g stroke="#3e2723" stroke-width="2.5" fill="none" stroke-dasharray="8,6" marker-end="url(#ink-arrow)" filter="url(#rough-paper)">
-                    <!-- Arrows -->
-                    <!-- Left to Center -->
-                    <path d="M 280 235 Q 300 230 310 235" />
-                    <!-- Center to Right -->
-                    <path d="M 680 235 Q 700 240 710 235" />
+  <text x="55" y="52" font-family="serif" font-size="14" fill="#5d4037">YOUR LEGION</text>
+  <text x="55" y="88" font-family="serif" font-size="32" font-weight="bold" fill="#5d4037">Architecture Overview</text>
+  <text x="55" y="122" font-family="serif" font-size="16" fill="#795548">Plugin-owned agents, global runtime config, description-driven domains, and trace evidence.</text>
 
-                    <!-- Bottom to Center (Ending before the box to avoid filter overlap) -->
-                    <path d="M 155 420 C 155 360 360 380 360 325" />
-                    <path d="M 375 420 C 375 360 430 360 430 325" />
-                    <path d="M 595 420 C 595 360 570 360 570 325" />
-                    <path d="M 815 420 C 815 360 640 380 640 325" />
-                </g>
+  <g stroke="#3e2723" stroke-width="2.3" fill="none" stroke-dasharray="8,6" marker-end="url(#ink-arrow)" filter="url(#rough-paper)">
+    <path d="M 235 205 C 275 205 295 205 335 205" />
+    <path d="M 765 205 C 805 205 830 205 870 205" />
+    <path d="M 545 305 C 545 340 545 365 545 400" />
+    <path d="M 210 520 C 275 470 385 440 465 405" />
+    <path d="M 440 520 C 475 480 505 445 525 405" />
+    <path d="M 660 520 C 625 480 585 445 565 405" />
+    <path d="M 890 520 C 820 470 700 440 625 405" />
+    <path d="M 545 590 C 545 625 545 650 545 675" />
+  </g>
 
-                <g filter="url(#rough-paper)">
-                    <!-- Center Main Block -->
-                    <rect x="320" y="160" width="360" height="150" fill="#fcf6eb" stroke="#5d4037" stroke-width="2.5" rx="3" />
-                    <!-- Red Wax Seal -->
-                    <circle cx="350" cy="200" r="12" fill="#b71c1c" />
-                    <circle cx="350" cy="200" r="9" fill="none" stroke="#ffebee" stroke-width="0.5" opacity="0.5"/>
-                    <path d="M 346 196 L 354 204 M 354 196 L 346 204" stroke="#ffebee" stroke-width="1.5" opacity="0.6"/>
-                    <text x="375" y="205" font-family="'Cinzel', serif" font-size="12px" fill="#795548" letter-spacing="1px">PLUGIN</text>
-                    <text x="350" y="245" font-family="'Cinzel', serif" font-size="28px" fill="#5d4037">your-legion</text>
-                    <text x="350" y="280" font-family="'Noto Serif TC', serif" font-size="14px" fill="#795548">Combines agents, config, and commands</text>
+  <g filter="url(#rough-paper)">
+    <rect x="55" y="155" width="180" height="100" fill="#fcf6eb" stroke="#5d4037" stroke-width="2" rx="3" />
+    <circle cx="82" cy="185" r="9" fill="#b71c1c" />
+    <text x="105" y="190" font-family="serif" font-size="12" fill="#795548">HOST</text>
+    <text x="82" y="220" font-family="serif" font-size="22" fill="#5d4037">OpenCode</text>
+    <text x="82" y="242" font-family="serif" font-size="13" fill="#795548">loads npm plugin</text>
 
-                    <!-- Left Block -->
-                    <rect x="60" y="180" width="220" height="110" fill="#fcf6eb" stroke="#5d4037" stroke-width="2" rx="2" />
-                    <circle cx="90" cy="215" r="9" fill="#b71c1c" />
-                    <text x="115" y="220" font-family="'Cinzel', serif" font-size="12px" fill="#795548" letter-spacing="1px">HOST</text>
-                    <text x="90" y="250" font-family="'Cinzel', serif" font-size="22px" fill="#5d4037">OpenCode</text>
-                    <text x="90" y="275" font-family="'Noto Serif TC', serif" font-size="13px" fill="#795548">Loads the plugin</text>
+    <rect x="335" y="145" width="430" height="160" fill="#fcf6eb" stroke="#5d4037" stroke-width="2.5" rx="3" />
+    <circle cx="365" cy="180" r="12" fill="#b71c1c" />
+    <circle cx="365" cy="180" r="9" fill="none" stroke="#ffebee" stroke-width="0.6" opacity="0.5" />
+    <path d="M 361 176 L 369 184 M 369 176 L 361 184" stroke="#ffebee" stroke-width="1.5" opacity="0.6" />
+    <text x="392" y="185" font-family="serif" font-size="12" fill="#795548">PLUGIN SERVER</text>
+    <text x="365" y="224" font-family="serif" font-size="30" fill="#5d4037">your-legion</text>
+    <text x="365" y="262" font-family="serif" font-size="14" fill="#795548">injects agents, commands, and Domain Catalog</text>
 
-                    <!-- Right Block -->
-                    <rect x="720" y="180" width="220" height="110" fill="#fcf6eb" stroke="#5d4037" stroke-width="2" rx="2" />
-                    <circle cx="750" cy="215" r="9" fill="#b71c1c" />
-                    <text x="775" y="220" font-family="'Cinzel', serif" font-size="12px" fill="#795548" letter-spacing="1px">OUTPUT</text>
-                    <text x="750" y="250" font-family="'Cinzel', serif" font-size="22px" fill="#5d4037">Workspace</text>
-                    <text x="750" y="275" font-family="'Noto Serif TC', serif" font-size="13px" fill="#795548">Ready at startup</text>
+    <rect x="870" y="155" width="180" height="100" fill="#fcf6eb" stroke="#5d4037" stroke-width="2" rx="3" />
+    <circle cx="897" cy="185" r="9" fill="#b71c1c" />
+    <text x="920" y="190" font-family="serif" font-size="12" fill="#795548">OUTPUT</text>
+    <text x="897" y="220" font-family="serif" font-size="22" fill="#5d4037">Workspace</text>
+    <text x="897" y="242" font-family="serif" font-size="13" fill="#795548">agents ready</text>
 
-                    <!-- Bottom Blocks -->
-                    <!-- Block 1 -->
-                    <rect x="60" y="420" width="190" height="90" fill="#efe4ce" stroke="#795548" stroke-width="1.5" rx="1" />
-                    <text x="80" y="455" font-family="'Noto Serif TC', serif" font-size="14px" fill="#5d4037">System agents</text>
-                    <text x="80" y="485" font-family="'Noto Serif TC', serif" font-size="13px" fill="#795548">Protected built-ins</text>
+    <rect x="370" y="400" width="350" height="95" fill="#fcf6eb" stroke="#5d4037" stroke-width="2" rx="3" />
+    <text x="395" y="432" font-family="serif" font-size="20" fill="#5d4037">Domain Catalog</text>
+    <text x="395" y="458" font-family="serif" font-size="13" fill="#795548">enabled domains from global legionaries.yaml</text>
+    <text x="395" y="480" font-family="serif" font-size="13" fill="#795548">DOMAIN.md descriptions plus declared refs and skills</text>
 
-                    <!-- Block 2 -->
-                    <rect x="280" y="420" width="190" height="90" fill="#efe4ce" stroke="#795548" stroke-width="1.5" rx="1" />
-                    <text x="300" y="455" font-family="'Noto Serif TC', serif" font-size="14px" fill="#5d4037">Custom agents</text>
-                    <text x="300" y="485" font-family="'Noto Serif TC', serif" font-size="13px" fill="#795548">YAML-defined add-ons</text>
+    <rect x="75" y="520" width="190" height="95" fill="#efe4ce" stroke="#795548" stroke-width="1.6" rx="2" />
+    <text x="95" y="552" font-family="serif" font-size="16" fill="#5d4037">Global config</text>
+    <text x="95" y="588" font-family="serif" font-size="13" fill="#795548">legionaries.yaml</text>
 
-                    <!-- Block 3 -->
-                    <rect x="500" y="420" width="190" height="90" fill="#efe4ce" stroke="#795548" stroke-width="1.5" rx="1" />
-                    <text x="520" y="455" font-family="'Noto Serif TC', serif" font-size="14px" fill="#5d4037">Configuration</text>
-                    <text x="520" y="485" font-family="'Noto Serif TC', serif" font-size="13px" fill="#795548">Models and settings</text>
+    <rect x="305" y="520" width="190" height="95" fill="#efe4ce" stroke="#795548" stroke-width="1.6" rx="2" />
+    <text x="325" y="552" font-family="serif" font-size="16" fill="#5d4037">Agent providers</text>
+    <text x="325" y="578" font-family="serif" font-size="13" fill="#795548">system agents</text>
+    <text x="325" y="598" font-family="serif" font-size="13" fill="#795548">bundled/worktree custom agents</text>
 
-                    <!-- Block 4 -->
-                    <rect x="720" y="420" width="190" height="90" fill="#efe4ce" stroke="#795548" stroke-width="1.5" rx="1" />
-                    <text x="740" y="455" font-family="'Noto Serif TC', serif" font-size="14px" fill="#5d4037">/dio loop</text>
-                    <text x="740" y="485" font-family="'Noto Serif TC', serif" font-size="13px" fill="#795548">Completion workflow</text>
-                </g>
-            </svg>
+    <rect x="535" y="520" width="190" height="95" fill="#efe4ce" stroke="#795548" stroke-width="1.6" rx="2" />
+    <text x="555" y="552" font-family="serif" font-size="16" fill="#5d4037">Domain packs</text>
+    <text x="555" y="588" font-family="serif" font-size="13" fill="#795548">DOMAIN.md is source of truth</text>
+
+    <rect x="765" y="520" width="220" height="95" fill="#efe4ce" stroke="#795548" stroke-width="1.6" rx="2" />
+    <text x="785" y="552" font-family="serif" font-size="16" fill="#5d4037">Runtime evidence</text>
+    <text x="785" y="578" font-family="serif" font-size="13" fill="#795548">delegation + domain-read traces</text>
+    <text x="785" y="598" font-family="serif" font-size="13" fill="#795548">check / trace / scenarios</text>
+
+    <rect x="390" y="675" width="310" height="80" fill="#fcf6eb" stroke="#5d4037" stroke-width="2" rx="3" />
+    <text x="415" y="708" font-family="serif" font-size="16" fill="#5d4037">Task Context Envelope</text>
+    <text x="410" y="738" font-family="serif" font-size="13" fill="#795548">Active domains, refs, skills, verification</text>
+  </g>
+</svg>
