@@ -212,9 +212,9 @@ test('installer preserves existing plugin entries while registering Your Legion 
   assert.deepEqual(opencodeConfig.plugin, ['opencode-wakatime', '@whchi/your-legion']);
 });
 
-test('installer updates existing opencode.jsonc instead of creating opencode.json', async t => {
+test('installer writes opencode.json without modifying existing opencode.jsonc', async t => {
   const configDir = makeTempDir(t, 'your-legion-install-jsonc');
-  fs.writeFileSync(path.join(configDir, 'opencode.jsonc'), '{\n  "plugin": ["opencode-wakatime"]\n}\n');
+  fs.writeFileSync(path.join(configDir, 'opencode.jsonc'), '{\n  // existing plugin config\n  "plugin": ["opencode-wakatime",],\n}\n');
   const { installYourLegion } = await import('../src/install');
 
   const result = installYourLegion({
@@ -223,11 +223,12 @@ test('installer updates existing opencode.jsonc instead of creating opencode.jso
     now: new Date('2026-01-25T11:18:28.014Z'),
   });
 
-  const opencodeConfig = JSON.parse(fs.readFileSync(path.join(configDir, 'opencode.jsonc'), 'utf8'));
+  const opencodeJsonc = fs.readFileSync(path.join(configDir, 'opencode.jsonc'), 'utf8');
+  const opencodeConfig = JSON.parse(fs.readFileSync(path.join(configDir, 'opencode.json'), 'utf8'));
 
-  assert.equal(result.opencodeConfigPath, path.join(configDir, 'opencode.jsonc'));
-  assert.equal(fs.existsSync(path.join(configDir, 'opencode.json')), false);
-  assert.deepEqual(opencodeConfig.plugin, ['opencode-wakatime', '@whchi/your-legion']);
+  assert.equal(result.opencodeConfigPath, path.join(configDir, 'opencode.json'));
+  assert.match(opencodeJsonc, /existing plugin config/);
+  assert.deepEqual(opencodeConfig.plugin, ['@whchi/your-legion']);
 });
 
 test('createDomainPack scaffolds a domain manifest without forcing component folders', async t => {
@@ -281,6 +282,12 @@ test('createDomainPack scaffolds only selected optional component folders', asyn
   assert.doesNotMatch(domainDescription, /Examples:/);
   assert.match(domainDescription, /Decisions:\n- `decisions\/example-decision\.md`/);
   assert.match(domainDescription, /Skills:\n- `skills\/example-skill\/SKILL\.md`/);
+  assert.equal(fs.existsSync(path.join(result.domainRootPath, 'decisions', 'example-decision.md')), true);
+  assert.equal(fs.existsSync(path.join(result.domainRootPath, 'skills', 'example-skill', 'SKILL.md')), true);
+  assert.match(
+    fs.readFileSync(path.join(result.domainRootPath, 'skills', 'example-skill', 'SKILL.md'), 'utf8'),
+    /description:/,
+  );
 });
 
 test('createDomainPack rejects non kebab-case domain ids', async t => {
@@ -418,6 +425,13 @@ test('create-domain cli can enable the domain in legionaries.yaml', t => {
     coding: true,
     'product-ops': true,
   });
+
+  const checkOutput = execFileSync('bun', ['src/cli.ts', 'check', '--worktree', rootDir, '--config-dir', configDir], {
+    cwd: rootDir,
+    encoding: 'utf8',
+  });
+
+  assert.match(checkOutput, /Static domain catalog: PASS/);
 });
 
 test('install cli accepts pickable domains with coding as default', t => {

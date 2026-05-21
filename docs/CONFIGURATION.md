@@ -330,7 +330,7 @@ This creates:
 ~/.config/opencode/your-legion/domains/marketing/DOMAIN.md
 ```
 
-Scaffold selected optional component folders when you already know the domain needs them:
+Scaffold selected optional component folders and matching placeholder files when you already know the domain needs them:
 
 ```bash
 bunx @whchi/your-legion create-domain marketing --components workflows,decisions,skills
@@ -342,7 +342,7 @@ For test fixtures or agent scripts, pass the config directory explicitly:
 bun src/cli.ts create-domain marketing --config-dir /tmp/opencode --components decisions,skills
 ```
 
-Available component ids are `workflows`, `decisions`, `examples`, and `skills`. The CLI prints the created path, the selected components, and the `legionaries.yaml` enablement snippet.
+Available component ids are `workflows`, `decisions`, `examples`, and `skills`. The CLI prints the created path, the selected components, and the `legionaries.yaml` enablement snippet. Each selected component gets a placeholder file that matches the path declared in `DOMAIN.md`; selected skills get `SKILL.md` frontmatter so `check` can validate the scaffold immediately.
 
 Create and enable a custom domain in one command after installation:
 

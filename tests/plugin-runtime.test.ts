@@ -11,7 +11,7 @@ const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, '..');
 const legionariesConfigPath = path.join(rootDir, 'legionaries.yaml');
 const packageJsonPath = path.join(rootDir, 'package.json');
-const opencodeConfigPath = path.join(rootDir, 'opencode.jsonc');
+const opencodeConfigPath = path.join(rootDir, 'opencode.json');
 const tempDir = path.join(rootDir, 'temp');
 
 function systemAgentsFrom(config: Record<string, any>): Record<string, any> {

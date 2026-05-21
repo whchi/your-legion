@@ -64,11 +64,6 @@ function writeJsonConfig(path: string, value: Record<string, unknown>) {
 }
 
 function resolveOpenCodeConfigPath(configDir: string) {
-  const jsoncPath = join(configDir, 'opencode.jsonc');
-  if (existsSync(jsoncPath)) {
-    return jsoncPath;
-  }
-
   const jsonPath = join(configDir, 'opencode.json');
   if (existsSync(jsonPath)) {
     return jsonPath;
@@ -118,6 +113,54 @@ Do not use this domain when ...
 
 ${sections.join('\n\n')}
 `;
+}
+
+function scaffoldDomainComponentFiles(domainRootPath: string, components: DomainComponentDir[]) {
+  for (const component of components) {
+    switch (component) {
+      case 'workflows': {
+        const path = join(domainRootPath, 'workflows', 'example-workflow.md');
+        if (!existsSync(path)) {
+          writeFileSync(path, '# Example Workflow\n\nDescribe the repeatable workflow for this domain.\n');
+        }
+        break;
+      }
+      case 'decisions': {
+        const path = join(domainRootPath, 'decisions', 'example-decision.md');
+        if (!existsSync(path)) {
+          writeFileSync(path, '# Example Decision\n\nDescribe constraints, guardrails, or decision rules for this domain.\n');
+        }
+        break;
+      }
+      case 'examples': {
+        const path = join(domainRootPath, 'examples', 'example-output.md');
+        if (!existsSync(path)) {
+          writeFileSync(path, '# Example Output\n\nShow a representative accepted output or pattern for this domain.\n');
+        }
+        break;
+      }
+      case 'skills': {
+        const skillRoot = join(domainRootPath, 'skills', 'example-skill');
+        const path = join(skillRoot, 'SKILL.md');
+        mkdirSync(skillRoot, { recursive: true });
+        if (!existsSync(path)) {
+          writeFileSync(
+            path,
+            `---
+name: example-skill
+description: Replace this placeholder with a concise description of when to use this domain skill.
+---
+
+# Example Skill
+
+Describe the domain-specific procedure this skill should guide.
+`,
+          );
+        }
+        break;
+      }
+    }
+  }
 }
 
 function normalizeDomainComponents(components: DomainComponentDir[] = []) {
@@ -289,6 +332,7 @@ export function createDomainPack({
   for (const componentPath of componentPaths) {
     mkdirSync(componentPath, { recursive: true });
   }
+  scaffoldDomainComponentFiles(domainRootPath, selectedComponents);
 
   if (!existsSync(descriptionPath)) {
     writeFileSync(descriptionPath, domainDescriptionTemplate(domainID, selectedComponents));

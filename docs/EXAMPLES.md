@@ -79,7 +79,7 @@ This creates:
 
 Edit `DOMAIN.md` with semantic routing guidance: when to use the marketing domain, when not to use it, and the domain-root relative `Workflows`, `Decisions`, `Examples`, and `Skills` paths.
 
-Add only the component folders that carry real knowledge. For a marketing pack with campaign workflow, brand decisions, examples, and a domain skill, either create those folders yourself or scaffold them explicitly:
+Add only the component facets that carry real knowledge. For a marketing pack with campaign workflow, brand decisions, examples, and a domain skill, either create those files yourself or scaffold the folders and matching placeholders explicitly:
 
 ```bash
 bunx @whchi/your-legion create-domain marketing --components workflows,decisions,examples,skills

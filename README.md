@@ -159,7 +159,7 @@ Your Legion uses direct specialist routing.
 ## Commands
 
 - `bunx @whchi/your-legion install [--domains <ids>] [--add-domains <ids>]`: installs or refreshes the plugin registration. First install writes `legionaries.yaml` with `coding` enabled. Reinstall without domain flags preserves existing config. `--domains` replaces the enabled domain list; `--add-domains` merges into it.
-- `bunx @whchi/your-legion create-domain <domain-id> [--components workflows,decisions,examples,skills] [--enable]`: scaffolds a new global domain pack. By default it creates only `DOMAIN.md`; use `--components` to add selected optional folders, and `--enable` to write the domain into `legionaries.yaml`. Existing global domains and bundled domain ids are rejected.
+- `bunx @whchi/your-legion create-domain <domain-id> [--components workflows,decisions,examples,skills] [--enable]`: scaffolds a new global domain pack. By default it creates only `DOMAIN.md`; use `--components` to add selected optional folders and matching placeholder files, and `--enable` to write the domain into `legionaries.yaml`. Existing global domains and bundled domain ids are rejected.
 - `bunx @whchi/your-legion check [--worktree <path>] [--scenarios]`: runs the main acceptance checks. By default it validates `DOMAIN.md` declarations and runtime trace evidence; `--scenarios` also verifies the fixed scenario set.
 - `bunx @whchi/your-legion trace [--worktree <path>] [--limit <n>]`: prints recent domain usage evidence for a worktree.
 - `bunx @whchi/your-legion trace-check [--worktree <path>]`: low-level trace validation for contract warnings and declared domain refs or skills that were not read.

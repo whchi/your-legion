@@ -25,9 +25,11 @@ The rest of these docs use `bunx @whchi/your-legion ...` so every command is exe
 
 On first install, the installer writes:
 
-- `~/.config/opencode/opencode.json`, or updates an existing `~/.config/opencode/opencode.jsonc`
+- `~/.config/opencode/opencode.json`
 - `~/.config/opencode/legionaries.yaml`
 - `~/.config/opencode/your-legion/domains/`
+
+The installer intentionally writes `opencode.json`. It does not modify existing `opencode.jsonc` files.
 
 On reinstall, `install` preserves an existing `legionaries.yaml` unless you explicitly ask to change domains. It still ensures the plugin is registered and the base domain directory exists.
 
@@ -165,13 +167,13 @@ bunx @whchi/your-legion create-domain marketing --config-dir ~/.config/opencode
 
 By default this creates only `DOMAIN.md`. `DOMAIN.md` is the only description and component catalog used in the Domain Catalog. Component folders are optional capability facets; create them only when that domain has real versioned knowledge for the facet. Runtime only includes component paths listed in `DOMAIN.md`; unlisted folders are treated as absent.
 
-To scaffold selected component folders in one command:
+To scaffold selected component folders and matching placeholder files in one command:
 
 ```bash
 bunx @whchi/your-legion create-domain marketing --components workflows,decisions,skills
 ```
 
-Available components are `workflows`, `decisions`, `examples`, and `skills`. Without `--enable`, the command prints a `legionaries.yaml` snippet so you can enable the domain manually.
+Available components are `workflows`, `decisions`, `examples`, and `skills`. Each selected component also gets a placeholder file that matches the path declared in `DOMAIN.md`; selected skills get a placeholder `SKILL.md` with `name` and `description` frontmatter. Without `--enable`, the command prints a `legionaries.yaml` snippet so you can enable the domain manually.
 
 To create and enable the domain in an already-installed `legionaries.yaml` in one command:
 

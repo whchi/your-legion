@@ -26,7 +26,7 @@ No frontmatter rewrite step is required.
 │   └── shared/
 ├── tests/
 ├── legionaries.yaml
-├── opencode.jsonc
+├── opencode.json
 ├── README.md
 ├── docs/
 ├── AGENTS.md
@@ -124,7 +124,7 @@ bun src/cli.ts create-domain marketing-ops --config-dir /tmp/opencode
 
 `create-domain` is intentionally new-only. It must fail for an existing global domain directory and for bundled domain ids.
 
-Create selected component folders:
+Create selected component folders and matching placeholder files:
 
 ```bash
 bun src/cli.ts create-domain marketing-ops --config-dir /tmp/opencode --components decisions,skills
