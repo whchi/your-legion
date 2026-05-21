@@ -23,6 +23,8 @@ Runtime does not classify domains for the agent. Runtime only records and valida
 - `trace-check`: low-level trace validation for contract warnings or declared domain refs/skills that were not read.
 - `domain-scenario-check`: low-level fixed scenario validation. Prefer `check --scenarios`.
 
+The paper references behind this model are summarized in [`academic-papers-summary.md`](./academic-papers-summary.md): Gorilla for description-driven selection, ReAct for explicit action/evidence loops, and trace-based assurance for contract validation and regression evidence. The same document also marks Themis and PERSONA as future/analogy references rather than implemented claims.
+
 If no domain is configured, or no enabled domain description clearly matches the task, the expected behavior is no-domain delegation:
 
 ```text

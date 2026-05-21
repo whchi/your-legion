@@ -130,6 +130,8 @@ Domain packs provide a shared Domain Catalog for the same system and custom agen
 
 Use domain packs for reusable context. Use the Task Context Envelope for the specific context that applies to one delegation.
 
+The design references behind description-driven domain selection and runtime evidence are summarized in [`academic-papers-summary.md`](./academic-papers-summary.md).
+
 Your Legion ships four bundled domains:
 
 | Domain | Bundled skill | Use when |

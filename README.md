@@ -40,6 +40,7 @@ Use these docs next:
 - Domain observability and validation: [`DOMAIN_OBSERVABILITY.md`](./docs/DOMAIN_OBSERVABILITY.md)
 - Copy-paste examples: [`EXAMPLES.md`](./docs/EXAMPLES.md)
 - Development notes: [`DEVELOPMENT.md`](./docs/DEVELOPMENT.md)
+- Academic references behind the domain/runtime design: [`academic-papers-summary.md`](./docs/academic-papers-summary.md)
 
 ## Install
 
@@ -130,6 +131,8 @@ Delegations use a compact Task Context Envelope with `Objective`, `Active domain
 Your Legion records warn-only domain usage evidence under `~/.config/opencode/your-legion/traces/`. Use `bunx @whchi/your-legion check --worktree .` as the main acceptance command for static domain catalog validation and runtime trace validation. Use `bunx @whchi/your-legion trace` when you need raw delegation and domain-read events. See [`DOMAIN_OBSERVABILITY.md`](./docs/DOMAIN_OBSERVABILITY.md) for the full validation workflow.
 
 For a fixed domain-routing smoke test, run `bunx @whchi/your-legion domain-scenarios`, ask the printed prompts in OpenCode, then run `bunx @whchi/your-legion check --worktree . --scenarios`. The fixed set covers coding, marketing, finance, accounting, and their mixed-domain pairs.
+
+The paper references behind description-driven domain selection and trace-based runtime evidence are summarized in [`academic-papers-summary.md`](./docs/academic-papers-summary.md).
 
 The bundled domains are `coding`, `marketing`, `finance`, and `accounting`. `coding` is enabled by default; enable the others with `--domains` during install or by editing `legionaries.yaml`.
 

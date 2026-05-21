@@ -202,4 +202,5 @@ Your Legion uses direct specialist routing rather than a category-first runtime.
 
 - `AGENTS.md`: plugin internals and runtime architecture
 - `docs/DOMAIN_OBSERVABILITY.md`: runtime domain evidence and fixed scenario validation
+- `docs/academic-papers-summary.md`: paper references and claim boundaries for domain routing and runtime evidence
 - `docs/your-legion/custom-agents-and-dio.md`: custom agent and DIO implementation reference

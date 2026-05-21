@@ -26,6 +26,7 @@ There is no markdown frontmatter rewrite step.
 - `src/runtime/build-agent-config.ts`: final runtime config assembly
 - `src/runtime/domain-packs.ts`: `DOMAIN.md`-declared domain pack discovery and Domain Catalog prompt section
 - `src/runtime/domain-usage-contract.ts`: Task Context Envelope parsing, warn-only domain validation, and JSONL trace evidence
+- `docs/academic-papers-summary.md`: paper references and claim boundaries behind domain routing and runtime evidence
 - `src/domains/`: bundled domain packs copied to `dist/domains` at build time
 - `src/runtime/dio-loop.ts`: in-memory `/dio` session loop
 - `src/index.ts`: plugin entrypoint and config injection hook
