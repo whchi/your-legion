@@ -127,9 +127,9 @@ Domain descriptions and skills are injected into agent prompts as a Domain Catal
 
 Delegations use a compact Task Context Envelope with `Objective`, `Active domains`, `Domain refs`, `Domain skills`, `Context refs`, `Constraints`, `Expected output`, and `Verification`. The orchestrator compares the task with the Domain Catalog and activates every domain whose description materially applies. If no domain is configured or no domain description clearly matches, it should use no-domain delegation: `Active domains: none`, `Domain refs: none`, and `Domain skills: none`.
 
-Your Legion records warn-only domain usage evidence under `~/.config/opencode/your-legion/traces/`. Use `bunx @whchi/your-legion trace` to inspect recent delegation and domain-read events, and `bunx @whchi/your-legion trace-check` to fail CI or local acceptance when a delegation used unknown or vague domain context or declared a domain skill without reading its file. See [`DOMAIN_OBSERVABILITY.md`](./docs/DOMAIN_OBSERVABILITY.md) for the full validation workflow.
+Your Legion records warn-only domain usage evidence under `~/.config/opencode/your-legion/traces/`. Use `bunx @whchi/your-legion check --worktree .` as the main acceptance command for static domain catalog validation and runtime trace validation. Use `bunx @whchi/your-legion trace` when you need raw delegation and domain-read events. See [`DOMAIN_OBSERVABILITY.md`](./docs/DOMAIN_OBSERVABILITY.md) for the full validation workflow.
 
-For a fixed domain-routing smoke test, run `bunx @whchi/your-legion domain-scenarios`, ask the printed prompts in OpenCode, then run `bunx @whchi/your-legion domain-scenario-check --worktree .`. The fixed set covers coding, marketing, finance, accounting, and their mixed-domain pairs.
+For a fixed domain-routing smoke test, run `bunx @whchi/your-legion domain-scenarios`, ask the printed prompts in OpenCode, then run `bunx @whchi/your-legion check --worktree . --scenarios`. The fixed set covers coding, marketing, finance, accounting, and their mixed-domain pairs.
 
 The bundled domains are `coding`, `marketing`, `finance`, and `accounting`. `coding` is enabled by default; enable the others with `--domains` during install or by editing `legionaries.yaml`.
 
@@ -148,10 +148,11 @@ Your Legion uses direct specialist routing.
 ## Commands
 
 - `bunx @whchi/your-legion create-domain <domain-id> [--components workflows,decisions,examples,skills] [--enable]`: scaffolds a new global domain pack. By default it creates only `DOMAIN.md`; use `--components` to add selected optional folders, and `--enable` to write the domain into `legionaries.yaml`. Existing global domains and bundled domain ids are rejected.
+- `bunx @whchi/your-legion check [--worktree <path>] [--scenarios]`: runs the main acceptance checks. By default it validates `DOMAIN.md` declarations and runtime trace evidence; `--scenarios` also verifies the fixed scenario set.
 - `bunx @whchi/your-legion trace [--worktree <path>] [--limit <n>]`: prints recent domain usage evidence for a worktree.
-- `bunx @whchi/your-legion trace-check [--worktree <path>]`: exits non-zero when recorded domain usage warnings exist or a declared domain skill was not read.
+- `bunx @whchi/your-legion trace-check [--worktree <path>]`: low-level trace validation for contract warnings and declared domain refs or skills that were not read.
 - `bunx @whchi/your-legion domain-scenarios`: prints the fixed domain scenario prompts.
-- `bunx @whchi/your-legion domain-scenario-check [--worktree <path>]`: verifies trace evidence for the fixed domain scenario set.
+- `bunx @whchi/your-legion domain-scenario-check [--worktree <path>]`: low-level fixed scenario validation; `check --scenarios` is the preferred entrypoint.
 - `/dio`: a devotio-inspired completion loop that keeps the current session moving until the assistant emits `<dio_complete>...</dio_complete>`, `/dio-stop` is run, or the iteration guard is reached.
 - `/dio-stop`: cancels the active DIO loop for the current session.
 

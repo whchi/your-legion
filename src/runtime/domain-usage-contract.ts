@@ -56,12 +56,17 @@ export type DomainUsageContractResult = {
 
 export type DomainUsageTraceEvent = {
   version: number;
+  contractVersion?: string;
   timestamp: string;
   worktree: string;
   sessionID?: string;
   delegationID?: string;
   scenarioID?: string;
   event: 'delegation' | 'domain-read';
+  domainCatalogHash?: string;
+  domainCatalogSize?: number;
+  toolName?: string;
+  toolArgsShape?: string[];
   targetAgent?: string;
   activeDomains: ActiveDomainUsage[];
   domainRefs: string[];
@@ -422,6 +427,7 @@ function includesAll(actual: string[], expected: string[]) {
 
 export function evaluateDomainUsageScenarios(options: DomainUsageTraceOptions) {
   const events = readDomainUsageTraceEvents(options);
+  const readsByDelegation = readEvidenceByDelegation(events);
   const results = DOMAIN_USAGE_SCENARIOS.map((scenario): DomainUsageScenarioCheckResult => {
     const event = events.find(candidate => {
       if (candidate.event !== 'delegation' || candidate.scenarioID !== scenario.id) {
@@ -438,12 +444,31 @@ export function evaluateDomainUsageScenarios(options: DomainUsageTraceOptions) {
         includesAll(candidate.domainSkills, scenario.expectedDomainSkills)
       );
     });
+    const messages: string[] = [];
+
+    if (event && !event.delegationID && (scenario.expectedDomainRefs.length > 0 || scenario.expectedDomainSkills.length > 0)) {
+      messages.push(`missing scenario delegation id: ${scenario.id}`);
+    }
+
+    if (event?.delegationID) {
+      const reads = readsByDelegation.get(event.delegationID);
+      for (const domainRef of scenario.expectedDomainRefs) {
+        if (!reads?.refs.has(domainRef)) {
+          messages.push(`missing scenario read evidence: ${domainRef}`);
+        }
+      }
+      for (const domainSkill of scenario.expectedDomainSkills) {
+        if (!reads?.skills.has(domainSkill)) {
+          messages.push(`missing scenario read evidence: ${domainSkill}`);
+        }
+      }
+    }
 
     return {
       id: scenario.id,
       title: scenario.title,
-      passed: Boolean(event),
-      messages: event ? [] : [`missing scenario evidence: ${scenario.id}`],
+      passed: Boolean(event) && messages.length === 0,
+      messages: event ? messages : [`missing scenario evidence: ${scenario.id}`],
     };
   });
 
@@ -511,10 +536,28 @@ function createTraceEvent(
 ): DomainUsageTraceEvent {
   return {
     version: TRACE_VERSION,
+    contractVersion: `domain-usage-v${TRACE_VERSION}`,
     timestamp: new Date().toISOString(),
     worktree: options.worktree,
+    domainCatalogHash: domainCatalogHash(options.domainPacks),
+    domainCatalogSize: options.domainPacks.length,
     ...event,
   };
+}
+
+function domainCatalogHash(domainPacks: DomainPack[]) {
+  return createHash('sha256')
+    .update(
+      JSON.stringify(
+        domainPacks.map(pack => ({
+          id: pack.id,
+          descriptionPath: pack.descriptionPath,
+          components: pack.components,
+        })),
+      ),
+    )
+    .digest('hex')
+    .slice(0, TRACE_HASH_LENGTH);
 }
 
 function delegationIDFor({
@@ -547,11 +590,8 @@ function delegationIDFor({
   return `del_${hash}`;
 }
 
-export function analyzeDomainUsageTraceEvents(events: DomainUsageTraceEvent[]) {
-  const diagnostics = events.flatMap(event =>
-    event.warnings.map(warning => `${event.timestamp} ${event.event}: ${warning}`),
-  );
-  const readsByDelegation = new Map<string, Set<string>>();
+function readEvidenceByDelegation(events: DomainUsageTraceEvent[]) {
+  const readsByDelegation = new Map<string, { refs: Set<string>; skills: Set<string> }>();
   const latestDelegationBySession = new Map<string, string>();
 
   for (const event of events) {
@@ -568,12 +608,27 @@ export function analyzeDomainUsageTraceEvents(events: DomainUsageTraceEvent[]) {
       continue;
     }
 
-    const reads = readsByDelegation.get(delegationID) ?? new Set<string>();
+    const reads = readsByDelegation.get(delegationID) ?? {
+      refs: new Set<string>(),
+      skills: new Set<string>(),
+    };
+    for (const domainRef of event.domainRefs) {
+      reads.refs.add(domainRef);
+    }
     for (const domainSkill of event.domainSkills) {
-      reads.add(domainSkill);
+      reads.skills.add(domainSkill);
     }
     readsByDelegation.set(delegationID, reads);
   }
+
+  return readsByDelegation;
+}
+
+export function analyzeDomainUsageTraceEvents(events: DomainUsageTraceEvent[]) {
+  const diagnostics = events.flatMap(event =>
+    event.warnings.map(warning => `${event.timestamp} ${event.event}: ${warning}`),
+  );
+  const readsByDelegation = readEvidenceByDelegation(events);
 
   for (const event of events) {
     if (event.event !== 'delegation') {
@@ -582,8 +637,13 @@ export function analyzeDomainUsageTraceEvents(events: DomainUsageTraceEvent[]) {
 
     const delegationID = event.delegationID;
     const reads = delegationID ? readsByDelegation.get(delegationID) : undefined;
+    for (const domainRef of event.domainRefs) {
+      if (!reads?.refs.has(domainRef)) {
+        diagnostics.push(`${event.timestamp} delegation: declared domain ref was not read: ${domainRef}`);
+      }
+    }
     for (const domainSkill of event.domainSkills) {
-      if (!reads?.has(domainSkill)) {
+      if (!reads?.skills.has(domainSkill)) {
         diagnostics.push(`${event.timestamp} delegation: declared domain skill was not read: ${domainSkill}`);
       }
     }
@@ -640,6 +700,8 @@ export function createDomainUsageTraceHooks(options: CreateDomainUsageTraceHooks
           delegationID,
           scenarioID: envelope.scenarioID,
           event: 'delegation',
+          toolName: 'task',
+          toolArgsShape: Object.keys(args).sort(),
           targetAgent,
           activeDomains: envelope.activeDomains,
           domainRefs: envelope.domainRefs,
@@ -671,6 +733,8 @@ export function createDomainUsageTraceHooks(options: CreateDomainUsageTraceHooks
           sessionID,
           delegationID: sessionID ? latestDelegationBySession.get(sessionID) : undefined,
           event: 'domain-read',
+          toolName,
+          toolArgsShape: Object.keys(args).sort(),
           activeDomains: [],
           domainRefs: component.isSkill ? [] : [component.ref],
           domainSkills: component.isSkill ? [component.ref] : [],

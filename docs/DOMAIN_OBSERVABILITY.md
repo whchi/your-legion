@@ -6,7 +6,7 @@ Use it when you need to answer:
 
 - Did the orchestrator choose the correct domain?
 - Did a mixed-domain task keep responsibilities separate?
-- Did the delegated agent actually read the declared domain skill?
+- Did the delegated agent actually read the declared domain refs and skills?
 - Did no-domain fallback happen when no domain applies?
 
 ## Mental Model
@@ -19,8 +19,9 @@ Runtime does not classify domains for the agent. Runtime only records and valida
 
 - `delegation` event: what the orchestrator declared before delegating.
 - `domain-read` event: which declared domain component files the delegated agent actually read.
-- `trace-check`: whether the recorded evidence contains contract warnings or declared domain skills that were not read.
-- `domain-scenario-check`: whether the fixed acceptance scenarios have matching delegation evidence.
+- `check`: the main acceptance command. It validates static `DOMAIN.md` declarations and runtime trace evidence.
+- `trace-check`: low-level trace validation for contract warnings or declared domain refs/skills that were not read.
+- `domain-scenario-check`: low-level fixed scenario validation. Prefer `check --scenarios`.
 
 If no domain is configured, or no enabled domain description clearly matches the task, the expected behavior is no-domain delegation:
 
@@ -132,9 +133,37 @@ For mixed-domain work, `activeDomains` must contain one entry per domain with a 
 
 This is intentionally stricter than `coding, marketing`. A mixed-domain delegation without responsibilities should produce a warning.
 
+## Run Main Acceptance Check
+
+Use `check` after one or more real tasks:
+
+```bash
+bunx @whchi/your-legion check --worktree .
+```
+
+Source checkout form:
+
+```bash
+bun src/cli.ts check --worktree .
+```
+
+Passing output:
+
+```text
+Your Legion check
+
+Static domain catalog: PASS
+Runtime trace: PASS
+Scenario evidence: SKIPPED
+
+Your Legion check passed
+```
+
+`check` validates `DOMAIN.md` declarations and runtime trace evidence. It exits non-zero when static domain paths are wrong, trace contract warnings exist, or declared domain refs/skills were not read.
+
 ## Run Runtime Trace Check
 
-Use `trace-check` after one or more real tasks:
+Use `trace-check` only when you want the low-level runtime trace check without static domain validation:
 
 ```bash
 bunx @whchi/your-legion trace-check --worktree .
@@ -158,10 +187,11 @@ Failure examples:
 delegation: unknown active domain: sales
 delegation: unknown domain skill: coding/missing-skill
 delegation: active domain must include responsibility: coding
+delegation: declared domain ref was not read: coding/implementation-loop
 delegation: declared domain skill was not read: marketing/campaign-brief
 ```
 
-`trace-check` is the answer to "did it actually use the skill?" A delegation that declares `Domain skills: marketing/campaign-brief` is not accepted unless a matching `domain-read` event for `marketing/campaign-brief` appears.
+`trace-check` is the lower-level answer to "did it actually use the declared domain context?" A delegation that declares `Domain refs: coding/implementation-loop` or `Domain skills: marketing/campaign-brief` is not accepted unless a matching `domain-read` event appears.
 
 ## Run Fixed Scenario Validation
 
@@ -179,18 +209,18 @@ Source checkout form:
 bun src/cli.ts domain-scenarios
 ```
 
-Copy each printed scenario prompt into OpenCode. Keep the `Scenario: <id>` line in the prompt. That marker is how `domain-scenario-check` associates trace evidence with the scenario.
+Copy each printed scenario prompt into OpenCode. Keep the `Scenario: <id>` line in the prompt. That marker is how `check --scenarios` associates trace evidence with the scenario.
 
 Then validate:
 
 ```bash
-bunx @whchi/your-legion domain-scenario-check --worktree .
+bunx @whchi/your-legion check --worktree . --scenarios
 ```
 
 Source checkout form:
 
 ```bash
-bun src/cli.ts domain-scenario-check --worktree .
+bun src/cli.ts check --worktree . --scenarios
 ```
 
 The fixed set validates:
@@ -252,7 +282,7 @@ When validating a trace by eye, check these fields first:
 | Did it request the expected domain skill? | `delegation.domainSkills` |
 | Did it actually read the skill file? | matching `domain-read.domainSkills` |
 | Did no-domain fallback happen? | empty `activeDomains`, `domainRefs`, and `domainSkills` |
-| Was the contract clean? | `warnings: []` and `trace-check` passes |
+| Was the contract clean? | `warnings: []` and `check` passes |
 
 ## CI Or Local Regression Use
 
@@ -261,8 +291,7 @@ For local development:
 ```bash
 bun src/cli.ts domain-scenarios
 # Run every printed prompt in OpenCode.
-bun src/cli.ts domain-scenario-check --worktree .
-bun src/cli.ts trace-check --worktree .
+bun src/cli.ts check --worktree . --scenarios
 ```
 
 For installed package validation:
@@ -270,17 +299,15 @@ For installed package validation:
 ```bash
 bunx @whchi/your-legion domain-scenarios
 # Run every printed prompt in OpenCode.
-bunx @whchi/your-legion domain-scenario-check --worktree .
-bunx @whchi/your-legion trace-check --worktree .
+bunx @whchi/your-legion check --worktree . --scenarios
 ```
 
-`trace-check` and `domain-scenario-check` exit non-zero on failure, so they can be used in scripted acceptance flows after the interactive OpenCode prompts have produced trace evidence.
+`check` exits non-zero on failure, so it can be used in scripted acceptance flows after the interactive OpenCode prompts have produced trace evidence.
 
 ## Limitations
 
 - Runtime warnings are warn-only during normal OpenCode execution.
 - The runtime observes `task` delegation prompts and `read` tool access to declared domain component paths.
-- `trace-check` verifies declared domain skills were read. It does not prove the model followed the skill perfectly.
-- `domain-scenario-check` checks fixed scenario evidence. It does not replace reviewing the actual output quality.
+- `check` verifies declared domain refs and skills were read. It does not prove the model followed the referenced document perfectly.
+- `check --scenarios` checks fixed scenario evidence. It does not replace reviewing the actual output quality.
 - Trace events are keyed by resolved worktree path. Always pass the same `--worktree` path that OpenCode used.
-

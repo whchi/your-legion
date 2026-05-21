@@ -167,12 +167,12 @@ Avoid vague active domains like `coding, marketing`. Name what each domain owns.
 After the run, inspect runtime evidence:
 
 ```bash
+bunx @whchi/your-legion check --worktree .
 bunx @whchi/your-legion trace --worktree . --limit 10
-bunx @whchi/your-legion trace-check --worktree .
 ```
 
 `delegation` events show which domains and skills were requested. `domain-read` events show which domain docs or domain skills were actually read.
-`trace-check` fails if a delegation declared a domain skill but the matching skill file was never read.
+`check` fails if `DOMAIN.md` declarations are invalid, a delegation declared unknown domain evidence, or a declared domain ref/skill was never read.
 
 For repeatable validation, use the fixed scenario set:
 
@@ -183,7 +183,7 @@ bunx @whchi/your-legion domain-scenarios
 Ask the printed prompts, then run:
 
 ```bash
-bunx @whchi/your-legion domain-scenario-check --worktree .
+bunx @whchi/your-legion check --worktree . --scenarios
 ```
 
 ## Add A Custom Agent

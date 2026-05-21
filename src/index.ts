@@ -75,4 +75,5 @@ export {
   readDomainUsageTraceEvents,
   validateDomainUsageContract,
 } from './runtime/domain-usage-contract';
+export { checkStaticDomainCatalog, runYourLegionCheck } from './runtime/checks';
 export { createDomainPack } from './install';

@@ -67,19 +67,19 @@ Copy each printed scenario prompt into an OpenCode session that has this plugin 
 After running all prompts, validate the recorded trace from the repo checkout:
 
 ```bash
-bun src/cli.ts domain-scenario-check --worktree .
+bun src/cli.ts check --worktree . --scenarios
 ```
 
 The equivalent installed command is:
 
 ```bash
-bunx @whchi/your-legion domain-scenario-check --worktree .
+bunx @whchi/your-legion check --worktree . --scenarios
 ```
 
 If you are validating a different worktree or config directory, pass both paths explicitly:
 
 ```bash
-bun src/cli.ts domain-scenario-check --worktree /path/to/worktree --config-dir ~/.config/opencode
+bun src/cli.ts check --worktree /path/to/worktree --config-dir ~/.config/opencode --scenarios
 ```
 
 Full local flow:
@@ -87,12 +87,13 @@ Full local flow:
 ```bash
 bun src/cli.ts domain-scenarios
 # Paste and run every printed scenario prompt in OpenCode.
-bun src/cli.ts domain-scenario-check --worktree .
+bun src/cli.ts check --worktree . --scenarios
 ```
 
 Lower-level trace inspection:
 
 ```bash
+bun src/cli.ts check --worktree .
 bun src/cli.ts trace --worktree . --limit 20
 bun src/cli.ts trace-check --worktree .
 ```
@@ -188,7 +189,7 @@ Your Legion uses direct specialist routing rather than a category-first runtime.
 - Code review is command-owned by `/code-review` by default; `code-reviewer` is the bundled YAML custom-agent example.
 - `legionaries.yaml` configures per-agent models, reasoning, and custom-agent enablement. It does not decide which system agent gets selected.
 - Domain packs add a shared Domain Catalog and namespaced domain skills to existing agents. They do not create new agents, and their skills are not registered with the harness skill resolver.
-- Runtime trace events make domain usage observable. `delegation` events show requested active domains and skills; `domain-read` events show which domain component paths were read. `trace-check` fails when a delegation declares a domain skill but no matching skill read is recorded.
+- Runtime trace events make domain usage observable. `delegation` events show requested active domains, refs, and skills; `domain-read` events show which domain component paths were read. `check` fails when `DOMAIN.md` declarations are invalid, a delegation declares unknown domain evidence, or declared domain refs/skills are not read.
 - Fixed acceptance scenarios live with the domain usage contract and cover coding, marketing, finance, accounting, and mixed-domain pairs.
 
 ## Routing Boundaries

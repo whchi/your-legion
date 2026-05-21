@@ -197,11 +197,11 @@ Domain skills are injected into Your Legion prompts as explicit paths. They are 
 To verify domain usage after a session, inspect the trace for the current worktree:
 
 ```bash
+bunx @whchi/your-legion check --worktree .
 bunx @whchi/your-legion trace --worktree . --limit 10
-bunx @whchi/your-legion trace-check --worktree .
 ```
 
-Trace events are stored under `~/.config/opencode/your-legion/traces/`. Contract warnings are warn-only at runtime, but `trace-check` exits non-zero so local verification can catch vague active domains, unknown domain refs, unknown domain skills, or a declared domain skill that was never read.
+Trace events are stored under `~/.config/opencode/your-legion/traces/`. Contract warnings are warn-only at runtime, but `check` exits non-zero so local verification can catch invalid `DOMAIN.md` declarations, vague active domains, unknown domain refs, unknown domain skills, or declared domain refs and skills that were never read.
 
 For a fixed acceptance flow, print the built-in domain scenario prompts:
 
@@ -212,7 +212,7 @@ bunx @whchi/your-legion domain-scenarios
 Run the printed prompts in OpenCode, then verify that trace evidence contains the fixed domain scenario set:
 
 ```bash
-bunx @whchi/your-legion domain-scenario-check --worktree .
+bunx @whchi/your-legion check --worktree . --scenarios
 ```
 
 ## Supported Providers

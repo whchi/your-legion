@@ -16,11 +16,13 @@ import {
   evaluateDomainUsageScenarios,
   readDomainUsageTraceEvents,
 } from './runtime/domain-usage-contract';
+import { runYourLegionCheck } from './runtime/checks';
 
 function printUsage() {
   console.log(`Usage:
   bunx @whchi/your-legion install [--config-dir <path>] [--domains <ids>]
   bunx @whchi/your-legion create-domain <domain-id> [--config-dir <path>] [--components <ids>] [--enable]
+  bunx @whchi/your-legion check [--worktree <path>] [--config-dir <path>] [--scenarios]
   bunx @whchi/your-legion trace [--worktree <path>] [--config-dir <path>] [--limit <n>]
   bunx @whchi/your-legion trace-check [--worktree <path>] [--config-dir <path>]
   bunx @whchi/your-legion domain-scenarios
@@ -116,6 +118,51 @@ if (command === 'trace') {
     console.log(JSON.stringify(event, null, 2));
   }
   process.exit(0);
+}
+
+function printCheckResult(result: ReturnType<typeof runYourLegionCheck>) {
+  console.log('Your Legion check');
+  console.log('');
+
+  for (const section of result.sections) {
+    console.log(`${section.name}: ${section.status}`);
+  }
+
+  const failures = result.sections.flatMap(section => section.failures);
+  const warnings = result.sections.flatMap(section => section.warnings);
+
+  if (failures.length > 0) {
+    console.log('');
+    console.log('Failures:');
+    for (const failure of failures) {
+      console.log(`- ${failure}`);
+    }
+  }
+
+  if (warnings.length > 0) {
+    console.log('');
+    console.log('Warnings:');
+    for (const warning of warnings) {
+      console.log(`- ${warning}`);
+    }
+  }
+
+  if (result.passed) {
+    console.log('');
+    console.log('Your Legion check passed');
+  }
+}
+
+if (command === 'check') {
+  const worktree = resolve(optionValue('--worktree') ?? process.cwd());
+  const result = runYourLegionCheck({
+    rootDir: worktree,
+    configDir: optionValue('--config-dir'),
+    includeScenarios: hasFlag('--scenarios'),
+  });
+
+  printCheckResult(result);
+  process.exit(result.passed ? 0 : 1);
 }
 
 if (command === 'trace-check') {

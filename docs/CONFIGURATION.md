@@ -222,18 +222,19 @@ Your Legion records warn-only runtime evidence for domain usage. The plugin obse
 Each event records the worktree, session id when available, delegation id when available, event type, target agent, active domains, domain refs, domain skills, and contract warnings. This lets you answer two acceptance questions:
 
 - Correct domain: `Active domains` in a `delegation` event must name the domain and responsibility that matches the task.
-- Skill usage: `Domain skills` in a `delegation` event shows requested skills; `domain-read` events show domain skill files the agent actually read. `trace-check` fails when a delegation declares a domain skill but no matching skill read is recorded for that delegation.
+- Ref and skill usage: `Domain refs` and `Domain skills` in a `delegation` event show requested domain context; `domain-read` events show domain component files the agent actually read. `check` fails when a delegation declares a domain ref or skill but no matching read is recorded for that delegation.
 
 Inspect recent evidence:
 
 ```bash
+bunx @whchi/your-legion check --worktree .
 bunx @whchi/your-legion trace --worktree . --limit 10
 ```
 
 Fail local verification when warnings were recorded:
 
 ```bash
-bunx @whchi/your-legion trace-check --worktree .
+bunx @whchi/your-legion check --worktree .
 ```
 
 Warnings do not block runtime execution. They are designed for observability, review, and regression checks.
@@ -263,7 +264,7 @@ Ask the printed prompts in OpenCode. The fixed set currently checks:
 Then check the recorded trace:
 
 ```bash
-bunx @whchi/your-legion domain-scenario-check --worktree .
+bunx @whchi/your-legion check --worktree . --scenarios
 ```
 
 The scenario check passes only when every fixed scenario has matching `delegation` evidence with no contract warnings.

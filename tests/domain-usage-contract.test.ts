@@ -289,6 +289,38 @@ test('trace-check fails when a declared domain skill was not read', async t => {
   assert.match(result.stderr + result.stdout, /declared domain skill was not read: coding\/make-code-change/i);
 });
 
+test('trace-check fails when a declared domain ref was not read', async t => {
+  const { appendDomainUsageTraceEvent } = await import('../src/runtime/domain-usage-contract');
+  const configDir = makeTempDir(t, 'domain-trace-missing-ref-read');
+  const worktree = path.join(configDir, 'project');
+
+  appendDomainUsageTraceEvent({
+    configDir,
+    worktree,
+    event: {
+      version: 1,
+      timestamp: '2026-05-20T00:00:00.000Z',
+      worktree,
+      sessionID: 'ses_missing_ref_read',
+      delegationID: 'del_missing_ref_read',
+      event: 'delegation',
+      targetAgent: 'builder',
+      activeDomains: [{ id: 'coding', responsibility: 'implement code' }],
+      domainRefs: ['coding/implementation-loop'],
+      domainSkills: [],
+      warnings: [],
+    },
+  });
+
+  const result = spawnSync('bun', ['src/cli.ts', 'trace-check', '--worktree', worktree, '--config-dir', configDir], {
+    cwd: rootDir,
+    encoding: 'utf8',
+  });
+
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr + result.stdout, /declared domain ref was not read: coding\/implementation-loop/i);
+});
+
 test('trace-check accepts a declared domain skill read under the same delegation', async t => {
   const { appendDomainUsageTraceEvent } = await import('../src/runtime/domain-usage-contract');
   const configDir = makeTempDir(t, 'domain-trace-skill-read');
@@ -320,6 +352,70 @@ test('trace-check accepts a declared domain skill read under the same delegation
       worktree,
       sessionID: 'ses_read',
       delegationID: 'del_read',
+      event: 'domain-read',
+      activeDomains: [],
+      domainRefs: [],
+      domainSkills: ['coding/make-code-change'],
+      warnings: [],
+    },
+  });
+
+  const result = spawnSync('bun', ['src/cli.ts', 'trace-check', '--worktree', worktree, '--config-dir', configDir], {
+    cwd: rootDir,
+    encoding: 'utf8',
+  });
+
+  assert.equal(result.status, 0);
+  assert.match(result.stdout, /Domain usage trace check passed/);
+});
+
+test('trace-check accepts declared domain refs and skills read under the same delegation', async t => {
+  const { appendDomainUsageTraceEvent } = await import('../src/runtime/domain-usage-contract');
+  const configDir = makeTempDir(t, 'domain-trace-ref-and-skill-read');
+  const worktree = path.join(configDir, 'project');
+
+  appendDomainUsageTraceEvent({
+    configDir,
+    worktree,
+    event: {
+      version: 1,
+      timestamp: '2026-05-20T00:00:00.000Z',
+      worktree,
+      sessionID: 'ses_ref_skill_read',
+      delegationID: 'del_ref_skill_read',
+      event: 'delegation',
+      targetAgent: 'builder',
+      activeDomains: [{ id: 'coding', responsibility: 'implement code' }],
+      domainRefs: ['coding/implementation-loop'],
+      domainSkills: ['coding/make-code-change'],
+      warnings: [],
+    },
+  });
+  appendDomainUsageTraceEvent({
+    configDir,
+    worktree,
+    event: {
+      version: 1,
+      timestamp: '2026-05-20T00:00:01.000Z',
+      worktree,
+      sessionID: 'ses_ref_skill_read',
+      delegationID: 'del_ref_skill_read',
+      event: 'domain-read',
+      activeDomains: [],
+      domainRefs: ['coding/implementation-loop'],
+      domainSkills: [],
+      warnings: [],
+    },
+  });
+  appendDomainUsageTraceEvent({
+    configDir,
+    worktree,
+    event: {
+      version: 1,
+      timestamp: '2026-05-20T00:00:02.000Z',
+      worktree,
+      sessionID: 'ses_ref_skill_read',
+      delegationID: 'del_ref_skill_read',
       event: 'domain-read',
       activeDomains: [],
       domainRefs: [],
@@ -408,6 +504,7 @@ test('domain scenario check passes only when all fixed scenarios have matching e
   assert.equal(result.results[1].passed, false);
 
   for (const scenario of DOMAIN_USAGE_SCENARIOS.slice(1)) {
+    const delegationID = `del_${scenario.id}`;
     appendDomainUsageTraceEvent({
       configDir,
       worktree,
@@ -416,6 +513,7 @@ test('domain scenario check passes only when all fixed scenarios have matching e
         timestamp: '2026-05-20T00:00:00.000Z',
         worktree,
         sessionID: 'ses_scenarios',
+        delegationID,
         event: 'delegation',
         scenarioID: scenario.id,
         targetAgent: 'builder',
@@ -428,6 +526,42 @@ test('domain scenario check passes only when all fixed scenarios have matching e
         warnings: [],
       },
     });
+    for (const domainRef of scenario.expectedDomainRefs) {
+      appendDomainUsageTraceEvent({
+        configDir,
+        worktree,
+        event: {
+          version: 1,
+          timestamp: '2026-05-20T00:00:01.000Z',
+          worktree,
+          sessionID: 'ses_scenarios',
+          delegationID,
+          event: 'domain-read',
+          activeDomains: [],
+          domainRefs: [domainRef],
+          domainSkills: [],
+          warnings: [],
+        },
+      });
+    }
+    for (const domainSkill of scenario.expectedDomainSkills) {
+      appendDomainUsageTraceEvent({
+        configDir,
+        worktree,
+        event: {
+          version: 1,
+          timestamp: '2026-05-20T00:00:02.000Z',
+          worktree,
+          sessionID: 'ses_scenarios',
+          delegationID,
+          event: 'domain-read',
+          activeDomains: [],
+          domainRefs: [],
+          domainSkills: [domainSkill],
+          warnings: [],
+        },
+      });
+    }
   }
 
   result = evaluateDomainUsageScenarios({
@@ -436,6 +570,44 @@ test('domain scenario check passes only when all fixed scenarios have matching e
   });
 
   assert.equal(result.passed, true);
+});
+
+test('domain scenario check fails when scenario delegation lacks read evidence', async t => {
+  const { appendDomainUsageTraceEvent, DOMAIN_USAGE_SCENARIOS, evaluateDomainUsageScenarios } = await import(
+    '../src/runtime/domain-usage-contract.ts'
+  );
+  const configDir = makeTempDir(t, 'domain-scenario-read-evidence');
+  const worktree = path.join(configDir, 'project');
+  const scenario = DOMAIN_USAGE_SCENARIOS.find(entry => entry.id === 'coding-only')!;
+
+  appendDomainUsageTraceEvent({
+    configDir,
+    worktree,
+    event: {
+      version: 1,
+      timestamp: '2026-05-20T00:00:00.000Z',
+      worktree,
+      sessionID: 'ses_scenario_read',
+      delegationID: 'del_scenario_read',
+      event: 'delegation',
+      scenarioID: scenario.id,
+      targetAgent: 'builder',
+      activeDomains: scenario.expectedActiveDomains.map(id => ({ id, responsibility: `${id} responsibility` })),
+      domainRefs: scenario.expectedDomainRefs,
+      domainSkills: scenario.expectedDomainSkills,
+      warnings: [],
+    },
+  });
+
+  const result = evaluateDomainUsageScenarios({
+    configDir,
+    worktree,
+  });
+  const scenarioResult = result.results.find(entry => entry.id === scenario.id)!;
+
+  assert.equal(scenarioResult.passed, false);
+  assert.match(scenarioResult.messages.join('\n'), /missing scenario read evidence: coding\/implementation-loop/);
+  assert.match(scenarioResult.messages.join('\n'), /missing scenario read evidence: coding\/make-code-change/);
 });
 
 test('domain scenario CLI prints prompts and checks trace evidence', async t => {
@@ -470,6 +642,7 @@ test('domain scenario CLI prints prompts and checks trace evidence', async t => 
   assert.match(check.stderr + check.stdout, /missing scenario evidence: coding-only/);
 
   for (const scenario of DOMAIN_USAGE_SCENARIOS) {
+    const delegationID = `del_${scenario.id}`;
     appendDomainUsageTraceEvent({
       configDir,
       worktree,
@@ -478,6 +651,7 @@ test('domain scenario CLI prints prompts and checks trace evidence', async t => 
         timestamp: '2026-05-20T00:00:00.000Z',
         worktree,
         sessionID: 'ses_scenario_cli',
+        delegationID,
         event: 'delegation',
         scenarioID: scenario.id,
         targetAgent: 'builder',
@@ -490,6 +664,42 @@ test('domain scenario CLI prints prompts and checks trace evidence', async t => 
         warnings: [],
       },
     });
+    for (const domainRef of scenario.expectedDomainRefs) {
+      appendDomainUsageTraceEvent({
+        configDir,
+        worktree,
+        event: {
+          version: 1,
+          timestamp: '2026-05-20T00:00:01.000Z',
+          worktree,
+          sessionID: 'ses_scenario_cli',
+          delegationID,
+          event: 'domain-read',
+          activeDomains: [],
+          domainRefs: [domainRef],
+          domainSkills: [],
+          warnings: [],
+        },
+      });
+    }
+    for (const domainSkill of scenario.expectedDomainSkills) {
+      appendDomainUsageTraceEvent({
+        configDir,
+        worktree,
+        event: {
+          version: 1,
+          timestamp: '2026-05-20T00:00:02.000Z',
+          worktree,
+          sessionID: 'ses_scenario_cli',
+          delegationID,
+          event: 'domain-read',
+          activeDomains: [],
+          domainRefs: [],
+          domainSkills: [domainSkill],
+          warnings: [],
+        },
+      });
+    }
   }
 
   check = spawnSync('bun', ['src/cli.ts', 'domain-scenario-check', '--worktree', worktree, '--config-dir', configDir], {
