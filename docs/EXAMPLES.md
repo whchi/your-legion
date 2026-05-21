@@ -230,7 +230,7 @@ domains:
         path: ./docs/agent-domain/coding-guardrails.md
 ```
 
-Relative paths resolve from the directory containing `legionaries.yaml`. Use this for repo-versioned decisions that should travel with a project.
+Relative paths resolve from the directory containing the active `legionaries.yaml`, which is the global OpenCode config directory unless `LEGIONARIES_CONFIG` explicitly points elsewhere. Use absolute paths when an override should point at a repo-versioned document.
 
 ## Disable A Domain Component
 

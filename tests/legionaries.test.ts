@@ -33,7 +33,7 @@ test('legionaries config file defines a mixed system-agent model map', () => {
 
 test('legionaries loader resolves the mixed system-agent model map', async () => {
   const { loadLegionariesConfig } = await import('../src/config/legionaries');
-  const result = loadLegionariesConfig({ rootDir });
+  const result = loadLegionariesConfig({ rootDir, configPath: legionariesConfigPath });
 
   assert.equal(result.systemAgents.orchestrator.model, 'openai/gpt-5.5');
   assert.deepEqual(result.systemAgents.orchestrator.reasoning, {

@@ -6,12 +6,11 @@ For copy-paste recipes, see [`EXAMPLES.md`](./EXAMPLES.md). This page is the ref
 
 ## File Location
 
-Place `legionaries.yaml` in one of these locations (checked in order):
+The runtime config file is global:
 
-- `<worktree-root>/legionaries.yaml`
 - `<opencode-config-dir>/legionaries.yaml`
 
-`LEGIONARIES_CONFIG=/absolute/path/to/legionaries.yaml` takes precedence when set.
+There is no project-level `legionaries.yaml` resolution. A `legionaries.yaml` file in the worktree root is ignored. Use `LEGIONARIES_CONFIG=/absolute/path/to/legionaries.yaml` only when you explicitly want to run with a non-global config.
 
 ## Schema
 

@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { isAbsolute, join, resolve } from 'node:path';
@@ -54,18 +54,8 @@ export function resolveLegionariesConfigPath({ rootDir, configPath, configDir }:
     return resolve(process.env.LEGIONARIES_CONFIG);
   }
 
-  const projectConfigPath = join(rootPath, 'legionaries.yaml');
-  if (existsSync(projectConfigPath)) {
-    return projectConfigPath;
-  }
-
   const configRoot = configDir ? resolve(toPath(configDir)) : getOpenCodeConfigDir();
-  const globalConfigPath = join(configRoot, 'legionaries.yaml');
-  if (existsSync(globalConfigPath)) {
-    return globalConfigPath;
-  }
-
-  return projectConfigPath;
+  return join(configRoot, 'legionaries.yaml');
 }
 
 export function getOpenCodeConfigDir(env: NodeJS.ProcessEnv = process.env) {

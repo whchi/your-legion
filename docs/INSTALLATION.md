@@ -122,13 +122,7 @@ The example file is here:
 - [`legionaries.yaml`](../legionaries.yaml)
 - Raw URL: `https://raw.githubusercontent.com/whchi/your-legion/main/legionaries.yaml`
 
-For project-specific overrides, put `legionaries.yaml` in the root of the worktree where you run OpenCode. Project config takes precedence over the global file:
-
-```text
-your-project/legionaries.yaml
-```
-
-If you want to keep the model map somewhere else, start OpenCode with `LEGIONARIES_CONFIG`:
+There is no project-level `legionaries.yaml` resolution. A `legionaries.yaml` file in the worktree root is ignored. If you want to keep the model map somewhere else, start OpenCode with `LEGIONARIES_CONFIG`:
 
 ```bash
 LEGIONARIES_CONFIG=/absolute/path/to/legionaries.yaml opencode

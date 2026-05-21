@@ -134,6 +134,7 @@ test('repo code-reviewer custom agent is injected from custom-agents example', a
   const { buildEffectiveAgentConfig } = await import('../src/runtime/build-agent-config');
   const result = await buildEffectiveAgentConfig({
     rootDir,
+    configPath: legionariesConfigPath,
   });
 
   assert.equal(result.agent['code-reviewer'].mode, 'subagent');

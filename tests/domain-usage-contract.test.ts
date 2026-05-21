@@ -711,12 +711,15 @@ test('domain scenario CLI prints prompts and checks trace evidence', async t => 
   assert.match(check.stdout, /Domain scenario check passed/);
 });
 
-test('built server resolves bundled coding domain from dist artifacts', async () => {
+test('built server resolves bundled coding domain from dist artifacts', async t => {
+  const configDir = makeTempDir(t, 'built-server-empty-config');
   execFileSync('bun', ['run', 'build'], { cwd: rootDir, stdio: 'ignore' });
 
   const built = await import(pathToFileURL(path.join(rootDir, 'dist', 'server.js')).href);
   const result = await built.buildEffectiveAgentConfig({
     rootDir,
+    configPath: path.join(rootDir, 'dist', 'legionaries.yaml'),
+    configDir,
   });
 
   assert.match(result.agent.orchestrator.prompt, /coding\/make-code-change/);

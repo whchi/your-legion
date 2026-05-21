@@ -6,7 +6,7 @@
 
 1. OpenCode loads `your-legion` from the `plugin` array.
 2. `src/index.ts` exports the plugin `server` entrypoint.
-3. The plugin `config` hook reads `legionaries.yaml` from the active worktree or global OpenCode config directory.
+3. The plugin `config` hook reads global `legionaries.yaml` from the OpenCode config directory unless an explicit config path is provided.
 4. `src/config/legionaries.ts` validates `system_agents`, `custom_agents`, and optional reasoning settings.
 5. `src/runtime/agent-definition-provider.ts` loads protected system agent factories and YAML custom agents.
 6. `src/runtime/domain-packs.ts` resolves enabled domain packs from `DOMAIN.md` declarations and same-id overrides.

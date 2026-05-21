@@ -22,6 +22,7 @@ test('plugin runtime builds the full agent config from the mixed legionaries map
   const { buildEffectiveAgentConfig } = await import('../src/runtime/build-agent-config');
   const result = await buildEffectiveAgentConfig({
     rootDir: new URL('../', import.meta.url),
+    configPath: legionariesConfigPath,
   });
 
   assert.equal(result.default_agent, 'orchestrator');
@@ -143,7 +144,9 @@ test('plugin server exposes a config hook that injects Your Legion agents', asyn
       serverUrl: new URL('http://localhost'),
       $: {},
     },
-    {},
+    {
+      configPath: legionariesConfigPath,
+    },
   );
 
   assert.equal(typeof hooks.config, 'function');

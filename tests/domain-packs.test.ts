@@ -108,6 +108,33 @@ Skills:
   assert.doesNotMatch(result.agent.builder.prompt, /use the harness skill tool for Your Legion domain skills/i);
 });
 
+test('runtime reads true domains from global legionaries config without project-level lookup', async t => {
+  const projectDir = makeTempDir(t, 'domain-pack-global-config-project');
+  const configDir = makeTempDir(t, 'domain-pack-global-config');
+  const original = YAML.parse(fs.readFileSync(legionariesConfigPath, 'utf8'));
+
+  fs.writeFileSync(path.join(projectDir, 'legionaries.yaml'), 'system_agents: {}\ndomains:\n  coding: true\n');
+  fs.writeFileSync(
+    path.join(configDir, 'legionaries.yaml'),
+    YAML.stringify({
+      system_agents: systemAgentsFrom(original),
+      domains: {
+        finance: true,
+      },
+    }),
+  );
+
+  const { buildEffectiveAgentConfig } = await import('../src/runtime/build-agent-config');
+  const result = await buildEffectiveAgentConfig({
+    rootDir: projectDir,
+    configDir,
+  });
+
+  assert.match(result.agent.orchestrator.prompt, /### `finance`/);
+  assert.match(result.agent.orchestrator.prompt, /finance\/financial-analysis/);
+  assert.doesNotMatch(result.agent.orchestrator.prompt, /### `coding`/);
+});
+
 test('domain catalog drives active-domain selection with no-domain fallback', async t => {
   const projectDir = makeTempDir(t, 'domain-pack-active-context-project');
   const configDir = makeTempDir(t, 'domain-pack-active-context-config');
@@ -365,6 +392,7 @@ test('default coding domain resolves from bundled domain files', async () => {
   const { buildEffectiveAgentConfig } = await import('../src/runtime/build-agent-config');
   const result = await buildEffectiveAgentConfig({
     rootDir,
+    configPath: legionariesConfigPath,
   });
 
   assert.match(result.agent.orchestrator.prompt, /## Domain Catalog/);
