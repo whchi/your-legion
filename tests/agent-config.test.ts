@@ -1,5 +1,6 @@
-import assert from 'node:assert/strict'
-import test from 'node:test'
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import type { AgentName, PermissionConfig } from '../src/shared/agent-types';
 
 const FORBIDDEN_PROMPT_HOOKS = [
   'better-test-driven-development',
@@ -11,90 +12,135 @@ const FORBIDDEN_PROMPT_HOOKS = [
   'repository-boundary-review',
   'ddd-fit-check',
   'maintainable-code-review',
-]
+];
 
 test('agent registry supports five protected system specialists', async () => {
-  const { REQUIRED_AGENT_NAMES, OPTIONAL_AGENT_NAMES } = await import('../src/shared/agent-types.ts')
-  const { AGENT_FACTORIES, BASE_AGENT_DEFINITIONS } = await import('../src/agents/index.ts')
+  const { REQUIRED_AGENT_NAMES, OPTIONAL_AGENT_NAMES } = await import('../src/shared/agent-types');
+  const { AGENT_FACTORIES, BASE_AGENT_DEFINITIONS } = await import('../src/agents/index');
 
-  assert.deepEqual(REQUIRED_AGENT_NAMES, [
-    'orchestrator',
-    'explorer',
-    'planner',
-    'builder',
-    'librarian',
-  ])
-  assert.deepEqual(OPTIONAL_AGENT_NAMES, [])
-  assert.ok(!('dispatcher' in AGENT_FACTORIES))
-  assert.ok(!('frontend-developer' in AGENT_FACTORIES))
-  assert.ok(!('code-reviewer' in AGENT_FACTORIES))
-  assert.ok(!('dispatcher' in BASE_AGENT_DEFINITIONS))
-  assert.ok(!('frontend-developer' in BASE_AGENT_DEFINITIONS))
-  assert.ok(!('code-reviewer' in BASE_AGENT_DEFINITIONS))
-})
+  assert.deepEqual(REQUIRED_AGENT_NAMES, ['orchestrator', 'explorer', 'planner', 'builder', 'librarian']);
+  assert.deepEqual(OPTIONAL_AGENT_NAMES, []);
+  assert.ok(!('dispatcher' in AGENT_FACTORIES));
+  assert.ok(!('frontend-developer' in AGENT_FACTORIES));
+  assert.ok(!('code-reviewer' in AGENT_FACTORIES));
+  assert.ok(!('dispatcher' in BASE_AGENT_DEFINITIONS));
+  assert.ok(!('frontend-developer' in BASE_AGENT_DEFINITIONS));
+  assert.ok(!('code-reviewer' in BASE_AGENT_DEFINITIONS));
+});
 
 test('orchestrator prompt includes an intent gate and can delegate to explorer and librarian', async () => {
-  const { BASE_AGENT_DEFINITIONS } = await import('../src/agents/index.ts')
-  const orchestrator = BASE_AGENT_DEFINITIONS.orchestrator
+  const { BASE_AGENT_DEFINITIONS } = await import('../src/agents/index');
+  const orchestrator = BASE_AGENT_DEFINITIONS.orchestrator;
+  const taskPermission = orchestrator.permission.task as PermissionConfig;
 
-  assert.equal(orchestrator.mode, 'primary')
-  assert.equal(orchestrator.permission.task.explorer, 'allow')
-  assert.equal(orchestrator.permission.task.librarian, 'allow')
-  assert.equal(orchestrator.permission.task.builder, 'allow')
-  assert.ok(!('dispatcher' in orchestrator.permission.task))
-  assert.ok(!('frontend-developer' in orchestrator.permission.task))
-  assert.ok(!('code-reviewer' in orchestrator.permission.task))
-  assert.match(orchestrator.prompt, /Intent Gate/i)
-  assert.match(orchestrator.prompt, /explore/i)
-  assert.match(orchestrator.prompt, /docs research|library docs|api references/i)
-  assert.doesNotMatch(orchestrator.prompt, /dispatcher/i)
-  assert.doesNotMatch(orchestrator.prompt, /frontend-developer/i)
-  assert.doesNotMatch(orchestrator.prompt, /code-reviewer/i)
-})
+  assert.equal(orchestrator.mode, 'primary');
+  assert.equal(taskPermission.explorer, 'allow');
+  assert.equal(taskPermission.librarian, 'allow');
+  assert.equal(taskPermission.builder, 'allow');
+  assert.ok(!('dispatcher' in taskPermission));
+  assert.ok(!('frontend-developer' in taskPermission));
+  assert.ok(!('code-reviewer' in taskPermission));
+  assert.match(orchestrator.prompt, /Intent Gate/i);
+  assert.match(orchestrator.prompt, /explore/i);
+  assert.match(orchestrator.prompt, /docs research|library docs|api references/i);
+  assert.doesNotMatch(orchestrator.prompt, /dispatcher/i);
+  assert.doesNotMatch(orchestrator.prompt, /frontend-developer/i);
+  assert.doesNotMatch(orchestrator.prompt, /code-reviewer/i);
+});
+
+test('orchestrator prompt requires a compact task context envelope for delegation', async () => {
+  const { BASE_AGENT_DEFINITIONS } = await import('../src/agents/index');
+  const orchestrator = BASE_AGENT_DEFINITIONS.orchestrator;
+
+  assert.match(orchestrator.prompt, /Task Context Envelope/i);
+  assert.match(orchestrator.prompt, /Scenario:/);
+  assert.match(orchestrator.prompt, /Objective:/);
+  assert.match(orchestrator.prompt, /Active domains:/);
+  assert.match(orchestrator.prompt, /Domain refs:/);
+  assert.match(orchestrator.prompt, /Domain skills:/);
+  assert.match(orchestrator.prompt, /Context refs:/);
+  assert.match(orchestrator.prompt, /Constraints:/);
+  assert.match(orchestrator.prompt, /Expected output:/);
+  assert.match(orchestrator.prompt, /Verification:/);
+  assert.match(orchestrator.prompt, /120-180 tokens/);
+});
+
+test('orchestrator prompt treats active domains as task-local responsibilities', async () => {
+  const { BASE_AGENT_DEFINITIONS } = await import('../src/agents/index');
+  const orchestrator = BASE_AGENT_DEFINITIONS.orchestrator;
+
+  assert.match(orchestrator.prompt, /compare the task with the Domain Catalog/i);
+  assert.match(orchestrator.prompt, /Activate every domain whose description materially applies/i);
+  assert.match(orchestrator.prompt, /If no domain description clearly applies/i);
+  assert.match(orchestrator.prompt, /Active domains: none/i);
+  assert.match(orchestrator.prompt, /Domain refs: none/i);
+  assert.match(orchestrator.prompt, /Domain skills: none/i);
+  assert.match(orchestrator.prompt, /coding: implement UI/i);
+  assert.match(orchestrator.prompt, /marketing: write launch copy/i);
+  assert.match(orchestrator.prompt, /Do not blend domain assumptions/i);
+});
 
 test('leaf specialists cannot delegate to other subagents', async () => {
-  const { BASE_AGENT_DEFINITIONS } = await import('../src/agents/index.ts')
+  const { BASE_AGENT_DEFINITIONS } = await import('../src/agents/index');
 
-  assert.equal(BASE_AGENT_DEFINITIONS.builder.permission.task, 'deny')
-  assert.equal(BASE_AGENT_DEFINITIONS.explorer.permission.task, 'deny')
-  assert.equal(BASE_AGENT_DEFINITIONS.librarian.permission.task, 'deny')
-})
+  assert.equal(BASE_AGENT_DEFINITIONS.builder.permission.task, 'deny');
+  assert.equal(BASE_AGENT_DEFINITIONS.explorer.permission.task, 'deny');
+  assert.equal(BASE_AGENT_DEFINITIONS.librarian.permission.task, 'deny');
+});
 
 test('planner is docs-only and cannot modify application code paths', async () => {
-  const { BASE_AGENT_DEFINITIONS } = await import('../src/agents/index.ts')
-  const planner = BASE_AGENT_DEFINITIONS.planner
+  const { BASE_AGENT_DEFINITIONS } = await import('../src/agents/index');
+  const planner = BASE_AGENT_DEFINITIONS.planner;
 
-  assert.equal(planner.mode, 'subagent')
+  assert.equal(planner.mode, 'subagent');
   assert.deepEqual(planner.permission.edit, {
     '*': 'deny',
     'docs/**/*.md': 'allow',
-  })
-  assert.match(planner.prompt, /docs\/\*\*\/\*\.md/i)
-  assert.doesNotMatch(planner.prompt, /write markdown planning documents only by convention/i)
-})
+  });
+  assert.match(planner.prompt, /docs\/\*\*\/\*\.md/i);
+  assert.doesNotMatch(planner.prompt, /write markdown planning documents only by convention/i);
+});
 
 test('builder prompt carries debugging, testing, and verification workflow cues', async () => {
-  const { BASE_AGENT_DEFINITIONS } = await import('../src/agents/index.ts')
-  const builder = BASE_AGENT_DEFINITIONS.builder
+  const { BASE_AGENT_DEFINITIONS } = await import('../src/agents/index');
+  const builder = BASE_AGENT_DEFINITIONS.builder;
 
-  assert.match(builder.prompt, /frontend|UI|accessibility/i)
-  assert.match(builder.prompt, /failing test/i)
-  assert.match(builder.prompt, /narrowest test level/i)
-  assert.match(builder.prompt, /environment, data, and logic/i)
-  assert.match(builder.prompt, /one build or type error at a time/i)
-})
+  assert.match(builder.prompt, /frontend|UI|accessibility/i);
+  assert.match(builder.prompt, /failing test/i);
+  assert.match(builder.prompt, /narrowest test level/i);
+  assert.match(builder.prompt, /environment, data, and logic/i);
+  assert.match(builder.prompt, /one build or type error at a time/i);
+});
 
 test('planner prompt carries structure and boundary review workflow cues', async () => {
-  const { BASE_AGENT_DEFINITIONS } = await import('../src/agents/index.ts')
-  const planner = BASE_AGENT_DEFINITIONS.planner
+  const { BASE_AGENT_DEFINITIONS } = await import('../src/agents/index');
+  const planner = BASE_AGENT_DEFINITIONS.planner;
 
-  assert.match(planner.prompt, /project scale and ownership/i)
-  assert.match(planner.prompt, /persistence access/i)
-  assert.match(planner.prompt, /DDD fit/i)
-})
+  assert.match(planner.prompt, /project scale and ownership/i);
+  assert.match(planner.prompt, /persistence access/i);
+  assert.match(planner.prompt, /DDD fit/i);
+});
+
+test('leaf specialist prompts follow the task context envelope before broader domain context', async () => {
+  const { BASE_AGENT_DEFINITIONS } = await import('../src/agents/index');
+
+  for (const agentName of ['builder', 'planner', 'explorer', 'librarian'] satisfies AgentName[]) {
+    const prompt = BASE_AGENT_DEFINITIONS[agentName].prompt;
+
+    assert.match(prompt, /Task Context Envelope/i, `${agentName} should name the envelope`);
+    assert.match(prompt, /Active domains/i, `${agentName} should honor active domains`);
+    assert.match(prompt, /Domain evidence/i, `${agentName} should report domain evidence`);
+    assert.match(prompt, /Context refs/i, `${agentName} should use context refs`);
+    assert.match(
+      prompt,
+      /If the envelope lacks correctness-critical context, ask instead of guessing/i,
+      `${agentName} should stop when the envelope is insufficient`,
+    );
+  }
+});
 
 test('agent prompts inline workflows instead of hardcoding skill hooks', async () => {
-  const { BASE_AGENT_DEFINITIONS } = await import('../src/agents/index.ts')
+  const { BASE_AGENT_DEFINITIONS } = await import('../src/agents/index');
 
   for (const [agentName, definition] of Object.entries(BASE_AGENT_DEFINITIONS)) {
     for (const hook of FORBIDDEN_PROMPT_HOOKS) {
@@ -102,63 +148,63 @@ test('agent prompts inline workflows instead of hardcoding skill hooks', async (
         definition.prompt,
         new RegExp(hook, 'i'),
         `${agentName} prompt should inline ${hook} workflow instead of naming the hook`,
-      )
+      );
     }
   }
-})
+});
 
 test('explorer is read-only and cannot delegate', async () => {
-  const { BASE_AGENT_DEFINITIONS } = await import('../src/agents/index.ts')
-  const explorer = BASE_AGENT_DEFINITIONS.explorer
+  const { BASE_AGENT_DEFINITIONS } = await import('../src/agents/index');
+  const explorer = BASE_AGENT_DEFINITIONS.explorer;
 
-  assert.equal(explorer.mode, 'subagent')
-  assert.equal(explorer.permission.edit, 'deny')
-  assert.ok(!('write' in explorer.permission))
-  assert.equal(explorer.permission.bash, 'deny')
-  assert.equal(explorer.permission.task, 'deny')
-})
+  assert.equal(explorer.mode, 'subagent');
+  assert.equal(explorer.permission.edit, 'deny');
+  assert.ok(!('write' in explorer.permission));
+  assert.equal(explorer.permission.bash, 'deny');
+  assert.equal(explorer.permission.task, 'deny');
+});
 
 test('librarian is read-only and cannot delegate', async () => {
-  const { BASE_AGENT_DEFINITIONS } = await import('../src/agents/index.ts')
-  const librarian = BASE_AGENT_DEFINITIONS.librarian
+  const { BASE_AGENT_DEFINITIONS } = await import('../src/agents/index');
+  const librarian = BASE_AGENT_DEFINITIONS.librarian;
 
-  assert.equal(librarian.mode, 'subagent')
-  assert.equal(librarian.permission.edit, 'deny')
-  assert.ok(!('write' in librarian.permission))
-  assert.equal(librarian.permission.task, 'deny')
-  assert.equal(librarian.permission['context7_resolve-library-id'], 'allow')
-  assert.equal(librarian.permission['context7_query-docs'], 'allow')
-  assert.match(librarian.prompt, /Context7/i)
-  assert.match(librarian.prompt, /documentation|API|reference/i)
-})
+  assert.equal(librarian.mode, 'subagent');
+  assert.equal(librarian.permission.edit, 'deny');
+  assert.ok(!('write' in librarian.permission));
+  assert.equal(librarian.permission.task, 'deny');
+  assert.equal(librarian.permission['context7_resolve-library-id'], 'allow');
+  assert.equal(librarian.permission['context7_query-docs'], 'allow');
+  assert.match(librarian.prompt, /Context7/i);
+  assert.match(librarian.prompt, /documentation|API|reference/i);
+});
 
 test('every agent factory exposes a static mode property', async () => {
-  const { AGENT_FACTORIES } = await import('../src/agents/index.ts')
+  const { AGENT_FACTORIES } = await import('../src/agents/index');
 
   for (const [name, factory] of Object.entries(AGENT_FACTORIES)) {
     assert.ok(
       ['primary', 'subagent', 'all'].includes(factory.mode),
       `${name} factory.mode should be a valid AgentMode`,
-    )
+    );
   }
-})
+});
 
 test('buildAgentDefinition produces valid config from factory', async () => {
-  const { buildAgentDefinition } = await import('../src/agents/index.ts')
+  const { buildAgentDefinition } = await import('../src/agents/index');
 
-  const orchestrator = buildAgentDefinition('orchestrator', 'openai/gpt-5.5')
-  assert.equal(orchestrator.mode, 'primary')
-  assert.equal(orchestrator.permission.bash, 'deny')
-  assert.match(orchestrator.prompt, /Orchestrator/)
+  const orchestrator = buildAgentDefinition('orchestrator', 'openai/gpt-5.5');
+  assert.equal(orchestrator.mode, 'primary');
+  assert.equal(orchestrator.permission.bash, 'deny');
+  assert.match(orchestrator.prompt, /Orchestrator/);
 
-  const builder = buildAgentDefinition('builder', 'opencode-go/kimi-k2.6')
-  assert.equal(builder.mode, 'subagent')
-  assert.equal(builder.permission.edit, 'allow')
-  assert.match(builder.prompt, /Builder/)
+  const builder = buildAgentDefinition('builder', 'opencode-go/kimi-k2.6');
+  assert.equal(builder.mode, 'subagent');
+  assert.equal(builder.permission.edit, 'allow');
+  assert.match(builder.prompt, /Builder/);
 
-  const planner = buildAgentDefinition('planner', 'openai/gpt-5.5')
+  const planner = buildAgentDefinition('planner', 'openai/gpt-5.5');
   assert.deepEqual(planner.permission.edit, {
     '*': 'deny',
     'docs/**/*.md': 'allow',
-  })
-})
+  });
+});

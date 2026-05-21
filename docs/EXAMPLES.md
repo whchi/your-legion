@@ -1,0 +1,274 @@
+# Examples
+
+This page is the fastest path from "installed" to "I know how to shape this system."
+
+## Minimal `legionaries.yaml`
+
+Use this when you want one provider and no custom agents:
+
+```yaml
+system_agents:
+  orchestrator:
+    model: openai/gpt-5.5
+    reasoning:
+      effort: medium
+  explorer:
+    model: openai/gpt-5.5
+  librarian:
+    model: openai/gpt-5.5
+  planner:
+    model: openai/gpt-5.5
+  builder:
+    model: openai/gpt-5.5
+custom_agents: {}
+domains:
+  coding: true
+```
+
+Every required system agent must be listed. `custom_agents: {}` disables YAML custom agents.
+
+## Mixed Providers
+
+Use this when you want a stronger router and planner, with cheaper implementation and discovery models:
+
+```yaml
+system_agents:
+  orchestrator:
+    model: openai/gpt-5.5
+    reasoning:
+      effort: medium
+  explorer:
+    model: opencode-go/deepseek-v4-flash
+    reasoning:
+      effort: max
+  librarian:
+    model: opencode-go/minimax-m2.7
+  planner:
+    model: openai/gpt-5.5
+    reasoning:
+      effort: high
+  builder:
+    model: opencode-go/kimi-k2.6
+custom_agents:
+  code-reviewer:
+    model: openai/gpt-5.5
+    reasoning:
+      effort: high
+domains:
+  coding: true
+```
+
+This is the style used by the repo's bundled example.
+
+## Add A Marketing Domain Pack
+
+Scaffold the domain manifest:
+
+```bash
+bunx @whchi/your-legion create-domain marketing
+```
+
+Use a new custom id here. `create-domain` refuses existing global domains and bundled domain ids, so do not use it to recreate `coding`, `marketing`, `finance`, or `accounting`.
+
+This creates:
+
+```text
+~/.config/opencode/your-legion/domains/marketing/
+└── DOMAIN.md
+```
+
+Edit `DOMAIN.md` with semantic routing guidance: when to use the marketing domain, when not to use it, and the domain-root relative `Workflows`, `Decisions`, `Examples`, and `Skills` paths.
+
+Add only the component facets that carry real knowledge. For a marketing pack with campaign workflow, brand decisions, examples, and a domain skill, either create those files yourself or scaffold the folders and matching placeholders explicitly:
+
+```bash
+bunx @whchi/your-legion create-domain marketing --components workflows,decisions,examples,skills
+```
+
+Create and enable in one command after installation:
+
+```bash
+bunx @whchi/your-legion create-domain marketing --components workflows,decisions,examples,skills --enable
+```
+
+Then add the domain documents you want agents to see:
+
+Example `skills/campaign-brief/SKILL.md`:
+
+```markdown
+# Campaign Brief
+
+Use this when a task needs launch positioning, audience definition, channel choices, or campaign copy.
+
+Return:
+
+- target audience
+- positioning angle
+- channel plan
+- copy constraints
+- success metric
+```
+
+List that skill in `DOMAIN.md` with a path relative to the marketing domain root:
+
+```md
+Skills:
+- `skills/campaign-brief/SKILL.md`
+```
+
+Enable it:
+
+```yaml
+domains:
+  coding: true
+  marketing: true
+```
+
+After restart, Your Legion injects the marketing description and namespaced entries such as `marketing/campaign-brief` into the Domain Catalog.
+
+Agent scripts can call the same scaffold behavior directly:
+
+```ts
+import { createDomainPack } from '@whchi/your-legion/server'
+
+createDomainPack({
+  domainID: 'marketing',
+  configDir: process.env.XDG_CONFIG_HOME
+    ? `${process.env.XDG_CONFIG_HOME}/opencode`
+    : `${process.env.HOME}/.config/opencode`,
+})
+```
+
+## Mixed Coding And Marketing Work
+
+Mixed-domain work should be split by responsibility inside the Task Context Envelope. The Domain Catalog describes which domains are available; `Active domains` is the task-local contract for a specific delegation.
+
+Good delegation shape:
+
+```text
+Objective: Add a launch banner and matching launch copy.
+Active domains:
+- coding: implement the banner UI and tests
+- marketing: write concise launch copy for developers
+Domain refs:
+- coding/implementation-loop
+Domain skills:
+- coding/make-code-change
+- marketing/campaign-brief
+Context refs:
+- src/pages/launch.tsx
+Constraints: Keep the change local; do not alter pricing or signup flow.
+Expected output: Files changed, copy used, verification results.
+Verification: Run the focused UI test and relevant build check.
+```
+
+Avoid vague active domains like `coding, marketing`. Name what each domain owns.
+
+After the run, inspect runtime evidence:
+
+```bash
+bunx @whchi/your-legion check --worktree .
+bunx @whchi/your-legion trace --worktree . --limit 10
+```
+
+`delegation` events show which domains and skills were requested. `domain-read` events show which domain docs or domain skills were actually read.
+`check` fails if `DOMAIN.md` declarations are invalid, a delegation declared unknown domain evidence, or a declared domain ref/skill was never read.
+
+For repeatable validation, use the fixed scenario set:
+
+```bash
+bunx @whchi/your-legion domain-scenarios
+```
+
+Ask the printed prompts, then run:
+
+```bash
+bunx @whchi/your-legion check --worktree . --scenarios
+```
+
+## Add A Custom Agent
+
+Create `src/custom-agents/scribe.yaml`:
+
+```yaml
+name: scribe
+description: Writes release notes and changelogs from repository context
+permission:
+  read: allow
+  glob: allow
+  grep: allow
+  edit: deny
+  bash: deny
+  task: deny
+prompt: |-
+  # Scribe
+
+  Write concise release notes from repository context.
+```
+
+Enable it in `legionaries.yaml`:
+
+```yaml
+custom_agents:
+  scribe:
+    model: openai/gpt-5.5
+    reasoning:
+      effort: low
+```
+
+The filename, YAML `name`, and `custom_agents` key must match. Custom agents run as subagents and cannot replace system agent names such as `builder`, `planner`, or `explorer`.
+
+## Override A Bundled Domain Component
+
+Use an override when you want to replace one component id already declared in the selected `DOMAIN.md`:
+
+```yaml
+domains:
+  coding:
+    decisions:
+      engineering-guardrails:
+        path: ./docs/agent-domain/coding-guardrails.md
+```
+
+Relative paths resolve from the directory containing `legionaries.yaml`. Use this for repo-versioned decisions that should travel with a project.
+
+## Disable A Domain Component
+
+Use `false` when one component declared in `DOMAIN.md` should not appear in the index:
+
+```yaml
+domains:
+  marketing:
+    skills:
+      campaign-brief: false
+```
+
+## First Smoke Tests
+
+After installing and restarting OpenCode, try:
+
+```text
+Explore where runtime agent config is assembled.
+```
+
+Expected route: `explorer`.
+
+```text
+Plan a small change that adds a new custom agent example.
+```
+
+Expected route: `planner`.
+
+```text
+Implement a small docs-only typo fix and verify it.
+```
+
+Expected route: `builder`.
+
+```text
+Look up the official docs for a library API before changing code.
+```
+
+Expected route: `librarian`.
+
+For review-only work, use `/code-review`; code review is command-owned by default.

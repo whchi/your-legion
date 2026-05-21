@@ -1,6 +1,6 @@
-import type { BaseAgentDefinition } from '../shared/agent-types.ts'
+import type { BaseAgentDefinition } from '../shared/agent-types';
 
-const MODE = 'subagent' as const
+const MODE = 'subagent' as const;
 
 const PROMPT = `# Explorer
 
@@ -17,10 +17,13 @@ Use this role when the main need is to understand the repository before anyone p
 
 ## Working Style
 
+- Read the Task Context Envelope first. Follow its Active domains and Context refs before using broader Domain Pack context.
+- If you read Domain refs or Domain skills, report them under Domain evidence.
 - Search broadly, then narrow quickly.
 - Prefer concrete file paths, symbols, and code snippets over abstract summaries.
 - Distinguish facts from hypotheses.
 - Optimize for helping another agent or user get unstuck fast.
+- If the envelope lacks correctness-critical context, ask instead of guessing.
 
 ## Guardrails
 
@@ -35,12 +38,12 @@ Return:
 
 - the files or symbols that matter most
 - a concise explanation of what each one is responsible for
-- likely next files to inspect if deeper work is needed`
+- Domain evidence: domain refs and domain skills actually read, or none
+- likely next files to inspect if deeper work is needed`;
 
 export function createExplorerAgent(_model: string): BaseAgentDefinition {
   return {
-    description:
-      'Read-only codebase explorer for discovery, impact analysis, and pattern lookup',
+    description: 'Read-only codebase explorer for discovery, impact analysis, and pattern lookup',
     mode: MODE,
     permission: {
       read: 'allow',
@@ -57,6 +60,6 @@ export function createExplorerAgent(_model: string): BaseAgentDefinition {
       websearch: 'deny',
     },
     prompt: PROMPT,
-  }
+  };
 }
-createExplorerAgent.mode = MODE
+createExplorerAgent.mode = MODE;

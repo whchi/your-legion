@@ -9,8 +9,9 @@
 3. The plugin `config` hook reads `legionaries.yaml` from the active worktree or global OpenCode config directory.
 4. `src/config/legionaries.ts` validates `system_agents`, `custom_agents`, and optional reasoning settings.
 5. `src/runtime/agent-definition-provider.ts` loads protected system agent factories and YAML custom agents.
-6. `src/runtime/build-agent-config.ts` merges config with agent providers and DIO commands.
-7. The hook mutates `config.default_agent`, `config.agent`, and `config.command` in place.
+6. `src/runtime/domain-packs.ts` resolves enabled domain packs from `DOMAIN.md` declarations and same-id overrides.
+7. `src/runtime/build-agent-config.ts` merges config with agent providers, the domain index, and DIO commands.
+8. The hook mutates `config.default_agent`, `config.agent`, and `config.command` in place.
 
 There is no markdown frontmatter rewrite step.
 
@@ -23,6 +24,10 @@ There is no markdown frontmatter rewrite step.
 - `src/config/legionaries.ts`: YAML loading and validation
 - `src/runtime/agent-definition-provider.ts`: system and YAML custom agent provider loading
 - `src/runtime/build-agent-config.ts`: final runtime config assembly
+- `src/runtime/domain-packs.ts`: `DOMAIN.md`-declared domain pack discovery and Domain Catalog prompt section
+- `src/runtime/domain-usage-contract.ts`: Task Context Envelope parsing, warn-only domain validation, and JSONL trace evidence
+- `docs/academic-papers-summary.md`: paper references and claim boundaries behind domain routing and runtime evidence
+- `src/domains/`: bundled domain packs copied to `dist/domains` at build time
 - `src/runtime/dio-loop.ts`: in-memory `/dio` session loop
 - `src/index.ts`: plugin entrypoint and config injection hook
 - `src/custom-agents/*.yaml`: custom agent definitions
@@ -84,8 +89,14 @@ Your Legion uses direct specialist routing rather than a category-first runtime.
 - `planner`, `builder`, `explorer`, and `librarian` are leaf specialists.
 - Leaf specialists should not orchestrate other leaf specialists.
 - Code review is command-owned by `/code-review` by default; `code-reviewer` is a custom agent example and not part of the protected system set.
-- `legionaries.yaml` configures per-agent models and reasoning only. It does not decide which agent gets selected.
+- `legionaries.yaml` configures per-agent models, reasoning, custom-agent enablement, and domain pack enablement. It does not decide which agent gets selected.
 - Custom agents are available to the orchestrator when configured and discovered; routing guidance is augmented at runtime with their descriptions.
+- `domains` in `legionaries.yaml` enables domain packs. Domain packs add a shared domain index and namespaced domain skills to the same agents; they do not create new runtime agents.
+- The orchestrator activates domain context per delegation with a compact Task Context Envelope. Enabled domains are an index; `Active domains` marks the task-local responsibilities.
+- Domain descriptions and component paths come only from `DOMAIN.md`.
+- Domain skills are read from explicit configured paths in the Domain Catalog and are intentionally not registered as harness top-level skills.
+- No configured domain and no matching domain description both fall back to no-domain delegation: `Active domains: none`, `Domain refs: none`, `Domain skills: none`.
+- Domain usage is observable through warn-only trace events under `~/.config/opencode/your-legion/traces/`.
 
 ## Routing Boundaries
 
@@ -103,6 +114,20 @@ Your Legion uses direct specialist routing rather than a category-first runtime.
 - The plugin injects the resolved `model` string into every agent config at startup.
 - The plugin passes configured reasoning settings through to `agent.options.reasoning`.
 - Different agents may use different providers in the same config.
+
+## Domain Packs
+
+- Domain packs live under `~/.config/opencode/your-legion/domains/<domain-id>/`.
+- Bundled domain packs live under `src/domains/<domain-id>/`; global domain packs can extend or override them by id.
+- `DOMAIN.md` is the description-driven routing contract. Resolution order is global `DOMAIN.md`, bundled `DOMAIN.md`, then fallback to domain id.
+- Optional component folders are `workflows/`, `decisions/`, `examples/`, and `skills/`; create only folders with real domain knowledge and list domain-root relative paths in `DOMAIN.md`.
+- Enable a domain with `domains.<domain-id>: true`.
+- Override or disable specific declared components with `domains.<domain-id>.<component>.<id>.path` or `false`.
+- A same-id override replaces the declared file path; overrides do not add components that are absent from `DOMAIN.md`.
+- Domain ids and component ids use the same kebab-case style as agent names.
+- `bunx @whchi/your-legion create-domain <domain-id>` creates `DOMAIN.md` only for a new custom id; pass `--components decisions,skills` to scaffold selected facets, and `--enable` to write it into `legionaries.yaml`. It must reject existing global domains and bundled domain ids.
+- Runtime evidence records `delegation` and `domain-read` events. Use `bunx @whchi/your-legion check --worktree .` for acceptance; it fails when `DOMAIN.md` declarations are invalid or declared domain refs/skills were not read.
+- Use `bunx @whchi/your-legion domain-scenarios` and `bunx @whchi/your-legion check --worktree . --scenarios` for the fixed coding, marketing, finance, accounting, and mixed-domain validation set.
 
 This repo ships an example mixed-provider mapping using `openai`, `github-copilot`, and `opencode-go`.
 
@@ -140,6 +165,6 @@ OpenCode should be configured like this:
 
 ## Verification
 
-- `tests/plugin-runtime.test.js` verifies runtime config assembly and plugin injection.
-- `tests/legionaries.test.js` verifies model-map parsing and validation.
-- `tests/agent-config.test.js` verifies the expected agent behaviors and permissions survive the migration to `src/agents/`.
+- `tests/plugin-runtime.test.ts` verifies runtime config assembly and plugin injection.
+- `tests/legionaries.test.ts` verifies model-map parsing and validation.
+- `tests/agent-config.test.ts` verifies the expected agent behaviors and permissions survive the migration to `src/agents/`.

@@ -1,6 +1,6 @@
-import type { BaseAgentDefinition } from '../shared/agent-types.ts'
+import type { BaseAgentDefinition } from '../shared/agent-types';
 
-const MODE = 'subagent' as const
+const MODE = 'subagent' as const;
 
 const PROMPT = `# Builder
 
@@ -28,11 +28,14 @@ Play the role of a deep worker: make the change, keep it small, verify it, and r
 
 ## Working Style
 
+- Read the Task Context Envelope first. Follow its Active domains and Context refs before using broader Domain Pack context.
+- If you read Domain refs or Domain skills, report them under Domain evidence.
 - Read the plan or task carefully before changing code.
 - Follow existing project patterns.
 - Prefer the smallest correct change.
 - Add or update tests when behavior changes.
 - Run verification before claiming success.
+- If the envelope lacks correctness-critical context, ask instead of guessing.
 
 ## Boundaries
 
@@ -46,13 +49,13 @@ Return:
 
 - files changed
 - what was implemented
+- Domain evidence: domain refs and domain skills actually read, or none
 - verification commands run and outcomes
-- any remaining follow-up or risk`
+- any remaining follow-up or risk`;
 
 export function createBuilderAgent(_model: string): BaseAgentDefinition {
   return {
-    description:
-      'Implementation specialist for approved plans, code changes, tests, and UI work',
+    description: 'Implementation specialist for approved plans, code changes, tests, and UI work',
     mode: MODE,
     permission: {
       read: 'allow',
@@ -69,6 +72,6 @@ export function createBuilderAgent(_model: string): BaseAgentDefinition {
       websearch: 'deny',
     },
     prompt: PROMPT,
-  }
+  };
 }
-createBuilderAgent.mode = MODE
+createBuilderAgent.mode = MODE;

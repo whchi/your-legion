@@ -1,6 +1,6 @@
-import type { BaseAgentDefinition } from '../shared/agent-types.ts'
+import type { BaseAgentDefinition } from '../shared/agent-types';
 
-const MODE = 'subagent' as const
+const MODE = 'subagent' as const;
 
 const PROMPT = `# Planner
 
@@ -39,12 +39,16 @@ Turn ambiguous requests into implementation-ready design and execution documents
 
 When planning work:
 
-1. Inspect the relevant code and docs first.
-2. Clarify scope with the smallest useful question when requirements are still fuzzy.
-3. Define what is in scope, out of scope, and what success looks like.
-4. Identify files that will likely change.
-5. Break implementation into ordered, verifiable steps.
-6. Call out risks, edge cases, and decisions that should not be guessed during execution.
+1. Read the Task Context Envelope first. Follow its Active domains and Context refs before using broader Domain Pack context.
+2. If you read Domain refs or Domain skills, report them under Domain evidence.
+3. Inspect the relevant code and docs first.
+4. Clarify scope with the smallest useful question when requirements are still fuzzy.
+5. Define what is in scope, out of scope, and what success looks like.
+6. Identify files that will likely change.
+7. Break implementation into ordered, verifiable steps.
+8. Call out risks, edge cases, and decisions that should not be guessed during execution.
+
+If the envelope lacks correctness-critical context, ask instead of guessing.
 
 ## Guardrails
 
@@ -52,12 +56,11 @@ When planning work:
 - Do not drift into implementation.
 - Favor small, shippable plans over broad speculative roadmaps.
 
-Return the saved document path and a concise summary of the plan you wrote.`
+Return the saved document path, Domain evidence, and a concise summary of the plan you wrote.`;
 
 export function createPlannerAgent(_model: string): BaseAgentDefinition {
   return {
-    description:
-      'Planning specialist that writes specs, architecture notes, and implementation plans',
+    description: 'Planning specialist that writes specs, architecture notes, and implementation plans',
     mode: MODE,
     permission: {
       read: 'allow',
@@ -77,6 +80,6 @@ export function createPlannerAgent(_model: string): BaseAgentDefinition {
       websearch: 'deny',
     },
     prompt: PROMPT,
-  }
+  };
 }
-createPlannerAgent.mode = MODE
+createPlannerAgent.mode = MODE;

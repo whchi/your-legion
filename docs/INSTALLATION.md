@@ -2,7 +2,7 @@
 
 ## Install
 
-Run the installer:
+Use `bunx` when you have not installed the CLI globally:
 
 ```bash
 bunx @whchi/your-legion install
@@ -14,18 +14,70 @@ Or with npm:
 npx @whchi/your-legion install
 ```
 
-The installer writes:
+If you want the shorter `your-legion <command>` form, install the package globally first:
 
-- `~/.config/opencode/opencode.json`, or updates an existing `~/.config/opencode/opencode.jsonc`
+```bash
+bun install -g @whchi/your-legion
+your-legion install
+```
+
+The rest of these docs use `bunx @whchi/your-legion ...` so every command is executable without assuming a global install.
+
+On first install, the installer writes:
+
+- `~/.config/opencode/opencode.json`
 - `~/.config/opencode/legionaries.yaml`
+- `~/.config/opencode/your-legion/domains/`
 
-If `legionaries.yaml` already exists, it is backed up first using this format:
+The installer intentionally writes `opencode.json`. It does not modify existing `opencode.jsonc` files.
+
+On reinstall, `install` preserves an existing `legionaries.yaml` unless you explicitly ask to change domains. It still ensures the plugin is registered and the base domain directory exists.
+
+The first install enables `coding` by default.
+
+To replace the enabled domain list, pass a comma-separated `--domains` list:
+
+```bash
+bunx @whchi/your-legion install --domains coding,marketing,finance,accounting
+```
+
+To add domains without removing the existing enabled domains, use `--add-domains`:
+
+```bash
+bunx @whchi/your-legion install --add-domains marketing,finance
+```
+
+Available bundled domains are `coding`, `marketing`, `finance`, and `accounting`. `--domains` and `--add-domains` also accept a custom domain after that domain has been created under `~/.config/opencode/your-legion/domains/<domain-id>/DOMAIN.md`.
+
+`--domains` and `--add-domains` are mutually exclusive:
+
+- `install`: first install creates config with `coding`; reinstall preserves existing config.
+- `install --domains coding,marketing`: replaces `domains:` with exactly `coding` and `marketing`.
+- `install --add-domains marketing,finance`: keeps existing `domains:` and adds `marketing` and `finance`.
+
+If `legionaries.yaml` already exists and the command will change it, it is backed up first using this format:
 
 ```text
 ~/.config/opencode/legionaries.yaml.bak.2026-01-25T11-18-28-014Z
 ```
 
 Restart OpenCode after installation.
+
+## Smoke Test
+
+After restart, send a small discovery request:
+
+```text
+Explore where Your Legion builds the runtime agent config.
+```
+
+The default `orchestrator` should route this to `explorer`. Then try a small implementation request to confirm `builder` is available:
+
+```text
+Implement a tiny docs-only wording fix and report verification.
+```
+
+For more startup recipes, see [`EXAMPLES.md`](./EXAMPLES.md).
 
 ## Manual OpenCode Config
 
@@ -82,6 +134,106 @@ LEGIONARIES_CONFIG=/absolute/path/to/legionaries.yaml opencode
 ```
 
 Use `LEGIONARIES_CONFIG` for an explicit config path.
+
+## Domain Pack Directories
+
+Your Legion uses global directories for optional domain packs:
+
+```text
+~/.config/opencode/your-legion/domains/
+└── <domain-id>/
+    ├── DOMAIN.md   # domain description used in routing
+    ├── workflows/   # optional
+    ├── decisions/   # optional
+    ├── examples/    # optional
+    └── skills/      # optional
+```
+
+The installer creates the base `domains/` directory. Add domain folders only for the domains you want to enable.
+
+Create a domain pack manifest with the CLI:
+
+```bash
+bunx @whchi/your-legion create-domain marketing
+```
+
+`create-domain` is for new custom domain ids. It fails if the domain already exists globally or if the id is one of the bundled domains: `coding`, `marketing`, `finance`, or `accounting`.
+
+For an explicit config directory, useful in tests or agent scripts:
+
+```bash
+bunx @whchi/your-legion create-domain marketing --config-dir ~/.config/opencode
+```
+
+By default this creates only `DOMAIN.md`. `DOMAIN.md` is the only description and component catalog used in the Domain Catalog. Component folders are optional capability facets; create them only when that domain has real versioned knowledge for the facet. Runtime only includes component paths listed in `DOMAIN.md`; unlisted folders are treated as absent.
+
+To scaffold selected component folders and matching placeholder files in one command:
+
+```bash
+bunx @whchi/your-legion create-domain marketing --components workflows,decisions,skills
+```
+
+Available components are `workflows`, `decisions`, `examples`, and `skills`. Each selected component also gets a placeholder file that matches the path declared in `DOMAIN.md`; selected skills get a placeholder `SKILL.md` with `name` and `description` frontmatter. Without `--enable`, the command prints a `legionaries.yaml` snippet so you can enable the domain manually.
+
+To create and enable the domain in an already-installed `legionaries.yaml` in one command:
+
+```bash
+bunx @whchi/your-legion create-domain marketing --components workflows,decisions,skills --enable
+```
+
+To create first and enable during install:
+
+```bash
+bunx @whchi/your-legion create-domain product-ops --components decisions,skills
+bunx @whchi/your-legion install --add-domains product-ops
+```
+
+Use `--domains coding,product-ops` only when you intentionally want to replace the full enabled domain list.
+
+Enable global or bundled domain packs in `legionaries.yaml`:
+
+```yaml
+domains:
+  coding: true
+  marketing: true
+  finance: true
+  accounting: true
+```
+
+The bundled `coding` domain is enabled by the default config. The other bundled domains become available when enabled. To replace a bundled domain intentionally, author a global `DOMAIN.md` under `~/.config/opencode/your-legion/domains/<domain-id>/` yourself and list the component paths that should be exposed. `create-domain` refuses bundled ids because it is a new-domain scaffold command.
+
+If you already keep shared skills in your harness/global skill directory, mount the exact file path into a domain with an override:
+
+```yaml
+domains:
+  financial-analytics:
+    skills:
+      common-data-query:
+        path: ~/.config/opencode/skills/sql-query.md
+```
+
+Domain skills are injected into Your Legion prompts as explicit paths. They are not registered as top-level OpenCode, Codex, or Claude skills, and Your Legion does not create a separate shared skill directory.
+
+To verify domain usage after a session, inspect the trace for the current worktree:
+
+```bash
+bunx @whchi/your-legion check --worktree .
+bunx @whchi/your-legion trace --worktree . --limit 10
+```
+
+Trace events are stored under `~/.config/opencode/your-legion/traces/`. Contract warnings are warn-only at runtime, but `check` exits non-zero so local verification can catch invalid `DOMAIN.md` declarations, vague active domains, unknown domain refs, unknown domain skills, or declared domain refs and skills that were never read.
+
+For a fixed acceptance flow, print the built-in domain scenario prompts:
+
+```bash
+bunx @whchi/your-legion domain-scenarios
+```
+
+Run the printed prompts in OpenCode, then verify that trace evidence contains the fixed domain scenario set:
+
+```bash
+bunx @whchi/your-legion check --worktree . --scenarios
+```
 
 ## Supported Providers
 
