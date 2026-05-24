@@ -170,8 +170,6 @@ Your Legion uses direct specialist routing.
 - `bunx @whchi/your-legion trace-check [--worktree <path>]`: low-level trace validation for contract warnings and declared domain refs or skills that were not read.
 - `bunx @whchi/your-legion domain-scenarios`: prints the fixed domain scenario prompts.
 - `bunx @whchi/your-legion domain-scenario-check [--worktree <path>]`: low-level fixed scenario validation; `check --scenarios` is the preferred entrypoint.
-- `/dio`: a devotio-inspired completion loop that keeps the current session moving until the assistant emits `<dio_complete>...</dio_complete>`, `/dio-stop` is run, or the iteration guard is reached.
-- `/dio-stop`: cancels the active DIO loop for the current session.
 
 ## Development
 

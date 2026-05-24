@@ -244,8 +244,6 @@ Model values must use `provider/model-id` format, for example `openai/gpt-5.5`.
 
 Every required system agent must have a model mapping under `system_agents`. Custom agents can be enabled under `custom_agents` after adding a matching YAML file under `src/custom-agents/`. The bundled config enables `src/custom-agents/code-reviewer.yaml` as the real custom-agent example. Optional `reasoning.effort` values are `low`, `medium`, `high`, `xhigh`, and `max`.
 
-The plugin also injects `/dio` and `/dio-stop` commands for a session-local completion loop.
-
 ## Uninstall
 
 Remove `@whchi/your-legion` from your OpenCode `plugin` array in whichever config file you used:

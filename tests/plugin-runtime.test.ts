@@ -36,9 +36,6 @@ test('plugin runtime builds the full agent config from the mixed legionaries map
   assert.match(result.agent['code-reviewer'].prompt, /Findings/i);
   assert.ok(!('dispatcher' in result.agent));
   assert.ok(!('frontend-developer' in result.agent));
-  assert.match(result.command.dio.description, /devotio/i);
-  assert.match(result.command.dio.template, /<dio_complete>/);
-  assert.match(result.command['dio-stop'].description, /cancel/i);
 });
 
 test('plugin runtime supports alternate mixed legionaries config files', async () => {
@@ -158,8 +155,6 @@ test('plugin server exposes a config hook that injects Your Legion agents', asyn
   });
   assert.equal(config.agent?.builder.mode, 'subagent');
   assert.equal(config.agent?.['code-reviewer'].mode, 'subagent');
-  assert.match(config.command?.dio.template ?? '', /\$ARGUMENTS/);
-  assert.match(config.command?.['dio-stop'].template ?? '', /cancel/i);
   assert.ok(config.agent && !('dispatcher' in config.agent));
   assert.ok(config.agent && !('frontend-developer' in config.agent));
 });

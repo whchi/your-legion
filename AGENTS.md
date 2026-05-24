@@ -10,8 +10,8 @@
 4. `src/config/legionaries.ts` validates `system_agents`, `custom_agents`, and optional reasoning settings.
 5. `src/runtime/agent-definition-provider.ts` loads protected system agent factories and YAML custom agents.
 6. `src/runtime/domain-packs.ts` resolves enabled domain packs from `DOMAIN.md` declarations and same-id overrides.
-7. `src/runtime/build-agent-config.ts` merges config with agent providers, the domain index, and DIO commands.
-8. The hook mutates `config.default_agent`, `config.agent`, and `config.command` in place.
+7. `src/runtime/build-agent-config.ts` merges config with agent providers and the domain index.
+8. The hook mutates `config.default_agent` and `config.agent` in place.
 
 There is no markdown frontmatter rewrite step.
 
@@ -28,7 +28,6 @@ There is no markdown frontmatter rewrite step.
 - `src/runtime/domain-usage-contract.ts`: Task Context Envelope parsing, warn-only domain validation, and JSONL trace evidence
 - `docs/academic-papers-summary.md`: paper references and claim boundaries behind domain routing and runtime evidence
 - `src/domains/`: bundled domain packs copied to `dist/domains` at build time
-- `src/runtime/dio-loop.ts`: in-memory `/dio` session loop
 - `src/index.ts`: plugin entrypoint and config injection hook
 - `src/custom-agents/*.yaml`: custom agent definitions
 - `temp/`: gitignored local temp artifacts for tests and config experiments
@@ -161,13 +160,6 @@ OpenCode should be configured like this:
 4. Update routing guidance in `src/agents/orchestrator.ts` when the new system agent changes delegation behavior.
 5. Update docs in `README.md` and `AGENTS.md` if the topology or routing contract changes.
 6. Update tests under `tests/`.
-
-## DIO Command
-
-- `/dio` is a plugin-owned devotio completion loop.
-- The loop is in memory per OpenCode session.
-- It continues on `session.idle` until `<dio_complete>...</dio_complete>` appears, `/dio-stop` cancels it, or the max-iteration guard is reached.
-- DIO state does not persist across OpenCode restarts.
 
 ## Verification
 

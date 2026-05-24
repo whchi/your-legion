@@ -8,10 +8,9 @@ This document covers repository development for `your-legion`. User-facing insta
 - `src/index.ts` registers a server hook that mutates OpenCode config in place.
 - `src/config/legionaries.ts` reads and validates the global runtime `legionaries.yaml`.
 - `src/runtime/agent-definition-provider.ts` loads protected system agent factories and YAML custom agents.
-- `src/runtime/build-agent-config.ts` merges model maps with agent providers and injects `/dio` commands.
+- `src/runtime/build-agent-config.ts` merges model maps with agent providers.
 - `src/runtime/domain-packs.ts` resolves `DOMAIN.md`-declared domain packs and builds the Domain Catalog.
-- `src/runtime/dio-loop.ts` owns the in-memory DIO session loop.
-- The plugin injects `default_agent`, the full `agent` map, and plugin commands at startup.
+- The plugin injects `default_agent` and the full `agent` map at startup.
 
 No frontmatter rewrite step is required.
 

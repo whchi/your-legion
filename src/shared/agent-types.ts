@@ -95,16 +95,7 @@ export type EffectiveAgentMap = Record<RequiredAgentName, EffectiveAgentDefiniti
   Partial<Record<OptionalAgentName, EffectiveAgentDefinition>> &
   Record<string, EffectiveAgentDefinition>;
 
-export type CommandDefinition = {
-  template: string;
-  description: string;
-  agent?: string;
-  model?: string;
-  subtask?: boolean;
-};
-
 export type EffectiveAgentConfig = {
   default_agent: typeof DEFAULT_AGENT;
   agent: EffectiveAgentMap;
-  command: Record<string, CommandDefinition>;
 };
