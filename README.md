@@ -2,7 +2,7 @@
 
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/whchi/your-legion)
 
-A plugin-first OpenCode multi-agent system inspired by [`oh-my-openagent`](https://github.com/code-yeongyu/oh-my-openagent).
+A plugin-first OpenCode multi-agent system inspired by **oh-my-openagent**.
 
 It provides five protected system agents and YAML-defined custom agents. The plugin injects configured agents into OpenCode at startup and reads per-agent model settings from the global `~/.config/opencode/legionaries.yaml` runtime config.
 
