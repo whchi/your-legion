@@ -77,10 +77,18 @@ Skills:
   });
 
   assert.notEqual(result.status, 0);
+  assert.match(result.stdout + result.stderr, /Summary:/);
+  assert.match(result.stdout + result.stderr, /- Sections: 1 passed, 1 failed, 1 skipped/);
+  assert.match(result.stdout + result.stderr, /- Findings: 3 failures, 2 warnings/);
   assert.match(result.stdout + result.stderr, /Static domain catalog: FAIL/);
   assert.match(result.stdout + result.stderr, /missing declared domain component: product-ops\/workflows\/missing-workflow/);
   assert.match(result.stdout + result.stderr, /domain skill missing frontmatter description: product-ops\/review/);
   assert.match(result.stdout + result.stderr, /undeclared domain component file: product-ops\/decisions\/undeclared/);
+  assert.match(result.stdout + result.stderr, /Next steps:/);
+  assert.match(result.stdout + result.stderr, /Inspect the enabled domain's DOMAIN\.md/);
+  assert.match(result.stdout + result.stderr, /Create the missing component file or remove the declaration/);
+  assert.match(result.stdout + result.stderr, /Add name and description frontmatter to the domain skill/);
+  assert.match(result.stdout + result.stderr, /List the file in DOMAIN\.md or remove it/);
 });
 
 test('check CLI passes static and trace checks for a clean installed config', t => {
@@ -125,6 +133,9 @@ description: Review product operations constraints.
   });
 
   assert.match(output, /Static domain catalog: PASS/);
+  assert.match(output, /Summary:/);
+  assert.match(output, /- Sections: 2 passed, 0 failed, 1 skipped/);
+  assert.match(output, /- Findings: 0 failures, 1 warning/);
   assert.match(output, /Runtime trace: PASS/);
   assert.match(output, /Scenario evidence: SKIPPED/);
   assert.match(output, /Your Legion check passed/);
@@ -149,4 +160,40 @@ test('check CLI includes scenario evidence only when requested', t => {
   assert.match(result.stdout + result.stderr, /Runtime trace: PASS/);
   assert.match(result.stdout + result.stderr, /Scenario evidence: FAIL/);
   assert.match(result.stdout + result.stderr, /missing scenario evidence: coding-only/);
+  assert.match(result.stdout + result.stderr, /Run the matching OpenCode prompt, then rerun check with the same --worktree value/);
+});
+
+test('check CLI explains unknown runtime domain evidence', async t => {
+  const configDir = makeTempDir(t, 'your-legion-check-runtime-warning-config');
+  const worktree = makeTempDir(t, 'your-legion-check-runtime-warning-worktree');
+  const { appendDomainUsageTraceEvent } = await import('../src/runtime/domain-usage-contract');
+
+  writeConfig({
+    configDir,
+    domains: {},
+  });
+  appendDomainUsageTraceEvent({
+    configDir,
+    worktree,
+    event: {
+      version: 1,
+      timestamp: '2026-05-20T00:00:00.000Z',
+      worktree,
+      event: 'delegation',
+      targetAgent: 'builder',
+      activeDomains: [],
+      domainRefs: [],
+      domainSkills: ['coding/missing'],
+      warnings: ['unknown domain skill: coding/missing'],
+    },
+  });
+
+  const result = spawnSync('bun', ['src/cli.ts', 'check', '--worktree', worktree, '--config-dir', configDir], {
+    cwd: rootDir,
+    encoding: 'utf8',
+  });
+
+  assert.notEqual(result.status, 0);
+  assert.match(result.stdout + result.stderr, /\[unknown-domain-skill\]/);
+  assert.match(result.stdout + result.stderr, /Use only enabled domain ids and catalog ids shown in the Domain Catalog/);
 });

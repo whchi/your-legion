@@ -626,7 +626,7 @@ function readEvidenceByDelegation(events: DomainUsageTraceEvent[]) {
 
 export function analyzeDomainUsageTraceEvents(events: DomainUsageTraceEvent[]) {
   const diagnostics = events.flatMap(event =>
-    event.warnings.map(warning => `${event.timestamp} ${event.event}: ${warning}`),
+    event.warnings.map(warning => formatDomainUsageDiagnostic(event.timestamp, event.event, warning)),
   );
   const readsByDelegation = readEvidenceByDelegation(events);
 
@@ -639,17 +639,66 @@ export function analyzeDomainUsageTraceEvents(events: DomainUsageTraceEvent[]) {
     const reads = delegationID ? readsByDelegation.get(delegationID) : undefined;
     for (const domainRef of event.domainRefs) {
       if (!reads?.refs.has(domainRef)) {
-        diagnostics.push(`${event.timestamp} delegation: declared domain ref was not read: ${domainRef}`);
+        diagnostics.push(
+          formatDomainUsageDiagnostic(
+            event.timestamp,
+            'delegation',
+            `declared domain ref was not read: ${domainRef}`,
+          ),
+        );
       }
     }
     for (const domainSkill of event.domainSkills) {
       if (!reads?.skills.has(domainSkill)) {
-        diagnostics.push(`${event.timestamp} delegation: declared domain skill was not read: ${domainSkill}`);
+        diagnostics.push(
+          formatDomainUsageDiagnostic(
+            event.timestamp,
+            'delegation',
+            `declared domain skill was not read: ${domainSkill}`,
+          ),
+        );
       }
     }
   }
 
   return diagnostics;
+}
+
+function domainUsageDiagnosticCategory(message: string) {
+  if (/missing active domains/i.test(message)) {
+    return 'missing-active-domains';
+  }
+  if (/unknown active domain/i.test(message)) {
+    return 'unknown-active-domain';
+  }
+  if (/active domain has no discovered components/i.test(message)) {
+    return 'empty-active-domain';
+  }
+  if (/active domain must include responsibility/i.test(message)) {
+    return 'missing-domain-responsibility';
+  }
+  if (/unknown domain ref/i.test(message)) {
+    return 'unknown-domain-ref';
+  }
+  if (/unknown domain skill/i.test(message)) {
+    return 'unknown-domain-skill';
+  }
+  if (/declared domain ref was not read/i.test(message)) {
+    return 'missing-domain-ref-read';
+  }
+  if (/declared domain skill was not read/i.test(message)) {
+    return 'missing-domain-skill-read';
+  }
+
+  return 'domain-usage-warning';
+}
+
+function formatDomainUsageDiagnostic(
+  timestamp: string,
+  event: DomainUsageTraceEvent['event'],
+  message: string,
+) {
+  return `${timestamp} ${event} [${domainUsageDiagnosticCategory(message)}]: ${message}`;
 }
 
 function findDomainComponentByPath(domainPacks: DomainPack[], filePath: string) {

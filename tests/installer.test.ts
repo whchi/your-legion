@@ -322,6 +322,28 @@ test('createDomainPack scaffolds a domain manifest without forcing component fol
   assert.match(result.enablementSnippet, /marketing-ops: true/);
 });
 
+test('createDomainPack writes a domain manifest that guides expert knowledge authoring', async t => {
+  const configDir = makeTempDir(t, 'your-legion-domain-authoring-guide');
+  const { createDomainPack } = await import('../src/install');
+
+  const result = createDomainPack({
+    configDir,
+    domainID: 'revenue-ops',
+    components: ['workflows', 'decisions', 'skills'],
+  });
+
+  const domainDescription = fs.readFileSync(path.join(result.domainRootPath, 'DOMAIN.md'), 'utf8');
+
+  assert.match(domainDescription, /## Routing Description/);
+  assert.match(domainDescription, /Describe the tasks where `revenue-ops` should be active/);
+  assert.match(domainDescription, /## Component Catalog/);
+  assert.match(domainDescription, /List only files that exist in this domain pack/);
+  assert.match(domainDescription, /Workflows:\n- `workflows\/example-workflow\.md`/);
+  assert.match(domainDescription, /Decisions:\n- `decisions\/example-decision\.md`/);
+  assert.match(domainDescription, /Skills:\n- `skills\/example-skill\/SKILL\.md`/);
+  assert.doesNotMatch(domainDescription, /Examples:/);
+});
+
 test('createDomainPack scaffolds only selected optional component folders', async t => {
   const configDir = makeTempDir(t, 'your-legion-domain-components');
   const { createDomainPack } = await import('../src/install');
@@ -423,6 +445,11 @@ test('create-domain cli scaffolds a domain under an explicit config dir', t => {
   });
 
   assert.match(output, /Created domain marketing-ops/);
+  assert.match(output, /Edit DOMAIN\.md:/);
+  assert.match(output, new RegExp(path.join(configDir, 'your-legion', 'domains', 'marketing-ops', 'DOMAIN.md').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  assert.match(output, /Authoring guide: docs\/DOMAIN_PACK_AUTHORING\.md/);
+  assert.match(output, /Verify after use:/);
+  assert.match(output, /bunx @whchi\/your-legion check --worktree \./);
   assert.equal(fs.existsSync(path.join(configDir, 'your-legion', 'domains', 'marketing-ops', 'DOMAIN.md')), true);
   assert.equal(fs.existsSync(path.join(configDir, 'your-legion', 'domains', 'marketing-ops', 'README.md')), false);
 });

@@ -2,13 +2,24 @@
 
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/whchi/your-legion)
 
-A plugin-first OpenCode multi-agent system inspired by **oh-my-openagent**.
+An OpenCode plugin that makes multi-agent work domain-aware, observable, and verifiable.
 
-It provides five protected system agents and YAML-defined custom agents. The plugin injects configured agents into OpenCode at startup and reads per-agent model settings from the global `~/.config/opencode/legionaries.yaml` runtime config.
+Your Legion keeps OpenCode as the execution harness. It injects a small protected agent set, routes each turn to the right specialist, and lets those agents use project or domain knowledge through `DOMAIN.md`-driven Domain Packs.
 
-It also supports `DOMAIN.md`-driven domain packs for a shared Domain Catalog and reusable domain capability documents. Domain packs let the same system and custom agents reference task-specific context such as engineering, marketing, or financial analytics without registering those documents as harness-level skills.
+Domain Packs give users a lightweight way to bring expert knowledge into a project without turning `AGENTS.md` into one oversized prompt. Trace and check commands make routing and domain usage inspectable after the fact.
 
 ![](docs/architecture.svg)
+
+## When To Use This
+
+Use Your Legion when:
+
+- You want OpenCode to route work across specialists more consistently.
+- You have project or domain knowledge that agents should use selectively.
+- You want evidence that an agent selected the expected domain context and read the required refs or skills.
+- You want to compare native OpenCode execution against an orchestrated multi-agent path.
+
+It is not a standalone agent platform or a public domain-pack ecosystem. The goal is a lightweight plugin that improves OpenCode's multi-agent workflow.
 
 ## Quick Start
 
@@ -39,6 +50,7 @@ Use these docs next:
 
 - Install and uninstall details: [`INSTALLATION.md`](./docs/INSTALLATION.md)
 - Config schema and field rules: [`CONFIGURATION.md`](./docs/CONFIGURATION.md)
+- Domain Pack authoring guide: [`DOMAIN_PACK_AUTHORING.md`](./docs/DOMAIN_PACK_AUTHORING.md)
 - Domain observability and validation: [`DOMAIN_OBSERVABILITY.md`](./docs/DOMAIN_OBSERVABILITY.md)
 - Orchestrator token benchmark: [`ORCHESTRATOR_BENCHMARK.md`](./docs/ORCHESTRATOR_BENCHMARK.md)
 - Copy-paste examples: [`EXAMPLES.md`](./docs/EXAMPLES.md)

@@ -149,7 +149,7 @@ The installer creates the base `domains/` directory and copies enabled bundled d
 Create a domain pack manifest with the CLI:
 
 ```bash
-bunx @whchi/your-legion create-domain marketing
+bunx @whchi/your-legion create-domain marketing-ops
 ```
 
 `create-domain` is for new custom domain ids. It fails if the domain already exists globally or if the id is one of the bundled domains: `coding`, `marketing`, `finance`, or `accounting`.
@@ -157,15 +157,21 @@ bunx @whchi/your-legion create-domain marketing
 For an explicit config directory, useful in tests or agent scripts:
 
 ```bash
-bunx @whchi/your-legion create-domain marketing --config-dir ~/.config/opencode
+bunx @whchi/your-legion create-domain marketing-ops --config-dir ~/.config/opencode
 ```
 
 By default this creates only `DOMAIN.md`. `DOMAIN.md` is the only description and component catalog used in the Domain Catalog. Component folders are optional capability facets; create them only when that domain has real versioned knowledge for the facet. Runtime only includes component paths listed in `DOMAIN.md`; unlisted folders are treated as absent.
 
+After scaffolding, edit the printed `DOMAIN.md` path with semantic routing guidance and any component paths that should be exposed. For authoring rules and examples, see [`DOMAIN_PACK_AUTHORING.md`](./DOMAIN_PACK_AUTHORING.md). After using the domain in OpenCode, verify the recorded evidence with:
+
+```bash
+bunx @whchi/your-legion check --worktree .
+```
+
 To scaffold selected component folders and matching placeholder files in one command:
 
 ```bash
-bunx @whchi/your-legion create-domain marketing --components workflows,decisions,skills
+bunx @whchi/your-legion create-domain marketing-ops --components workflows,decisions,skills
 ```
 
 Available components are `workflows`, `decisions`, `examples`, and `skills`. Each selected component also gets a placeholder file that matches the path declared in `DOMAIN.md`; selected skills get a placeholder `SKILL.md` with `name` and `description` frontmatter. Without `--enable`, the command prints a `legionaries.yaml` snippet so you can enable the domain manually.
@@ -173,7 +179,7 @@ Available components are `workflows`, `decisions`, `examples`, and `skills`. Eac
 To create and enable the domain in an already-installed `legionaries.yaml` in one command:
 
 ```bash
-bunx @whchi/your-legion create-domain marketing --components workflows,decisions,skills --enable
+bunx @whchi/your-legion create-domain marketing-ops --components workflows,decisions,skills --enable
 ```
 
 To create first and enable during install:

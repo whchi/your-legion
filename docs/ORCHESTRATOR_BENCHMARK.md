@@ -41,6 +41,7 @@ specialist_tokens = total tokens from delegated non-orchestrator sessions
 your_legion_total = orchestrator_tokens + specialist_tokens
 net_delta = your_legion_total - native_total
 net_delta_pct = net_delta / native_total
+outcome = quality-plus-token tradeoff label from the reusable summarizer
 ```
 
 For grouped results:
@@ -50,6 +51,21 @@ tokens_per_pass = total_tokens / passed_task_count
 ```
 
 The reusable summary logic lives in `src/runtime/orchestration-benchmark.ts` and is exported from `src/index.ts`.
+
+The task-level `outcome` label intentionally combines quality and token cost so the benchmark does not collapse into a token-only conclusion:
+
+| outcome | Meaning |
+|---|---|
+| `cheaper-better` | Your Legion used fewer tokens and passed when native failed |
+| `cheaper-same-quality` | Your Legion used fewer tokens and both variants had the same pass/fail result |
+| `cheaper-worse` | Your Legion used fewer tokens but failed when native passed |
+| `same-cost-better` | Token totals matched and Your Legion passed when native failed |
+| `same-cost-same-quality` | Token totals and pass/fail result matched |
+| `same-cost-worse` | Token totals matched but Your Legion failed when native passed |
+| `more-expensive-better` | Your Legion used more tokens but passed when native failed |
+| `more-expensive-not-better` | Your Legion used more tokens and both variants had the same pass/fail result |
+| `more-expensive-worse` | Your Legion used more tokens and failed when native passed |
+| `incomplete-comparison` | One side of the paired task is missing |
 
 ## Controlled Run Protocol
 
@@ -339,7 +355,12 @@ Interpretation:
 
 The final comparison table should use this shape:
 
-| task_id | task_type | native_total | orchestrator_tokens | specialist_tokens | your_legion_total | net_delta_pct | passed_native | passed_your_legion | rework_native | rework_your_legion | trace_warnings |
-|---|---|---:|---:|---:|---:|---:|---|---|---:|---:|---:|
+| task_id | task_type | native_total | orchestrator_tokens | specialist_tokens | your_legion_total | net_delta_pct | outcome | passed_native | passed_your_legion | rework_native | rework_your_legion | trace_warnings |
+|---|---|---:|---:|---:|---:|---:|---|---|---|---:|---:|---:|
 
 Only compare `net_delta_pct` within the same `task_type`.
+
+The final outcome summary should use this shape:
+
+| outcome | tasks |
+|---|---:|

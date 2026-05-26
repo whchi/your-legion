@@ -96,6 +96,7 @@ if (command === 'create-domain') {
   });
 
   console.log(`Created domain ${result.domainID} at ${result.domainRootPath}`);
+  console.log(`Edit DOMAIN.md: ${result.descriptionPath}`);
   console.log(
     `Components: ${
       result.componentPaths.length === 0
@@ -110,6 +111,9 @@ if (command === 'create-domain') {
     console.log('Enable it with:');
     console.log(result.enablementSnippet.trimEnd());
   }
+  console.log('Authoring guide: docs/DOMAIN_PACK_AUTHORING.md');
+  console.log('Verify after use:');
+  console.log('bunx @whchi/your-legion check --worktree .');
   process.exit(0);
 }
 
@@ -138,6 +142,14 @@ function printCheckResult(result: ReturnType<typeof runYourLegionCheck>) {
 
   const failures = result.sections.flatMap(section => section.failures);
   const warnings = result.sections.flatMap(section => section.warnings);
+  const sectionCounts = checkSectionCounts(result.sections);
+
+  console.log('');
+  console.log('Summary:');
+  console.log(
+    `- Sections: ${sectionCounts.passed} passed, ${sectionCounts.failed} failed, ${sectionCounts.skipped} skipped`,
+  );
+  console.log(`- Findings: ${failures.length} ${plural(failures.length, 'failure')}, ${warnings.length} ${plural(warnings.length, 'warning')}`);
 
   if (failures.length > 0) {
     console.log('');
@@ -155,10 +167,58 @@ function printCheckResult(result: ReturnType<typeof runYourLegionCheck>) {
     }
   }
 
+  const nextSteps = checkNextSteps([...failures, ...warnings]);
+  if (nextSteps.length > 0) {
+    console.log('');
+    console.log('Next steps:');
+    for (const nextStep of nextSteps) {
+      console.log(`- ${nextStep}`);
+    }
+  }
+
   if (result.passed) {
     console.log('');
     console.log('Your Legion check passed');
   }
+}
+
+function checkSectionCounts(sections: ReturnType<typeof runYourLegionCheck>['sections']) {
+  return {
+    passed: sections.filter(section => section.status === 'PASS').length,
+    failed: sections.filter(section => section.status === 'FAIL').length,
+    skipped: sections.filter(section => section.status === 'SKIPPED').length,
+  };
+}
+
+function plural(count: number, word: string) {
+  return count === 1 ? word : `${word}s`;
+}
+
+function checkNextSteps(messages: string[]) {
+  const steps = new Set<string>();
+
+  for (const message of messages) {
+    if (/missing DOMAIN\.md|invalid declared domain component path|missing declared domain component|undeclared domain component file/.test(message)) {
+      steps.add("Inspect the enabled domain's DOMAIN.md and keep its component catalog in sync with real files.");
+    }
+    if (/missing declared domain component/.test(message)) {
+      steps.add('Create the missing component file or remove the declaration from DOMAIN.md.');
+    }
+    if (/domain skill missing frontmatter/.test(message)) {
+      steps.add('Add name and description frontmatter to the domain skill.');
+    }
+    if (/undeclared domain component file/.test(message)) {
+      steps.add('List the file in DOMAIN.md or remove it if the domain should not expose it.');
+    }
+    if (/\[missing-domain-ref-read\]|\[missing-domain-skill-read\]|declared domain ref was not read|declared domain skill was not read|missing scenario evidence/.test(message)) {
+      steps.add('Run the matching OpenCode prompt, then rerun check with the same --worktree value.');
+    }
+    if (/\[unknown-active-domain\]|\[unknown-domain-ref\]|\[unknown-domain-skill\]|unknown active domain|unknown domain ref|unknown domain skill/.test(message)) {
+      steps.add('Use only enabled domain ids and catalog ids shown in the Domain Catalog.');
+    }
+  }
+
+  return [...steps];
 }
 
 if (command === 'check') {

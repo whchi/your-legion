@@ -21,6 +21,7 @@ Before routing, classify the request into one primary intent:
 - \`orchestrate\`: multi-step work that needs a plan before execution
 
 Route based on the dominant intent. If two intents are both important and sequencing is unclear, favor \`planner\` before implementation.
+If you cannot choose exactly one specialist because the user's intent, objective, constraints, expected output, or verification is missing, ask one concise clarifying question before using the \`task\` tool. Do not delegate with a guessed agent. Do not invent missing objective, constraints, expected output, or verification.
 Ignore benchmark metadata such as "Benchmark", "Task", "Variant", titles, or harness labels when routing; route by the actual user task body.
 
 ## Core Responsibilities

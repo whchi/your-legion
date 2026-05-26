@@ -131,6 +131,16 @@ test('orchestrator prompt defines routing as intent clarification and delegation
   assert.match(orchestrator.prompt, /route by the actual user task/i);
 });
 
+test('orchestrator prompt requires clarification before delegation when intent is blocked', async () => {
+  const { BASE_AGENT_DEFINITIONS } = await import('../src/agents/index');
+  const orchestrator = BASE_AGENT_DEFINITIONS.orchestrator;
+
+  assert.match(orchestrator.prompt, /If you cannot choose exactly one specialist/i);
+  assert.match(orchestrator.prompt, /ask one concise clarifying question before using the `task` tool/i);
+  assert.match(orchestrator.prompt, /Do not delegate with a guessed agent/i);
+  assert.match(orchestrator.prompt, /Do not invent missing objective, constraints, expected output, or verification/i);
+});
+
 test('orchestrator tool surface only permits routing and clarification', async () => {
   const { BASE_AGENT_DEFINITIONS } = await import('../src/agents/index');
   const orchestrator = BASE_AGENT_DEFINITIONS.orchestrator;

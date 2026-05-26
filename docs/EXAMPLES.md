@@ -65,7 +65,7 @@ This is the style used by the repo's bundled example.
 Scaffold the domain manifest:
 
 ```bash
-bunx @whchi/your-legion create-domain marketing
+bunx @whchi/your-legion create-domain marketing-ops
 ```
 
 Use a new custom id here. `create-domain` refuses existing global domains and bundled domain ids, so do not use it to recreate `coding`, `marketing`, `finance`, or `accounting`. To use the bundled marketing domain, enable it with `install --add-domains marketing` or `domains.marketing: true` instead.
@@ -73,22 +73,22 @@ Use a new custom id here. `create-domain` refuses existing global domains and bu
 This creates:
 
 ```text
-~/.config/opencode/your-legion/domains/marketing/
+~/.config/opencode/your-legion/domains/marketing-ops/
 └── DOMAIN.md
 ```
 
-Edit `DOMAIN.md` with semantic routing guidance: when to use the marketing domain, when not to use it, and the domain-root relative `Workflows`, `Decisions`, `Examples`, and `Skills` paths.
+Edit `DOMAIN.md` with semantic routing guidance: when to use the marketing ops domain, when not to use it, and the domain-root relative `Workflows`, `Decisions`, `Examples`, and `Skills` paths.
 
 Add only the component facets that carry real knowledge. For a marketing pack with campaign workflow, brand decisions, examples, and a domain skill, either create those files yourself or scaffold the folders and matching placeholders explicitly:
 
 ```bash
-bunx @whchi/your-legion create-domain marketing --components workflows,decisions,examples,skills
+bunx @whchi/your-legion create-domain marketing-ops --components workflows,decisions,examples,skills
 ```
 
 Create and enable in one command after installation:
 
 ```bash
-bunx @whchi/your-legion create-domain marketing --components workflows,decisions,examples,skills --enable
+bunx @whchi/your-legion create-domain marketing-ops --components workflows,decisions,examples,skills --enable
 ```
 
 Then add the domain documents you want agents to see:

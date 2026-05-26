@@ -107,9 +107,19 @@ function domainDescriptionTemplate(domainID: string, components: DomainComponent
 
   return `# ${domainID} Domain
 
+## Routing Description
+
 Use this domain when the task involves ...
 
+Describe the tasks where \`${domainID}\` should be active. Prefer semantic responsibilities over keyword triggers.
+
 Do not use this domain when ...
+
+Describe nearby tasks that should stay no-domain or belong to another domain.
+
+## Component Catalog
+
+List only files that exist in this domain pack. Paths are relative to this domain root. Delete a section when this domain does not have that kind of knowledge.
 
 ${sections.join('\n\n')}
 `;

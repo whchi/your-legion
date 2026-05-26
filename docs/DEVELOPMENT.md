@@ -1,6 +1,6 @@
 # Development
 
-This document covers repository development for `your-legion`. User-facing installation and configuration instructions live in [`README.md`](../README.md).
+This document covers repository development for `your-legion`. User-facing installation and configuration instructions live in [`README.md`](../README.md). Architecture direction lives in [`ADR 0001`](./adr/0001-plugin-first-domain-aware-orchestration.md), the current product plan lives in [`ROADMAP.md`](./ROADMAP.md), and user-facing domain authoring guidance lives in [`DOMAIN_PACK_AUTHORING.md`](./DOMAIN_PACK_AUTHORING.md).
 
 ## Plugin-First Runtime
 
@@ -36,8 +36,106 @@ No frontmatter rewrite step is required.
 
 - Install dependencies with `bun install`.
 - Run tests with `bun test`.
-- Build the published plugin entrypoint with `bun run build`.
+- Build the local plugin entrypoint with `bun run build`.
 - Temporary test artifacts belong under `temp/`, which is gitignored.
+
+For a normal code change, use this loop:
+
+```bash
+bun install
+bun test
+bun run build
+```
+
+`bun run build` writes the local OpenCode plugin entrypoint to `dist/server.js` and the local CLI to `dist/cli.js`. OpenCode does not load TypeScript source directly.
+
+## Local OpenCode Smoke Test
+
+Use this flow when you need to confirm the current checkout works inside OpenCode.
+
+1. Build the local plugin:
+
+```bash
+bun run build
+```
+
+2. Make sure OpenCode can read a Your Legion runtime config. For local development, the simplest path is to install the config and bundled domains from the source CLI:
+
+```bash
+bun src/cli.ts install --domains coding,marketing,finance,accounting
+```
+
+This writes `~/.config/opencode/legionaries.yaml` and materializes bundled domain packs under `~/.config/opencode/your-legion/domains/`.
+
+3. Load the local build in the project OpenCode config:
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "plugin": ["dist/server.js"]
+}
+```
+
+Use the local `dist/server.js` entry when testing this checkout. Using `bunx @whchi/your-legion ...` or `plugin: ["@whchi/your-legion"]` tests the published package path, not necessarily the local source you just changed. For a clean source test, the effective OpenCode plugin list should include `dist/server.js` and should not also include `@whchi/your-legion`.
+
+4. Restart OpenCode from the repo root after rebuilding or changing config:
+
+```bash
+opencode
+```
+
+For a one-off non-interactive smoke test, run OpenCode from the repo root:
+
+```bash
+opencode run --agent orchestrator "Explore where Your Legion builds the runtime agent config."
+```
+
+5. Ask a small routing smoke-test prompt:
+
+```text
+Explore where Your Legion builds the runtime agent config.
+```
+
+The expected path is `orchestrator -> explorer`, because this is repo discovery. Then ask a small execution prompt:
+
+```text
+Review the README introduction and suggest one wording improvement without editing files.
+```
+
+The expected path is `orchestrator -> builder`, because this is a concrete execution task and `builder` owns analysis/copy work.
+
+6. Inspect recorded evidence:
+
+```bash
+bun src/cli.ts trace --worktree . --limit 20
+bun src/cli.ts check --worktree .
+```
+
+`--worktree .` must match the workspace/project path used by OpenCode. If you opened OpenCode from another directory, pass that absolute path instead.
+
+### Isolated OpenCode Config
+
+Use an isolated config when measuring benchmarks or when global OpenCode plugins/MCP servers would contaminate the tool surface.
+
+```bash
+XDG_CONFIG_HOME=/private/tmp/your-legion-opencode-dev bun src/cli.ts install --domains coding,marketing,finance,accounting
+```
+
+Then start OpenCode with the same `XDG_CONFIG_HOME` and a project config that loads `dist/server.js`:
+
+```bash
+XDG_CONFIG_HOME=/private/tmp/your-legion-opencode-dev opencode
+```
+
+Your Legion resolves its default config from `XDG_CONFIG_HOME/opencode/legionaries.yaml`. Use `LEGIONARIES_CONFIG=/absolute/path/to/legionaries.yaml` only when you intentionally want a different model/domain config.
+
+Common local-development mistakes:
+
+- Forgetting to run `bun run build` after changing `src/`; OpenCode loads `dist/server.js`.
+- Testing `@whchi/your-legion` through `bunx` or the package plugin name when you meant to test the local checkout.
+- Editing the repo `legionaries.yaml` and expecting OpenCode to use it automatically. Runtime reads the global OpenCode config unless `LEGIONARIES_CONFIG` is set.
+- Running trace checks with a different `--worktree` path than the OpenCode workspace path.
+- Leaving unrelated global plugins or MCP servers enabled while trying to measure routing/token behavior.
 
 ## Domain Scenario Validation
 
@@ -115,7 +213,7 @@ The check expects these scenarios to have matching `delegation` evidence with no
 
 ## Domain Pack Development
 
-Domain routing is description-driven. `DOMAIN.md` is the only domain description and component catalog used in the Domain Catalog. Domain component folders are optional capability facets. Do not scaffold all four folders unless the domain actually has all four kinds of knowledge. Runtime only includes component paths listed in `DOMAIN.md`; folders or files that are not listed are treated as absent.
+Domain routing is description-driven. `DOMAIN.md` is the only domain description and component catalog used in the Domain Catalog. Domain component folders are optional capability facets. Do not scaffold all four folders unless the domain actually has all four kinds of knowledge. Runtime only includes component paths listed in `DOMAIN.md`; folders or files that are not listed are treated as absent. For the author-facing version of these rules, see [`DOMAIN_PACK_AUTHORING.md`](./DOMAIN_PACK_AUTHORING.md).
 
 Create a domain manifest and routing description:
 

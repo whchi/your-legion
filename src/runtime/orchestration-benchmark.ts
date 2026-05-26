@@ -27,12 +27,25 @@ export type BenchmarkTaskComparison = {
   yourLegionTotalTokens: number;
   netDeltaTokens: number | null;
   netDeltaPct: number | null;
+  outcome: BenchmarkTaskOutcome;
   passedNative: boolean;
   passedYourLegion: boolean;
   reworkTurnsNative: number;
   reworkTurnsYourLegion: number;
   traceWarnings: number;
 };
+
+export type BenchmarkTaskOutcome =
+  | 'incomplete-comparison'
+  | 'cheaper-same-quality'
+  | 'cheaper-better'
+  | 'cheaper-worse'
+  | 'same-cost-same-quality'
+  | 'same-cost-better'
+  | 'same-cost-worse'
+  | 'more-expensive-better'
+  | 'more-expensive-not-better'
+  | 'more-expensive-worse';
 
 export type BenchmarkVariantTaskTypeSummary = {
   variant: BenchmarkVariant;
@@ -47,10 +60,29 @@ export type BenchmarkVariantTaskTypeSummary = {
   traceWarnings: number;
 };
 
+export type BenchmarkOutcomeSummary = {
+  outcome: BenchmarkTaskOutcome;
+  tasks: number;
+};
+
 export type OrchestrationBenchmarkReport = {
   tasks: BenchmarkTaskComparison[];
   byVariantAndTaskType: BenchmarkVariantTaskTypeSummary[];
+  byOutcome: BenchmarkOutcomeSummary[];
 };
+
+const OUTCOME_ORDER: BenchmarkTaskOutcome[] = [
+  'cheaper-better',
+  'cheaper-same-quality',
+  'cheaper-worse',
+  'same-cost-better',
+  'same-cost-same-quality',
+  'same-cost-worse',
+  'more-expensive-better',
+  'more-expensive-not-better',
+  'more-expensive-worse',
+  'incomplete-comparison',
+];
 
 function totalTokens(metric: BenchmarkSessionMetric) {
   return (
@@ -74,6 +106,10 @@ function variantOrder(variant: BenchmarkVariant) {
   return variant === 'native-builder' ? 0 : 1;
 }
 
+function outcomeOrder(outcome: BenchmarkTaskOutcome) {
+  return OUTCOME_ORDER.indexOf(outcome);
+}
+
 function taskPassed(metrics: BenchmarkSessionMetric[]) {
   return metrics.length > 0 && metrics.every(metric => metric.passed);
 }
@@ -84,6 +120,48 @@ function taskReworkTurns(metrics: BenchmarkSessionMetric[]) {
 
 function taskTraceWarnings(metrics: BenchmarkSessionMetric[]) {
   return metrics.reduce((total, metric) => total + metric.traceWarnings, 0);
+}
+
+function taskOutcome({
+  netDeltaTokens,
+  passedNative,
+  passedYourLegion,
+}: {
+  netDeltaTokens: number | null;
+  passedNative: boolean;
+  passedYourLegion: boolean;
+}): BenchmarkTaskOutcome {
+  if (netDeltaTokens === null) {
+    return 'incomplete-comparison';
+  }
+
+  if (netDeltaTokens < 0) {
+    if (passedYourLegion && !passedNative) {
+      return 'cheaper-better';
+    }
+    if (!passedYourLegion && passedNative) {
+      return 'cheaper-worse';
+    }
+    return 'cheaper-same-quality';
+  }
+
+  if (netDeltaTokens === 0) {
+    if (passedYourLegion && !passedNative) {
+      return 'same-cost-better';
+    }
+    if (!passedYourLegion && passedNative) {
+      return 'same-cost-worse';
+    }
+    return 'same-cost-same-quality';
+  }
+
+  if (passedYourLegion && !passedNative) {
+    return 'more-expensive-better';
+  }
+  if (!passedYourLegion && passedNative) {
+    return 'more-expensive-worse';
+  }
+  return 'more-expensive-not-better';
 }
 
 function groupBy<T>(values: T[], keyFor: (value: T) => string) {
@@ -117,6 +195,8 @@ export function summarizeOrchestrationBenchmark(metrics: BenchmarkSessionMetric[
       const netDeltaTokens =
         nativeMetrics.length > 0 && orchestratedMetrics.length > 0 ? yourLegionTotalTokens - nativeTotalTokens : null;
       const netDeltaPct = netDeltaTokens === null || nativeTotalTokens === 0 ? null : roundRatio(netDeltaTokens / nativeTotalTokens);
+      const passedNative = taskPassed(nativeMetrics);
+      const passedYourLegion = taskPassed(orchestratedMetrics);
 
       return {
         taskID,
@@ -127,8 +207,9 @@ export function summarizeOrchestrationBenchmark(metrics: BenchmarkSessionMetric[
         yourLegionTotalTokens,
         netDeltaTokens,
         netDeltaPct,
-        passedNative: taskPassed(nativeMetrics),
-        passedYourLegion: taskPassed(orchestratedMetrics),
+        outcome: taskOutcome({ netDeltaTokens, passedNative, passedYourLegion }),
+        passedNative,
+        passedYourLegion,
         reworkTurnsNative: taskReworkTurns(nativeMetrics),
         reworkTurnsYourLegion: taskReworkTurns(orchestratedMetrics),
         traceWarnings: taskTraceWarnings(orchestratedMetrics),
@@ -162,8 +243,16 @@ export function summarizeOrchestrationBenchmark(metrics: BenchmarkSessionMetric[
         variantOrder(left.variant) - variantOrder(right.variant) || left.taskType.localeCompare(right.taskType),
     );
 
+  const byOutcome = [...groupBy(tasks, task => task.outcome).entries()]
+    .map(([outcome, group]) => ({
+      outcome: outcome as BenchmarkTaskOutcome,
+      tasks: group.length,
+    }))
+    .sort((left, right) => outcomeOrder(left.outcome) - outcomeOrder(right.outcome));
+
   return {
     tasks,
     byVariantAndTaskType,
+    byOutcome,
   };
 }

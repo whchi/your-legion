@@ -66,12 +66,95 @@ test('summarizes native builder against full orchestrated delegation cost', () =
     yourLegionTotalTokens: 120,
     netDeltaTokens: -15,
     netDeltaPct: -0.1111,
+    outcome: 'cheaper-same-quality',
     passedNative: true,
     passedYourLegion: true,
     reworkTurnsNative: 0,
     reworkTurnsYourLegion: 0,
     traceWarnings: 0,
   });
+});
+
+test('classifies quality plus token tradeoffs per paired task', () => {
+  const report = summarizeOrchestrationBenchmark([
+    metric({
+      taskID: 'marketing-001',
+      taskType: 'marketing',
+      variant: 'native-builder',
+      tokensInput: 100,
+      passed: false,
+    }),
+    metric({
+      taskID: 'marketing-001',
+      taskType: 'marketing',
+      variant: 'your-legion-orchestrated',
+      agent: 'orchestrator',
+      tokensInput: 40,
+    }),
+    metric({
+      taskID: 'marketing-001',
+      taskType: 'marketing',
+      variant: 'your-legion-orchestrated',
+      agent: 'builder',
+      tokensInput: 90,
+    }),
+    metric({
+      taskID: 'finance-001',
+      taskType: 'finance',
+      variant: 'native-builder',
+      tokensInput: 100,
+    }),
+    metric({
+      taskID: 'finance-001',
+      taskType: 'finance',
+      variant: 'your-legion-orchestrated',
+      agent: 'orchestrator',
+      tokensInput: 40,
+    }),
+    metric({
+      taskID: 'finance-001',
+      taskType: 'finance',
+      variant: 'your-legion-orchestrated',
+      agent: 'builder',
+      tokensInput: 90,
+    }),
+  ]);
+
+  assert.deepEqual(
+    report.tasks.map(task => ({
+      taskID: task.taskID,
+      netDeltaTokens: task.netDeltaTokens,
+      passedNative: task.passedNative,
+      passedYourLegion: task.passedYourLegion,
+      outcome: task.outcome,
+    })),
+    [
+      {
+        taskID: 'finance-001',
+        netDeltaTokens: 30,
+        passedNative: true,
+        passedYourLegion: true,
+        outcome: 'more-expensive-not-better',
+      },
+      {
+        taskID: 'marketing-001',
+        netDeltaTokens: 30,
+        passedNative: false,
+        passedYourLegion: true,
+        outcome: 'more-expensive-better',
+      },
+    ],
+  );
+  assert.deepEqual(report.byOutcome, [
+    {
+      outcome: 'more-expensive-better',
+      tasks: 1,
+    },
+    {
+      outcome: 'more-expensive-not-better',
+      tasks: 1,
+    },
+  ]);
 });
 
 test('aggregates tokens per passed task by variant and task type', () => {

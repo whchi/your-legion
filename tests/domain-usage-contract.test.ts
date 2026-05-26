@@ -254,6 +254,7 @@ test('trace CLI prints events and trace-check fails when warnings exist', async 
   });
 
   assert.notEqual(result.status, 0);
+  assert.match(result.stderr + result.stdout, /\[unknown-domain-skill\]/);
   assert.match(result.stderr + result.stdout, /unknown domain skill: coding\/missing/);
 });
 
@@ -286,6 +287,7 @@ test('trace-check fails when a declared domain skill was not read', async t => {
   });
 
   assert.notEqual(result.status, 0);
+  assert.match(result.stderr + result.stdout, /\[missing-domain-skill-read\]/);
   assert.match(result.stderr + result.stdout, /declared domain skill was not read: coding\/make-code-change/i);
 });
 
@@ -318,6 +320,7 @@ test('trace-check fails when a declared domain ref was not read', async t => {
   });
 
   assert.notEqual(result.status, 0);
+  assert.match(result.stderr + result.stdout, /\[missing-domain-ref-read\]/);
   assert.match(result.stderr + result.stdout, /declared domain ref was not read: coding\/implementation-loop/i);
 });
 

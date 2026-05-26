@@ -162,6 +162,13 @@ Static domain catalog: PASS
 Runtime trace: PASS
 Scenario evidence: SKIPPED
 
+Summary:
+- Sections: 2 passed, 0 failed, 1 skipped
+- Findings: 0 failures, 1 warning
+
+Warnings:
+- Use --scenarios after running prompts from domain-scenarios.
+
 Your Legion check passed
 ```
 

@@ -27,6 +27,9 @@ There is no markdown frontmatter rewrite step.
 - `src/runtime/domain-packs.ts`: `DOMAIN.md`-declared domain pack discovery and Domain Catalog prompt section
 - `src/runtime/domain-usage-contract.ts`: Task Context Envelope parsing, warn-only domain validation, and JSONL trace evidence
 - `docs/academic-papers-summary.md`: paper references and claim boundaries behind domain routing and runtime evidence
+- `docs/adr/0001-plugin-first-domain-aware-orchestration.md`: accepted architecture direction for plugin-first, domain-aware orchestration
+- `docs/ROADMAP.md`: current product plan for the OpenCode multi-agent, Domain Pack, trace/check, and benchmark roadmap
+- `docs/DOMAIN_PACK_AUTHORING.md`: user-facing Domain Pack authoring guide
 - `src/domains/`: bundled domain packs copied to `dist/domains` at build time
 - `src/index.ts`: plugin entrypoint and config injection hook
 - `src/custom-agents/*.yaml`: custom agent definitions
