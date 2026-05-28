@@ -2,7 +2,7 @@
 
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/whchi/your-legion)
 
-An OpenCode plugin that makes multi-agent work domain-aware, observable, and verifiable.
+An OpenCode plugin that turns agent delegation into structured, verifiable context contracts.
 
 Your Legion keeps OpenCode as the execution harness. It injects a small protected agent set, routes each turn to the right specialist, and lets those agents use project or domain knowledge through `DOMAIN.md`-driven Domain Packs.
 
