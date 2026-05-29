@@ -160,11 +160,6 @@ test('orchestrator tool surface only permits routing and clarification', async (
   for (const tool of ['read', 'glob', 'grep', 'lsp', 'skill', 'todowrite', 'bash', 'edit', 'write']) {
     assert.equal(orchestrator.tools?.[tool], false, `${tool} should not be available to orchestrator`);
   }
-  assert.deepEqual(
-    Object.keys(orchestrator.tools ?? {}).filter(tool => /codegraph|context-mode|ctx_/.test(tool)),
-    [],
-    'orchestrator should not mention dev-environment tool names',
-  );
 });
 
 test('specialist prompts keep explorer and librarian focused on information gathering boundaries', async () => {

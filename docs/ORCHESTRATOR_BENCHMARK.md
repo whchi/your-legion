@@ -336,7 +336,6 @@ Execution notes:
 - Orchestrated variant used `XDG_CONFIG_HOME=/private/tmp/yl-orchestrator-vs-native-202605231350pro/xdg opencode run --agent orchestrator --model opencode-go/deepseek-v4-pro`.
 - The isolated `legionaries.yaml` pinned `orchestrator`, `builder`, `explorer`, `planner`, and `librarian` to `opencode-go/deepseek-v4-pro`.
 - The four task prompts were independent domain prompts and did not include prior benchmark results as task content.
-- `src/agents/orchestrator.ts` no longer names development-environment tools such as `codegraph*`, `context-mode*`, or `ctx_*`. The local OpenCode runtime still exposed `ctx_*` and `codegraph*` tools at execution time; that is environment-level contamination and is recorded below when it affected routing behavior.
 - This run happened after the role-boundary and Task Context Envelope prompt updates: `orchestrator` clarifies intent, delegates, and reports; `builder` gathers execution context; `explorer` gathers known repo/local-file facts only when that is the requested deliverable; `Domain refs` and `Domain skills` must be catalog ids only.
 - The earlier `deepseek-v4-flash` finance run used an unescaped shell prompt, so `$40` and `$90/hour` were expanded away before reaching OpenCode. That finance failure was a benchmark harness bug, not evidence that the model ignored visible numeric inputs. This control rerun escaped those dollar signs.
 
@@ -363,7 +362,6 @@ Interpretation:
 - Agent selection was correct on all four tasks: `explorer` for repo-local parser discovery and `builder` for marketing, finance, and accounting execution.
 - Domain envelope quality is still unreliable. Three rows had trace warnings from malformed `Active domains`; `finance-001` and `accounting-001` show the model still tends to put responsibilities or comma-separated topics where a single `domain-id: responsibility` entry is required.
 - All four `trace-check --worktree <task-worktree>` commands returned pass, even though the trace file contained warnings. In this local run, trace events recorded `worktree: "/"`, so per-worktree `trace-check` did not catch those warnings. This is an observability bug to fix before using trace-check as benchmark acceptance evidence.
-- The local runtime still exposed development-environment tools (`ctx_*` / `codegraph*`) even though the plugin source no longer names them. The pro orchestrator did not misuse them on `coding-001`, but native builder sessions still used environment tools. A formal benchmark should run in an environment where these tools are not exposed at all.
 
 ## Report Shape
 
