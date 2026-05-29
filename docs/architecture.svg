@@ -73,7 +73,7 @@
     <rect x="765" y="520" width="220" height="95" fill="#efe4ce" stroke="#795548" stroke-width="1.6" rx="2" />
     <text x="785" y="552" font-family="serif" font-size="16" fill="#5d4037">Runtime evidence</text>
     <text x="785" y="578" font-family="serif" font-size="13" fill="#795548">delegation + domain-read traces</text>
-    <text x="785" y="598" font-family="serif" font-size="13" fill="#795548">check / trace / scenarios</text>
+    <text x="785" y="598" font-family="serif" font-size="13" fill="#795548">doctor / trace / scenarios</text>
 
     <rect x="390" y="675" width="310" height="80" fill="#fcf6eb" stroke="#5d4037" stroke-width="2" rx="3" />
     <text x="415" y="708" font-family="serif" font-size="16" fill="#5d4037">Task Context Envelope</text>

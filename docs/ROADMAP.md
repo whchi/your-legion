@@ -59,16 +59,17 @@ Acceptance criteria:
 - Users can see which declared refs or skills were actually read.
 - Users can see which warnings need attention.
 
-### 5. Check And Verification
+### 5. Doctor And Verification
 
-Goal: turn trace evidence into actionable validation.
+Goal: turn trace evidence into actionable diagnostics and usage stats.
 
 Acceptance criteria:
 
-- `check` catches missing declared domain files.
-- `check` catches declared domain refs or skills that were not read.
-- `check --scenarios` validates the fixed coding, marketing, finance, accounting, and mixed-domain cases.
-- Check failures are understandable without reading implementation code.
+- `doctor` catches missing declared domain files.
+- `doctor` catches declared domain refs or skills that were not read.
+- `doctor` reports domain usage stats from runtime trace evidence.
+- `doctor --scenarios` validates the fixed coding, marketing, finance, accounting, and mixed-domain cases.
+- Doctor failures are understandable without reading implementation code.
 
 ### 6. Native Vs Orchestrated Benchmark
 
@@ -84,14 +85,14 @@ Acceptance criteria:
 
 | Area | Item | Priority | Notes |
 | --- | --- | --- | --- |
-| Docs | Rewrite README intro around OpenCode multi-agent enhancement | P0 | Done: README now frames Your Legion as an OpenCode multi-agent/domain/trace/check layer |
+| Docs | Rewrite README intro around OpenCode multi-agent enhancement | P0 | Done: README now frames Your Legion as an OpenCode multi-agent/domain/trace/doctor layer |
 | Docs | Add "When to use Your Legion" section | P0 | Done: README includes concrete use cases and non-goals |
 | Domain Pack | Improve generated `DOMAIN.md` template | P0 | Done: `create-domain` generates routing and component-catalog guidance |
 | Domain Pack | Add authoring guide | P1 | Done: `docs/DOMAIN_PACK_AUTHORING.md` covers semantic routing, optional facets, and verification |
 | Routing | Preserve orchestrator boundary tests | P0 | Done: agent tests protect no pre-reading, no direct execution, and leaf specialist boundaries |
 | Routing | Add unclear-intent clarification test | P1 | Done: orchestrator must ask before delegation when it cannot choose one specialist |
 | Trace | Clarify warning categories | P1 | Done: trace diagnostics include stable category labels such as `[unknown-domain-skill]` |
-| Check | Improve failure messages | P1 | Done: `check` prints summary counts, next steps, and category-aware guidance |
+| Doctor | Improve failure messages and usage stats | P1 | Done: `doctor` prints summary counts, next steps, category-aware guidance, and domain usage stats |
 | Benchmark | Keep clean native vs orchestrated task set | P0 | Done: benchmark doc keeps the fixed four-domain prompt set and clean-run rules |
 | Benchmark | Add summary table for quality plus token cost | P1 | Done: benchmark summaries include task `outcome` and `byOutcome` aggregation |
 
@@ -100,9 +101,9 @@ Acceptance criteria:
 Phase 1 through Phase 4 are implemented for the current lightweight scope:
 
 - Public positioning now says Your Legion is an OpenCode multi-agent enhancement layer, not a standalone platform or ecosystem.
-- Domain authoring has a generated `DOMAIN.md` guide, a dedicated authoring document, success-output next steps, corrected custom-domain examples, and check-based verification guidance.
+- Domain authoring has a generated `DOMAIN.md` guide, a dedicated authoring document, success-output next steps, corrected custom-domain examples, and doctor-based diagnostics guidance.
 - Routing boundaries are covered by tests for orchestrator tool limits, builder execution ownership, explorer/librarian discovery boundaries, Task Context Envelope shape, no domain pre-reading, and unclear-intent clarification.
-- Trace/check output now supports categorized runtime diagnostics, summary counts, actionable next steps, and scenario validation.
+- Trace/doctor output now supports categorized runtime diagnostics, usage stats, summary counts, actionable next steps, and scenario validation.
 - Benchmark reporting now compares native builder with the full orchestrated path and reports quality-plus-token outcomes instead of token deltas alone.
 
 Current verification commands:

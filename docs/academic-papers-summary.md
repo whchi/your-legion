@@ -10,7 +10,7 @@
 |---|---|---|
 | Gorilla | Description-driven capability selection; domain routing should come from `DOMAIN.md` descriptions, not hand-written trigger rules. | `src/runtime/domain-packs.ts`, `src/agents/orchestrator.ts`, `docs/CONFIGURATION.md` |
 | ReAct | Explicit reasoning/action boundary through a compact delegation envelope and verifiable follow-up actions. | `src/agents/orchestrator.ts`, `src/runtime/domain-usage-contract.ts`, `docs/DOMAIN_OBSERVABILITY.md` |
-| Trace-Based Assurance | Runtime evidence, contract warnings, trace checks, and regression scenarios for orchestration behavior. | `src/runtime/domain-usage-contract.ts`, `src/runtime/checks.ts`, `tests/check.test.ts` |
+| Trace-Based Assurance | Runtime evidence, contract warnings, doctor diagnostics, usage stats, and regression scenarios for orchestration behavior. | `src/runtime/domain-usage-contract.ts`, `src/runtime/doctor.ts`, `tests/doctor.test.ts` |
 | Themis | Future reference for evaluator/reward-model style quality checks over traces and outputs. | Not implemented as a reward model today; current implementation is deterministic checks only. |
 | PERSONA | Analogy for composable inference-time control without creating one agent per domain. | Architectural analogy only; `your-legion` uses prompt/catalog context boundaries, not activation-vector persona control. |
 
@@ -29,7 +29,7 @@ Claim boundary: the parts currently implemented and verifiable in this repo are 
 這篇論文指出傳統依賴靜態內部表徵的模型容易受限。研究提出透過讓模型進行「動態推理 (Dynamic Reasoning)」，使其能夠根據高階的計畫與外部工具進行互動。對 `your-legion` 來說，它只提供「不要寫死 domain trigger、讓 agent 根據 catalog 判斷」的設計參考；目前程式碼沒有 Themis 的 reward model、learned evaluator，或工具增強式評分流程。
 
 * **對 `your-legion` 的定位**：
-目前 `your-legion` 只落地了 deterministic runtime checks 和 trace evidence，尚未實作 Themis 式 reward model 或 evaluator。這篇適合作為未來「用 trace + domain refs + output quality 做評估」的延伸參考，不應宣稱目前已完整實作。
+目前 `your-legion` 只落地了 deterministic runtime diagnostics 和 trace evidence，尚未實作 Themis 式 reward model 或 evaluator。這篇適合作為未來「用 trace + domain refs + output quality 做評估」的延伸參考，不應宣稱目前已完整實作。
 
 ---
 
@@ -50,7 +50,7 @@ Claim boundary: the parts currently implemented and verifiable in this repo are 
 ### [A Trace-Based Assurance Framework for Agentic AI Orchestration: Contracts, Testing, and Governance](https://arxiv.org/abs/2603.18096)
 * **核心概念**：Message-Action Traces & Step Contracts (合約驗證與追蹤)
 * **摘要 (Summary)**：
-這篇 2026 年的最新論文指出，在多 Agent 編排系統中，自然語言的非結構化溝通容易導致「角色偏移 (Role Drift)」與協作失敗。論文提出為 Agent 執行過程加入「合約 (Contracts)」與「Message-Action Traces」。這對應到 `your-legion` 中的 **Task Context Envelope**、warn-only runtime validation、JSONL trace evidence，以及 `check` / `check --scenarios` 驗收面；目前尚未實作論文中的完整 governance 或 learned verdict framework。
+這篇 2026 年的最新論文指出，在多 Agent 編排系統中，自然語言的非結構化溝通容易導致「角色偏移 (Role Drift)」與協作失敗。論文提出為 Agent 執行過程加入「合約 (Contracts)」與「Message-Action Traces」。這對應到 `your-legion` 中的 **Task Context Envelope**、warn-only runtime validation、JSONL trace evidence，以及 `doctor` / `doctor --scenarios` 診斷面；目前尚未實作論文中的完整 governance 或 learned verdict framework。
 
 ### [ReAct: Synergizing Reasoning and Acting in Language Models](https://arxiv.org/abs/2210.03629)
 * **核心概念**：Structured Reasoning & Context Maintenance (推理與行動結合)

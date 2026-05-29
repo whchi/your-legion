@@ -6,7 +6,7 @@ An OpenCode plugin that turns agent delegation into structured, verifiable conte
 
 Your Legion keeps OpenCode as the execution harness. It injects a small protected agent set, routes each turn to the right specialist, and lets those agents use project or domain knowledge through `DOMAIN.md`-driven Domain Packs.
 
-Domain Packs give users a lightweight way to bring expert knowledge into a project without turning `AGENTS.md` into one oversized prompt. Trace and check commands make routing and domain usage inspectable after the fact.
+Domain Packs give users a lightweight way to bring expert knowledge into a project without turning `AGENTS.md` into one oversized prompt. Trace and doctor commands make routing and domain usage inspectable after the fact.
 
 ![](docs/architecture.svg)
 
@@ -151,11 +151,11 @@ Domain descriptions and skills are injected into agent prompts as a Domain Catal
 
 Delegations use a compact Task Context Envelope with `Objective`, `Active domains`, `Domain refs`, `Domain skills`, `Context refs`, `Constraints`, `Expected output`, and `Verification`. The orchestrator compares the task with the Domain Catalog and activates every domain whose description materially applies. If no domain is configured or no domain description clearly matches, it should use no-domain delegation: `Active domains: none`, `Domain refs: none`, and `Domain skills: none`.
 
-Your Legion records warn-only domain usage evidence under `~/.config/opencode/your-legion/traces/`. Use `bunx @whchi/your-legion check --worktree .` as the main acceptance command for static domain catalog validation and runtime trace validation. Use `bunx @whchi/your-legion trace` when you need raw delegation and domain-read events. See [`DOMAIN_OBSERVABILITY.md`](./docs/DOMAIN_OBSERVABILITY.md) for the full validation workflow.
+Your Legion records warn-only domain usage evidence under `~/.config/opencode/your-legion/traces/`. Use `bunx @whchi/your-legion doctor --worktree .` as the main diagnostics command for static domain catalog validation, runtime trace validation, and domain usage stats. Use `bunx @whchi/your-legion trace` when you need raw delegation and domain-read events. See [`DOMAIN_OBSERVABILITY.md`](./docs/DOMAIN_OBSERVABILITY.md) for the full validation workflow.
 
 > **NOTICE:** In Your Legion CLI commands, `--worktree` means the OpenCode workspace/project path used to key trace evidence. It does not require a Git worktree.
 
-For a fixed domain-routing smoke test, run `bunx @whchi/your-legion domain-scenarios`, ask the printed prompts in OpenCode, then run `bunx @whchi/your-legion check --worktree . --scenarios`. The fixed set covers coding, marketing, finance, accounting, and their mixed-domain pairs.
+For a fixed domain-routing smoke test, run `bunx @whchi/your-legion domain-scenarios`, ask the printed prompts in OpenCode, then run `bunx @whchi/your-legion doctor --worktree . --scenarios`. The fixed set covers coding, marketing, finance, accounting, and their mixed-domain pairs.
 
 The paper references behind description-driven domain selection and trace-based runtime evidence are summarized in [`academic-papers-summary.md`](./docs/academic-papers-summary.md).
 
@@ -177,11 +177,11 @@ Your Legion uses direct specialist routing.
 
 - `bunx @whchi/your-legion install [--domains <ids>] [--add-domains <ids>]`: installs or refreshes the plugin registration. First install writes `legionaries.yaml` with `coding` enabled and materializes enabled bundled domain packs under `~/.config/opencode/your-legion/domains/`. Reinstall without domain flags preserves existing config. `--domains` replaces the enabled domain list; `--add-domains` merges into it.
 - `bunx @whchi/your-legion create-domain <domain-id> [--components workflows,decisions,examples,skills] [--enable]`: scaffolds a new global domain pack. By default it creates only `DOMAIN.md`; use `--components` to add selected optional folders and matching placeholder files, and `--enable` to write the domain into `legionaries.yaml`. Existing global domains and bundled domain ids are rejected.
-- `bunx @whchi/your-legion check [--worktree <path>] [--scenarios]`: runs the main acceptance checks. By default it validates `DOMAIN.md` declarations and runtime trace evidence; `--scenarios` also verifies the fixed scenario set.
+- `bunx @whchi/your-legion doctor [--worktree <path>] [--scenarios]`: runs the main domain diagnostics. By default it validates `DOMAIN.md` declarations, runtime trace evidence, and usage stats; `--scenarios` also verifies the fixed scenario set.
 - `bunx @whchi/your-legion trace [--worktree <path>] [--limit <n>]`: prints recent domain usage evidence for a workspace/project path.
 - `bunx @whchi/your-legion trace-check [--worktree <path>]`: low-level trace validation for contract warnings and declared domain refs or skills that were not read.
 - `bunx @whchi/your-legion domain-scenarios`: prints the fixed domain scenario prompts.
-- `bunx @whchi/your-legion domain-scenario-check [--worktree <path>]`: low-level fixed scenario validation; `check --scenarios` is the preferred entrypoint.
+- `bunx @whchi/your-legion domain-scenario-check [--worktree <path>]`: low-level fixed scenario validation; `doctor --scenarios` is the preferred entrypoint.
 
 ## Development
 

@@ -61,7 +61,13 @@ export {
   readDomainUsageTraceEvents,
   validateDomainUsageContract,
 } from './runtime/domain-usage-contract';
-export { checkStaticDomainCatalog, runYourLegionCheck } from './runtime/checks';
+export {
+  checkStaticDomainCatalog,
+  diagnoseStaticDomainCatalog,
+  doctorResultHash,
+  runYourLegionCheck,
+  runYourLegionDoctor,
+} from './runtime/doctor';
 export { summarizeOrchestrationBenchmark } from './runtime/orchestration-benchmark';
 export type {
   BenchmarkSessionMetric,

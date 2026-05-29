@@ -5,7 +5,13 @@ import { fileURLToPath } from 'node:url';
 
 import { getOpenCodeConfigDir, loadLegionariesConfig, type LoadLegionariesConfigOptions } from '../config/legionaries';
 import type { ResolvedDomainConfigMap } from '../shared/agent-types';
-import { analyzeDomainUsageTraceEvents, evaluateDomainUsageScenarios, readDomainUsageTraceEvents } from './domain-usage-contract';
+import {
+  analyzeDomainUsageTraceEvents,
+  type DomainUsageTraceEvent,
+  evaluateDomainUsageScenarios,
+  readDomainUsageTraceEvents,
+} from './domain-usage-contract';
+import { resolveDomainPacks, type DomainPack } from './domain-packs';
 
 type DomainComponentKind = 'workflows' | 'decisions' | 'examples' | 'skills';
 
@@ -17,21 +23,22 @@ const DOMAIN_COMPONENT_HEADINGS: Record<DomainComponentKind, string> = {
   skills: 'Skills:',
 };
 
-export type CheckSectionStatus = 'PASS' | 'FAIL' | 'SKIPPED';
+export type DoctorSectionStatus = 'PASS' | 'FAIL' | 'SKIPPED';
 
-export type CheckSection = {
+export type DoctorSection = {
   name: string;
-  status: CheckSectionStatus;
+  status: DoctorSectionStatus;
   failures: string[];
   warnings: string[];
+  details?: string[];
 };
 
-export type YourLegionCheckResult = {
+export type YourLegionDoctorResult = {
   passed: boolean;
-  sections: CheckSection[];
+  sections: DoctorSection[];
 };
 
-export type RunYourLegionCheckOptions = LoadLegionariesConfigOptions & {
+export type RunYourLegionDoctorOptions = LoadLegionariesConfigOptions & {
   includeScenarios?: boolean;
 };
 
@@ -214,13 +221,13 @@ function checkOneDomain({
   return { failures, warnings };
 }
 
-export function checkStaticDomainCatalog({
+export function diagnoseStaticDomainCatalog({
   configDir,
   domains,
 }: {
   configDir?: string | URL;
   domains: ResolvedDomainConfigMap;
-}): CheckSection {
+}): DoctorSection {
   const failures: string[] = [];
   const warnings: string[] = [];
   const root = resolvedConfigDir(configDir);
@@ -242,7 +249,7 @@ export function checkStaticDomainCatalog({
   };
 }
 
-function traceSection(options: RunYourLegionCheckOptions): CheckSection {
+function traceSection(options: RunYourLegionDoctorOptions): DoctorSection {
   const worktree = resolve(toPath(options.rootDir));
   const events = readDomainUsageTraceEvents({
     worktree,
@@ -251,14 +258,135 @@ function traceSection(options: RunYourLegionCheckOptions): CheckSection {
   const failures = analyzeDomainUsageTraceEvents(events);
 
   return {
-    name: 'Runtime trace',
+    name: 'Runtime trace diagnostics',
     status: failures.length > 0 ? 'FAIL' : 'PASS',
     failures,
     warnings: [],
   };
 }
 
-function scenarioSection(options: RunYourLegionCheckOptions): CheckSection {
+function increment(counts: Map<string, number>, key: string) {
+  counts.set(key, (counts.get(key) ?? 0) + 1);
+}
+
+function formatCounts(counts: Map<string, number>) {
+  const entries = [...counts.entries()].sort(([left], [right]) => left.localeCompare(right));
+  return entries.length === 0 ? 'none' : entries.map(([key, count]) => `${key}=${count}`).join(', ');
+}
+
+function catalogRefs(domainPacks: DomainPack[]) {
+  const refs = new Set<string>();
+  const skills = new Set<string>();
+
+  for (const pack of domainPacks) {
+    for (const [kind, components] of Object.entries(pack.components)) {
+      for (const component of components) {
+        const ref = `${pack.id}/${component.id}`;
+        if (kind === 'skills') {
+          skills.add(ref);
+        } else {
+          refs.add(ref);
+        }
+      }
+    }
+  }
+
+  return { refs, skills };
+}
+
+function formatDeclaredRead(declared: Map<string, number>, read: Map<string, number>) {
+  const refs = new Set([...declared.keys(), ...read.keys()]);
+  const entries = [...refs].sort((left, right) => left.localeCompare(right));
+  return entries.length === 0
+    ? 'none'
+    : entries.map(ref => `${ref}=declared:${declared.get(ref) ?? 0}/read:${read.get(ref) ?? 0}`).join(', ');
+}
+
+function unusedCatalogEntries(catalog: Set<string>, declared: Map<string, number>, read: Map<string, number>) {
+  return [...catalog]
+    .filter(ref => !declared.has(ref) && !read.has(ref))
+    .sort((left, right) => left.localeCompare(right));
+}
+
+function warningCategory(diagnostic: string) {
+  return diagnostic.match(/\[([^\]]+)\]/)?.[1] ?? 'domain-usage-warning';
+}
+
+function domainUsageStatsDetails(events: DomainUsageTraceEvent[], domainPacks: DomainPack[]) {
+  const delegations = events.filter(event => event.event === 'delegation');
+  const reads = events.filter(event => event.event === 'domain-read');
+  const activeDomains = new Map<string, number>();
+  const domainRefsDeclared = new Map<string, number>();
+  const domainRefsRead = new Map<string, number>();
+  const domainSkillsDeclared = new Map<string, number>();
+  const domainSkillsRead = new Map<string, number>();
+  const warningCategories = new Map<string, number>();
+
+  for (const event of delegations) {
+    for (const domain of event.activeDomains) {
+      increment(activeDomains, domain.id);
+    }
+    for (const ref of event.domainRefs) {
+      increment(domainRefsDeclared, ref);
+    }
+    for (const skill of event.domainSkills) {
+      increment(domainSkillsDeclared, skill);
+    }
+  }
+
+  for (const event of reads) {
+    for (const ref of event.domainRefs) {
+      increment(domainRefsRead, ref);
+    }
+    for (const skill of event.domainSkills) {
+      increment(domainSkillsRead, skill);
+    }
+  }
+
+  for (const diagnostic of analyzeDomainUsageTraceEvents(events)) {
+    increment(warningCategories, warningCategory(diagnostic));
+  }
+
+  const catalog = catalogRefs(domainPacks);
+  const unusedRefs =
+    events.length === 0 ? [] : unusedCatalogEntries(catalog.refs, domainRefsDeclared, domainRefsRead);
+  const unusedSkills =
+    events.length === 0 ? [] : unusedCatalogEntries(catalog.skills, domainSkillsDeclared, domainSkillsRead);
+  const noDomainDelegations = delegations.filter(
+    event => event.activeDomains.length === 0 && event.domainRefs.length === 0 && event.domainSkills.length === 0,
+  ).length;
+  const latestDomainRead = reads.map(event => event.timestamp).sort().at(-1) ?? 'none';
+
+  return [
+    `Trace events: ${events.length} (${delegations.length} delegations, ${reads.length} domain reads)`,
+    `No-domain delegations: ${noDomainDelegations}`,
+    `Active domains: ${formatCounts(activeDomains)}`,
+    `Domain refs declared/read: ${formatDeclaredRead(domainRefsDeclared, domainRefsRead)}`,
+    `Domain skills declared/read: ${formatDeclaredRead(domainSkillsDeclared, domainSkillsRead)}`,
+    `Latest domain read: ${latestDomainRead}`,
+    `Warning categories: ${formatCounts(warningCategories)}`,
+    `Unused catalog refs: ${events.length === 0 ? 'not evaluated (no trace events)' : unusedRefs.join(', ') || 'none'}`,
+    `Unused catalog skills: ${events.length === 0 ? 'not evaluated (no trace events)' : unusedSkills.join(', ') || 'none'}`,
+  ];
+}
+
+function domainUsageStatsSection(options: RunYourLegionDoctorOptions, domainPacks: DomainPack[]): DoctorSection {
+  const worktree = resolve(toPath(options.rootDir));
+  const events = readDomainUsageTraceEvents({
+    worktree,
+    configDir: options.configDir ? toPath(options.configDir) : undefined,
+  });
+
+  return {
+    name: 'Domain usage stats',
+    status: 'PASS',
+    failures: [],
+    warnings: [],
+    details: domainUsageStatsDetails(events, domainPacks),
+  };
+}
+
+function scenarioSection(options: RunYourLegionDoctorOptions): DoctorSection {
   if (!options.includeScenarios) {
     return {
       name: 'Scenario evidence',
@@ -282,14 +410,20 @@ function scenarioSection(options: RunYourLegionCheckOptions): CheckSection {
   };
 }
 
-export function runYourLegionCheck(options: RunYourLegionCheckOptions): YourLegionCheckResult {
+export function runYourLegionDoctor(options: RunYourLegionDoctorOptions): YourLegionDoctorResult {
   const config = loadLegionariesConfig(options);
+  const domainPacks = resolveDomainPacks({
+    configDir: options.configDir ? toPath(options.configDir) : undefined,
+    configPath: config.filePath,
+    domains: config.domains,
+  });
   const sections = [
-    checkStaticDomainCatalog({
+    diagnoseStaticDomainCatalog({
       configDir: options.configDir,
       domains: config.domains,
     }),
     traceSection(options),
+    domainUsageStatsSection(options, domainPacks),
     scenarioSection(options),
   ];
 
@@ -299,6 +433,11 @@ export function runYourLegionCheck(options: RunYourLegionCheckOptions): YourLegi
   };
 }
 
-export function checkResultHash(result: YourLegionCheckResult) {
+export const checkStaticDomainCatalog = diagnoseStaticDomainCatalog;
+export const runYourLegionCheck = runYourLegionDoctor;
+
+export function doctorResultHash(result: YourLegionDoctorResult) {
   return createHash('sha256').update(JSON.stringify(result)).digest('hex').slice(0, 16);
 }
+
+export const checkResultHash = doctorResultHash;

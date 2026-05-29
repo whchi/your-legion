@@ -108,7 +108,7 @@ The expected path is `orchestrator -> builder`, because this is a concrete execu
 
 ```bash
 bun src/cli.ts trace --worktree . --limit 20
-bun src/cli.ts check --worktree .
+bun src/cli.ts doctor --worktree .
 ```
 
 `--worktree .` must match the workspace/project path used by OpenCode. If you opened OpenCode from another directory, pass that absolute path instead.
@@ -166,19 +166,19 @@ Copy each printed scenario prompt into an OpenCode session that has this plugin 
 After running all prompts, validate the recorded trace from the repo checkout:
 
 ```bash
-bun src/cli.ts check --worktree . --scenarios
+bun src/cli.ts doctor --worktree . --scenarios
 ```
 
 The equivalent installed command is:
 
 ```bash
-bunx @whchi/your-legion check --worktree . --scenarios
+bunx @whchi/your-legion doctor --worktree . --scenarios
 ```
 
 If you are validating a different workspace/project path or config directory, pass both paths explicitly:
 
 ```bash
-bun src/cli.ts check --worktree /path/to/workspace --config-dir ~/.config/opencode --scenarios
+bun src/cli.ts doctor --worktree /path/to/workspace --config-dir ~/.config/opencode --scenarios
 ```
 
 Full local flow:
@@ -186,18 +186,18 @@ Full local flow:
 ```bash
 bun src/cli.ts domain-scenarios
 # Paste and run every printed scenario prompt in OpenCode.
-bun src/cli.ts check --worktree . --scenarios
+bun src/cli.ts doctor --worktree . --scenarios
 ```
 
 Lower-level trace inspection:
 
 ```bash
-bun src/cli.ts check --worktree .
+bun src/cli.ts doctor --worktree .
 bun src/cli.ts trace --worktree . --limit 20
 bun src/cli.ts trace-check --worktree .
 ```
 
-The check expects these scenarios to have matching `delegation` evidence with no contract warnings:
+The doctor expects these scenarios to have matching `delegation` evidence with no contract warnings:
 
 - `no-domain-no-catalog`
 - `no-domain-ambiguous`
@@ -290,7 +290,7 @@ Your Legion uses direct specialist routing rather than a category-first runtime.
 - Code review is command-owned by `/code-review` by default; `code-reviewer` is the bundled YAML custom-agent example.
 - Global `legionaries.yaml` configures per-agent models, reasoning, custom-agent enablement, and enabled domain packs. It does not decide which system agent gets selected.
 - Domain packs add a shared Domain Catalog and namespaced domain skills to existing agents. They do not create new agents, and their skills are not registered with the harness skill resolver.
-- Runtime trace events make domain usage observable. `delegation` events show requested active domains, refs, and skills; `domain-read` events show which domain component paths were read. `check` fails when `DOMAIN.md` declarations are invalid, a delegation declares unknown domain evidence, or declared domain refs/skills are not read.
+- Runtime trace events make domain usage observable. `delegation` events show requested active domains, refs, and skills; `domain-read` events show which domain component paths were read. `doctor` fails when `DOMAIN.md` declarations are invalid, a delegation declares unknown domain evidence, or declared domain refs/skills are not read; it also reports domain usage stats.
 - Fixed acceptance scenarios live with the domain usage contract and cover coding, marketing, finance, accounting, and mixed-domain pairs.
 
 ## Routing Boundaries

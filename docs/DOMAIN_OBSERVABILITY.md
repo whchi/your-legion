@@ -19,9 +19,9 @@ Runtime does not classify domains for the agent. Runtime only records and valida
 
 - `delegation` event: what the orchestrator declared before delegating.
 - `domain-read` event: which declared domain component files the delegated agent actually read.
-- `check`: the main acceptance command. It validates static `DOMAIN.md` declarations and runtime trace evidence.
+- `doctor`: the main diagnostics command. It validates static `DOMAIN.md` declarations, runtime trace evidence, and reports domain usage stats.
 - `trace-check`: low-level trace validation for contract warnings or declared domain refs/skills that were not read.
-- `domain-scenario-check`: low-level fixed scenario validation. Prefer `check --scenarios`.
+- `domain-scenario-check`: low-level fixed scenario validation. Prefer `doctor --scenarios`.
 
 The paper references behind this model are summarized in [`academic-papers-summary.md`](./academic-papers-summary.md): Gorilla for description-driven selection, ReAct for explicit action/evidence loops, and trace-based assurance for contract validation and regression evidence. The same document also marks Themis and PERSONA as future/analogy references rather than implemented claims.
 
@@ -139,40 +139,53 @@ For mixed-domain work, `activeDomains` must contain one entry per domain with a 
 
 This is intentionally stricter than `coding, marketing`. A mixed-domain delegation without responsibilities should produce a warning.
 
-## Run Main Acceptance Check
+## Run Main Doctor Diagnostics
 
-Use `check` after one or more real tasks:
+Use `doctor` after one or more real tasks:
 
 ```bash
-bunx @whchi/your-legion check --worktree .
+bunx @whchi/your-legion doctor --worktree .
 ```
 
 Source checkout form:
 
 ```bash
-bun src/cli.ts check --worktree .
+bun src/cli.ts doctor --worktree .
 ```
 
 Passing output:
 
 ```text
-Your Legion check
+Your Legion doctor
 
 Static domain catalog: PASS
-Runtime trace: PASS
+Runtime trace diagnostics: PASS
+Domain usage stats: PASS
 Scenario evidence: SKIPPED
 
 Summary:
-- Sections: 2 passed, 0 failed, 1 skipped
+- Sections: 3 passed, 0 failed, 1 skipped
 - Findings: 0 failures, 1 warning
 
 Warnings:
 - Use --scenarios after running prompts from domain-scenarios.
 
-Your Legion check passed
+Details:
+Domain usage stats:
+- Trace events: 0 (0 delegations, 0 domain reads)
+- No-domain delegations: 0
+- Active domains: none
+- Domain refs declared/read: none
+- Domain skills declared/read: none
+- Latest domain read: none
+- Warning categories: none
+- Unused catalog refs: not evaluated (no trace events)
+- Unused catalog skills: not evaluated (no trace events)
+
+Your Legion doctor passed
 ```
 
-`check` validates `DOMAIN.md` declarations and runtime trace evidence. It exits non-zero when static domain paths are wrong, trace contract warnings exist, or declared domain refs/skills were not read.
+`doctor` validates `DOMAIN.md` declarations and runtime trace evidence. It exits non-zero when static domain paths are wrong, trace contract warnings exist, or declared domain refs/skills were not read. It also reports usage stats so you can see which domains, refs, and skills are being declared or actually read.
 
 ## Run Runtime Trace Check
 
@@ -222,18 +235,18 @@ Source checkout form:
 bun src/cli.ts domain-scenarios
 ```
 
-Copy each printed scenario prompt into OpenCode. Keep the `Scenario: <id>` line in the prompt. That marker is how `check --scenarios` associates trace evidence with the scenario.
+Copy each printed scenario prompt into OpenCode. Keep the `Scenario: <id>` line in the prompt. That marker is how `doctor --scenarios` associates trace evidence with the scenario.
 
 Then validate:
 
 ```bash
-bunx @whchi/your-legion check --worktree . --scenarios
+bunx @whchi/your-legion doctor --worktree . --scenarios
 ```
 
 Source checkout form:
 
 ```bash
-bun src/cli.ts check --worktree . --scenarios
+bun src/cli.ts doctor --worktree . --scenarios
 ```
 
 The fixed set validates:
@@ -295,7 +308,7 @@ When validating a trace by eye, check these fields first:
 | Did it request the expected domain skill? | `delegation.domainSkills` |
 | Did it actually read the skill file? | matching `domain-read.domainSkills` |
 | Did no-domain fallback happen? | empty `activeDomains`, `domainRefs`, and `domainSkills` |
-| Was the contract clean? | `warnings: []` and `check` passes |
+| Was the contract clean? | `warnings: []` and `doctor` passes |
 
 ## CI Or Local Regression Use
 
@@ -304,7 +317,7 @@ For local development:
 ```bash
 bun src/cli.ts domain-scenarios
 # Run every printed prompt in OpenCode.
-bun src/cli.ts check --worktree . --scenarios
+bun src/cli.ts doctor --worktree . --scenarios
 ```
 
 For installed package validation:
@@ -312,15 +325,15 @@ For installed package validation:
 ```bash
 bunx @whchi/your-legion domain-scenarios
 # Run every printed prompt in OpenCode.
-bunx @whchi/your-legion check --worktree . --scenarios
+bunx @whchi/your-legion doctor --worktree . --scenarios
 ```
 
-`check` exits non-zero on failure, so it can be used in scripted acceptance flows after the interactive OpenCode prompts have produced trace evidence.
+`doctor` exits non-zero on failure, so it can be used in scripted acceptance flows after the interactive OpenCode prompts have produced trace evidence.
 
 ## Limitations
 
 - Runtime warnings are warn-only during normal OpenCode execution.
 - The runtime observes `task` delegation prompts and `read` tool access to declared domain component paths.
-- `check` verifies declared domain refs and skills were read. It does not prove the model followed the referenced document perfectly.
-- `check --scenarios` checks fixed scenario evidence. It does not replace reviewing the actual output quality.
+- `doctor` verifies declared domain refs and skills were read. It does not prove the model followed the referenced document perfectly.
+- `doctor --scenarios` checks fixed scenario evidence. It does not replace reviewing the actual output quality.
 - Trace events are keyed by resolved workspace/project path. Always pass the same `--worktree` path that OpenCode used.

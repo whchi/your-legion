@@ -132,14 +132,14 @@ For `your-legion-orchestrated`, also run:
 
 ```bash
 bun src/cli.ts trace-check --worktree .
-bun src/cli.ts check --worktree .
+bun src/cli.ts doctor --worktree .
 ```
 
 When validating domain scenarios, use:
 
 ```bash
 bun src/cli.ts domain-scenarios
-bun src/cli.ts check --worktree . --scenarios
+bun src/cli.ts doctor --worktree . --scenarios
 ```
 
 ## Four-Domain Task Set

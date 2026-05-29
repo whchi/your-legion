@@ -28,7 +28,7 @@ There is no markdown frontmatter rewrite step.
 - `src/runtime/domain-usage-contract.ts`: Task Context Envelope parsing, warn-only domain validation, and JSONL trace evidence
 - `docs/academic-papers-summary.md`: paper references and claim boundaries behind domain routing and runtime evidence
 - `docs/adr/0001-plugin-first-domain-aware-orchestration.md`: accepted architecture direction for plugin-first, domain-aware orchestration
-- `docs/ROADMAP.md`: current product plan for the OpenCode multi-agent, Domain Pack, trace/check, and benchmark roadmap
+- `docs/ROADMAP.md`: current product plan for the OpenCode multi-agent, Domain Pack, trace/doctor, and benchmark roadmap
 - `docs/DOMAIN_PACK_AUTHORING.md`: user-facing Domain Pack authoring guide
 - `src/domains/`: bundled domain packs copied to `dist/domains` at build time
 - `src/index.ts`: plugin entrypoint and config injection hook
@@ -134,8 +134,8 @@ Your Legion uses direct specialist routing rather than a category-first runtime.
 - A same-id override replaces the declared file path; overrides do not add components that are absent from `DOMAIN.md`.
 - Domain ids and component ids use the same kebab-case style as agent names.
 - `bunx @whchi/your-legion create-domain <domain-id>` creates `DOMAIN.md` only for a new custom id; pass `--components decisions,skills` to scaffold selected facets, and `--enable` to write it into `legionaries.yaml`. It must reject existing global domains and bundled domain ids.
-- Runtime evidence records `delegation` and `domain-read` events. Use `bunx @whchi/your-legion check --worktree .` for acceptance; it fails when `DOMAIN.md` declarations are invalid or declared domain refs/skills were not read.
-- Use `bunx @whchi/your-legion domain-scenarios` and `bunx @whchi/your-legion check --worktree . --scenarios` for the fixed coding, marketing, finance, accounting, and mixed-domain validation set.
+- Runtime evidence records `delegation` and `domain-read` events. Use `bunx @whchi/your-legion doctor --worktree .` for diagnostics; it fails when `DOMAIN.md` declarations are invalid or declared domain refs/skills were not read, and it reports domain usage stats.
+- Use `bunx @whchi/your-legion domain-scenarios` and `bunx @whchi/your-legion doctor --worktree . --scenarios` for the fixed coding, marketing, finance, accounting, and mixed-domain validation set.
 
 This repo ships an example mixed-provider mapping using `openai`, `github-copilot`, and `opencode-go`.
 

@@ -16,13 +16,13 @@ import {
   evaluateDomainUsageScenarios,
   readDomainUsageTraceEvents,
 } from './runtime/domain-usage-contract';
-import { runYourLegionCheck } from './runtime/checks';
+import { runYourLegionDoctor } from './runtime/doctor';
 
 function printUsage() {
   console.log(`Usage:
   bunx @whchi/your-legion install [--config-dir <path>] [--domains <ids>] [--add-domains <ids>]
   bunx @whchi/your-legion create-domain <domain-id> [--config-dir <path>] [--components <ids>] [--enable]
-  bunx @whchi/your-legion check [--worktree <path>] [--config-dir <path>] [--scenarios]
+  bunx @whchi/your-legion doctor [--worktree <path>] [--config-dir <path>] [--scenarios]
   bunx @whchi/your-legion trace [--worktree <path>] [--config-dir <path>] [--limit <n>]
   bunx @whchi/your-legion trace-check [--worktree <path>] [--config-dir <path>]
   bunx @whchi/your-legion domain-scenarios
@@ -113,7 +113,7 @@ if (command === 'create-domain') {
   }
   console.log('Authoring guide: docs/DOMAIN_PACK_AUTHORING.md');
   console.log('Verify after use:');
-  console.log('bunx @whchi/your-legion check --worktree .');
+  console.log('bunx @whchi/your-legion doctor --worktree .');
   process.exit(0);
 }
 
@@ -132,8 +132,8 @@ if (command === 'trace') {
   process.exit(0);
 }
 
-function printCheckResult(result: ReturnType<typeof runYourLegionCheck>) {
-  console.log('Your Legion check');
+function printDoctorResult(result: ReturnType<typeof runYourLegionDoctor>) {
+  console.log('Your Legion doctor');
   console.log('');
 
   for (const section of result.sections) {
@@ -167,6 +167,18 @@ function printCheckResult(result: ReturnType<typeof runYourLegionCheck>) {
     }
   }
 
+  const details = result.sections.filter(section => section.details?.length);
+  if (details.length > 0) {
+    console.log('');
+    console.log('Details:');
+    for (const section of details) {
+      console.log(`${section.name}:`);
+      for (const detail of section.details ?? []) {
+        console.log(`- ${detail}`);
+      }
+    }
+  }
+
   const nextSteps = checkNextSteps([...failures, ...warnings]);
   if (nextSteps.length > 0) {
     console.log('');
@@ -178,11 +190,11 @@ function printCheckResult(result: ReturnType<typeof runYourLegionCheck>) {
 
   if (result.passed) {
     console.log('');
-    console.log('Your Legion check passed');
+    console.log('Your Legion doctor passed');
   }
 }
 
-function checkSectionCounts(sections: ReturnType<typeof runYourLegionCheck>['sections']) {
+function checkSectionCounts(sections: ReturnType<typeof runYourLegionDoctor>['sections']) {
   return {
     passed: sections.filter(section => section.status === 'PASS').length,
     failed: sections.filter(section => section.status === 'FAIL').length,
@@ -211,7 +223,7 @@ function checkNextSteps(messages: string[]) {
       steps.add('List the file in DOMAIN.md or remove it if the domain should not expose it.');
     }
     if (/\[missing-domain-ref-read\]|\[missing-domain-skill-read\]|declared domain ref was not read|declared domain skill was not read|missing scenario evidence/.test(message)) {
-      steps.add('Run the matching OpenCode prompt, then rerun check with the same --worktree value.');
+      steps.add('Run the matching OpenCode prompt, then rerun doctor with the same --worktree value.');
     }
     if (/\[unknown-active-domain\]|\[unknown-domain-ref\]|\[unknown-domain-skill\]|unknown active domain|unknown domain ref|unknown domain skill/.test(message)) {
       steps.add('Use only enabled domain ids and catalog ids shown in the Domain Catalog.');
@@ -221,15 +233,18 @@ function checkNextSteps(messages: string[]) {
   return [...steps];
 }
 
-if (command === 'check') {
+if (command === 'doctor' || command === 'check') {
+  if (command === 'check') {
+    console.warn('`check` is deprecated; use `doctor`.');
+  }
   const worktree = resolve(optionValue('--worktree') ?? process.cwd());
-  const result = runYourLegionCheck({
+  const result = runYourLegionDoctor({
     rootDir: worktree,
     configDir: optionValue('--config-dir'),
     includeScenarios: hasFlag('--scenarios'),
   });
 
-  printCheckResult(result);
+  printDoctorResult(result);
   process.exit(result.passed ? 0 : 1);
 }
 

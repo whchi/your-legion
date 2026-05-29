@@ -81,14 +81,14 @@ Keyword trigger rules make routing brittle. A nearby task may mention a word wit
 After using the domain in OpenCode, run:
 
 ```bash
-bunx @whchi/your-legion check --worktree .
+bunx @whchi/your-legion doctor --worktree .
 ```
 
 Use scenarios when validating a full install:
 
 ```bash
 bunx @whchi/your-legion domain-scenarios
-bunx @whchi/your-legion check --worktree . --scenarios
+bunx @whchi/your-legion doctor --worktree . --scenarios
 ```
 
 The important questions are:
@@ -97,4 +97,4 @@ The important questions are:
 - Did it activate the expected domain?
 - Did it declare the expected domain refs or skills?
 - Did the specialist actually read them?
-- Did trace/check report warnings that need attention?
+- Did trace/doctor report warnings that need attention?

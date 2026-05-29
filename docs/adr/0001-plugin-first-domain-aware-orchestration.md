@@ -45,13 +45,13 @@ Agent roles are intentionally narrow:
 
 The orchestrator must not inspect the repo or pre-read context for `builder`. When a task is clear execution work, it delegates directly to `builder`; `builder` gathers its own context.
 
-Trace and check are part of the architecture contract:
+Trace and doctor are part of the architecture contract:
 
 - Delegations record active domains, domain refs, and domain skills.
 - Specialists record domain reads.
 - Runtime evidence is warn-only.
-- `check --worktree .` turns static domain declarations and runtime trace evidence into actionable validation.
-- Scenario checks protect the fixed coding, marketing, finance, accounting, and mixed-domain routing cases.
+- `doctor --worktree .` turns static domain declarations and runtime trace evidence into actionable diagnostics and usage stats.
+- Scenario diagnostics protect the fixed coding, marketing, finance, accounting, and mixed-domain routing cases.
 
 Benchmarking evaluates orchestration as a quality tradeoff, not only a token-saving tactic:
 
@@ -66,7 +66,7 @@ This decision keeps the project focused:
 - Documentation should present Your Legion as an OpenCode multi-agent enhancement layer.
 - Domain authoring UX matters because Domain Packs are the intended way to add user expertise.
 - Tests should protect agent boundaries, especially the orchestrator's no-pre-read boundary.
-- Trace/check output should be human-actionable, not just raw logs.
+- Trace/doctor output should be human-actionable, not just raw logs.
 - Benchmark results should be allowed to show that orchestration costs more when quality improves enough to justify it.
 
 This decision also creates explicit non-goals:

@@ -231,21 +231,21 @@ Your Legion records warn-only runtime evidence for domain usage. The plugin obse
 Each event records the worktree, session id when available, delegation id when available, event type, target agent, active domains, domain refs, domain skills, and contract warnings. This lets you answer two acceptance questions:
 
 - Correct domain: `Active domains` in a `delegation` event must name the domain and responsibility that matches the task.
-- Ref and skill usage: `Domain refs` and `Domain skills` in a `delegation` event show requested domain context; `domain-read` events show domain component files the agent actually read. `check` fails when a delegation declares a domain ref or skill but no matching read is recorded for that delegation.
+- Ref and skill usage: `Domain refs` and `Domain skills` in a `delegation` event show requested domain context; `domain-read` events show domain component files the agent actually read. `doctor` fails when a delegation declares a domain ref or skill but no matching read is recorded for that delegation, and it reports usage stats by domain, ref, and skill.
 
 Inspect recent evidence:
 
 > **NOTICE:** In Your Legion CLI commands, `--worktree` means the OpenCode workspace/project path used to key trace evidence. It does not require a Git worktree.
 
 ```bash
-bunx @whchi/your-legion check --worktree .
+bunx @whchi/your-legion doctor --worktree .
 bunx @whchi/your-legion trace --worktree . --limit 10
 ```
 
 Fail local verification when warnings were recorded:
 
 ```bash
-bunx @whchi/your-legion check --worktree .
+bunx @whchi/your-legion doctor --worktree .
 ```
 
 Warnings do not block runtime execution. They are designed for observability, review, and regression checks.
@@ -272,13 +272,13 @@ Ask the printed prompts in OpenCode. The fixed set currently checks:
 - `accounting-finance`: must activate `accounting` and `finance` with separate responsibilities.
 - `finance-marketing`: must activate `finance` and `marketing` with separate responsibilities.
 
-Then check the recorded trace:
+Then diagnose the recorded trace:
 
 ```bash
-bunx @whchi/your-legion check --worktree . --scenarios
+bunx @whchi/your-legion doctor --worktree . --scenarios
 ```
 
-The scenario check passes only when every fixed scenario has matching `delegation` evidence with no contract warnings.
+The scenario diagnostics pass only when every fixed scenario has matching `delegation` evidence with no contract warnings.
 
 The installed config enables the bundled `coding` domain on first install. It includes:
 
@@ -345,7 +345,7 @@ For test fixtures or agent scripts, pass the config directory explicitly:
 bun src/cli.ts create-domain marketing-ops --config-dir /tmp/opencode --components decisions,skills
 ```
 
-Available component ids are `workflows`, `decisions`, `examples`, and `skills`. The CLI prints the created path, the selected components, and the `legionaries.yaml` enablement snippet. Each selected component gets a placeholder file that matches the path declared in `DOMAIN.md`; selected skills get `SKILL.md` frontmatter so `check` can validate the scaffold immediately.
+Available component ids are `workflows`, `decisions`, `examples`, and `skills`. The CLI prints the created path, the selected components, and the `legionaries.yaml` enablement snippet. Each selected component gets a placeholder file that matches the path declared in `DOMAIN.md`; selected skills get `SKILL.md` frontmatter so `doctor` can validate the scaffold immediately.
 
 Create and enable a custom domain in one command after installation:
 

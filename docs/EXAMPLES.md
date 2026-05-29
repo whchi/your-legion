@@ -169,12 +169,12 @@ After the run, inspect runtime evidence:
 > **NOTICE:** In Your Legion CLI commands, `--worktree` means the OpenCode workspace/project path used to key trace evidence. It does not require a Git worktree.
 
 ```bash
-bunx @whchi/your-legion check --worktree .
+bunx @whchi/your-legion doctor --worktree .
 bunx @whchi/your-legion trace --worktree . --limit 10
 ```
 
 `delegation` events show which domains and skills were requested. `domain-read` events show which domain docs or domain skills were actually read.
-`check` fails if `DOMAIN.md` declarations are invalid, a delegation declared unknown domain evidence, or a declared domain ref/skill was never read.
+`doctor` fails if `DOMAIN.md` declarations are invalid, a delegation declared unknown domain evidence, or a declared domain ref/skill was never read. It also reports usage stats for domains, refs, and skills.
 
 For repeatable validation, use the fixed scenario set:
 
@@ -185,7 +185,7 @@ bunx @whchi/your-legion domain-scenarios
 Ask the printed prompts, then run:
 
 ```bash
-bunx @whchi/your-legion check --worktree . --scenarios
+bunx @whchi/your-legion doctor --worktree . --scenarios
 ```
 
 ## Add A Custom Agent

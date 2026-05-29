@@ -165,7 +165,7 @@ By default this creates only `DOMAIN.md`. `DOMAIN.md` is the only description an
 After scaffolding, edit the printed `DOMAIN.md` path with semantic routing guidance and any component paths that should be exposed. For authoring rules and examples, see [`DOMAIN_PACK_AUTHORING.md`](./DOMAIN_PACK_AUTHORING.md). After using the domain in OpenCode, verify the recorded evidence with:
 
 ```bash
-bunx @whchi/your-legion check --worktree .
+bunx @whchi/your-legion doctor --worktree .
 ```
 
 To scaffold selected component folders and matching placeholder files in one command:
@@ -220,11 +220,11 @@ To verify domain usage after a session, inspect the trace for the current worksp
 > **NOTICE:** In Your Legion CLI commands, `--worktree` means the OpenCode workspace/project path used to key trace evidence. It does not require a Git worktree.
 
 ```bash
-bunx @whchi/your-legion check --worktree .
+bunx @whchi/your-legion doctor --worktree .
 bunx @whchi/your-legion trace --worktree . --limit 10
 ```
 
-Trace events are stored under `~/.config/opencode/your-legion/traces/`. Contract warnings are warn-only at runtime, but `check` exits non-zero so local verification can catch invalid `DOMAIN.md` declarations, vague active domains, unknown domain refs, unknown domain skills, or declared domain refs and skills that were never read.
+Trace events are stored under `~/.config/opencode/your-legion/traces/`. Contract warnings are warn-only at runtime, but `doctor` exits non-zero so local diagnostics can catch invalid `DOMAIN.md` declarations, vague active domains, unknown domain refs, unknown domain skills, or declared domain refs and skills that were never read.
 
 For a fixed acceptance flow, print the built-in domain scenario prompts:
 
@@ -235,7 +235,7 @@ bunx @whchi/your-legion domain-scenarios
 Run the printed prompts in OpenCode, then verify that trace evidence contains the fixed domain scenario set:
 
 ```bash
-bunx @whchi/your-legion check --worktree . --scenarios
+bunx @whchi/your-legion doctor --worktree . --scenarios
 ```
 
 ## Supported Providers

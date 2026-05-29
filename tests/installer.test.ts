@@ -449,7 +449,7 @@ test('create-domain cli scaffolds a domain under an explicit config dir', t => {
   assert.match(output, new RegExp(path.join(configDir, 'your-legion', 'domains', 'marketing-ops', 'DOMAIN.md').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   assert.match(output, /Authoring guide: docs\/DOMAIN_PACK_AUTHORING\.md/);
   assert.match(output, /Verify after use:/);
-  assert.match(output, /bunx @whchi\/your-legion check --worktree \./);
+  assert.match(output, /bunx @whchi\/your-legion doctor --worktree \./);
   assert.equal(fs.existsSync(path.join(configDir, 'your-legion', 'domains', 'marketing-ops', 'DOMAIN.md')), true);
   assert.equal(fs.existsSync(path.join(configDir, 'your-legion', 'domains', 'marketing-ops', 'README.md')), false);
 });
@@ -516,7 +516,7 @@ test('create-domain cli can enable the domain in legionaries.yaml', t => {
     'product-ops': true,
   });
 
-  const checkOutput = execFileSync('bun', ['src/cli.ts', 'check', '--worktree', rootDir, '--config-dir', configDir], {
+  const checkOutput = execFileSync('bun', ['src/cli.ts', 'doctor', '--worktree', rootDir, '--config-dir', configDir], {
     cwd: rootDir,
     encoding: 'utf8',
   });
