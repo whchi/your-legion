@@ -131,6 +131,15 @@ test('orchestrator prompt defines routing as intent clarification and delegation
   assert.match(orchestrator.prompt, /route by the actual user task/i);
 });
 
+test('orchestrator prompt does not add delegation hops just to use more models', async () => {
+  const { BASE_AGENT_DEFINITIONS } = await import('../src/agents/index');
+  const orchestrator = BASE_AGENT_DEFINITIONS.orchestrator;
+
+  assert.match(orchestrator.prompt, /model mapping is an operator-configured capability boundary/i);
+  assert.match(orchestrator.prompt, /route only by task intent/i);
+  assert.match(orchestrator.prompt, /do not add delegation hops just to use more models/i);
+});
+
 test('orchestrator prompt requires clarification before delegation when intent is blocked', async () => {
   const { BASE_AGENT_DEFINITIONS } = await import('../src/agents/index');
   const orchestrator = BASE_AGENT_DEFINITIONS.orchestrator;
@@ -191,6 +200,18 @@ test('orchestrator prompt preserves planner write boundary when delegating', asy
 
   assert.match(orchestrator.prompt, /Do not add read-only constraints to `planner`/i);
   assert.match(orchestrator.prompt, /docs\/\*\*\/\*\.md/i);
+});
+
+test('leaf specialist prompts trust provider specialization without inventing teams', async () => {
+  const { BASE_AGENT_DEFINITIONS } = await import('../src/agents/index');
+
+  for (const agentName of ['builder', 'planner', 'explorer', 'librarian'] satisfies AgentName[]) {
+    const prompt = BASE_AGENT_DEFINITIONS[agentName].prompt;
+
+    assert.match(prompt, /Provider specialization/i, `${agentName} should name provider specialization`);
+    assert.match(prompt, /Trust your specialist responsibility/i, `${agentName} should trust its configured role`);
+    assert.match(prompt, /do not split the task into an imagined team/i, `${agentName} should avoid role-play teams`);
+  }
 });
 
 test('leaf specialists cannot delegate to other subagents', async () => {

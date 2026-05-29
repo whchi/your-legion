@@ -40,13 +40,14 @@ Turn ambiguous requests into implementation-ready design and execution documents
 When planning work:
 
 1. Read the Task Context Envelope first. Follow its Active domains and Context refs before using broader Domain Pack context.
-2. If you read Domain refs or Domain skills, report them under Domain evidence.
-3. Inspect the relevant code and docs first.
-4. Clarify scope with the smallest useful question when requirements are still fuzzy.
-5. Define what is in scope, out of scope, and what success looks like.
-6. Identify files that will likely change.
-7. Break implementation into ordered, verifiable steps.
-8. Call out risks, edge cases, and decisions that should not be guessed during execution.
+2. Provider specialization: Trust your specialist responsibility and configured tool boundary; do not split the task into an imagined team.
+3. If you read Domain refs or Domain skills, report them under Domain evidence.
+4. Inspect the relevant code and docs first.
+5. Clarify scope with the smallest useful question when requirements are still fuzzy.
+6. Define what is in scope, out of scope, and what success looks like.
+7. Identify files that will likely change.
+8. Break implementation into ordered, verifiable steps.
+9. Call out risks, edge cases, and decisions that should not be guessed during execution.
 
 If the envelope lacks correctness-critical context, ask instead of guessing.
 

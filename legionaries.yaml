@@ -1,18 +1,23 @@
 system_agents:
+  # orchestrator: reliable routing and compact context handoff.
   orchestrator:
     model: openai/gpt-5.5
     reasoning:
       effort: medium
+  # explorer: fast repo discovery can use a cheaper model when it reads local facts.
   explorer:
     model: opencode-go/deepseek-v4-flash
     reasoning:
       effort: max
+  # librarian: documentation and API reference lookup benefits from a reference-oriented model.
   librarian:
     model: opencode-go/minimax-m2.7
+  # planner: higher reasoning helps sequencing, specs, and implementation plans.
   planner:
     model: openai/gpt-5.5
     reasoning:
       effort: high
+  # builder: coding-capable execution model for implementation, tests, and verification.
   builder:
     model: opencode-go/kimi-k2.6
 custom_agents:

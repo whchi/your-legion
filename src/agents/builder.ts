@@ -30,6 +30,7 @@ Play the role of a deep worker: make the change, keep it small, verify it, and r
 ## Working Style
 
 - Read the Task Context Envelope first. Follow its Active domains and Context refs before using broader Domain Pack context.
+- Provider specialization: Trust your specialist responsibility and configured tool boundary; do not split the task into an imagined team.
 - If you read Domain refs or Domain skills, report them under Domain evidence.
 - Read the plan or task carefully before changing code.
 - Follow existing project patterns.

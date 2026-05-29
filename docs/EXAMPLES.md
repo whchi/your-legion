@@ -27,26 +27,31 @@ domains:
 
 Every required system agent must be listed. `custom_agents: {}` disables YAML custom agents.
 
-## Mixed Providers
+## Recommended Mixed Providers
 
-Use this in the global runtime config when you want a stronger router and planner, with cheaper implementation and discovery models:
+Use this in the global runtime config when you want a stronger router and planner, a coding-capable builder, and cheaper or reference-oriented discovery models. Replace every `provider/model-id` value with a provider and model already available in your OpenCode environment.
 
 ```yaml
 system_agents:
+  # orchestrator: reliable routing and compact context handoff.
   orchestrator:
     model: openai/gpt-5.5
     reasoning:
       effort: medium
+  # explorer: fast repo discovery can use a cheaper model when it reads local facts.
   explorer:
     model: opencode-go/deepseek-v4-flash
     reasoning:
       effort: max
+  # librarian: documentation and API reference lookup benefits from a reference-oriented model.
   librarian:
     model: opencode-go/minimax-m2.7
+  # planner: higher reasoning helps sequencing, specs, and implementation plans.
   planner:
     model: openai/gpt-5.5
     reasoning:
       effort: high
+  # builder: coding-capable execution model for implementation, tests, and verification.
   builder:
     model: opencode-go/kimi-k2.6
 custom_agents:
@@ -58,7 +63,7 @@ domains:
   coding: true
 ```
 
-This is the style used by the repo's bundled example.
+This is the style used by the repo's bundled example. It is a model responsibility map, not an instruction to create more agents.
 
 ## Add A Marketing Domain Pack
 
