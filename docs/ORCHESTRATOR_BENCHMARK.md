@@ -1,15 +1,17 @@
 # Orchestrator Benchmark
 
-This document defines how to compare `your-legion` orchestration against OpenCode's native builder path.
+This document defines how to compare `your-legion` orchestration against OpenCode's native builder path, and how to decide whether mixed-provider model mapping is worth using.
 
 The comparison target is:
 
 ```text
 A. native-builder: OpenCode native work agent directly handles the task
-B. your-legion-orchestrated: orchestrator.ts classifies, writes a Task Context Envelope, then delegates
+B. same-provider orchestrated: Your Legion uses one model across all system agents
+C. mixed-provider orchestrated: Your Legion uses the configured per-agent provider/model map
 ```
 
 Do not compare OpenCode native builder against `your-legion`'s `builder` in isolation. The product question is whether the `orchestrator.ts` layer is worth its full cost.
+The multi-provider product question is whether mixed-provider orchestrated runs keep pass rate stable while improving cost, speed, or quality over same-provider orchestrated runs.
 
 ## Success Claim
 
@@ -75,10 +77,12 @@ Use the same task prompt twice, once per variant. Keep the same model and worksp
 opencode-go/deepseek-v4-flash
 ```
 
-For a same-model orchestrated run, pin both layers:
+For a same-provider orchestrated run, pin both layers:
 
 - pass `--model opencode-go/deepseek-v4-flash` to `opencode run`
 - use a benchmark `legionaries.yaml` where `orchestrator`, `builder`, `explorer`, `planner`, and `librarian` all use `opencode-go/deepseek-v4-flash`
+
+For a mixed-provider orchestrated run, keep the same task prompt and use the intended `legionaries.yaml` model map. Record whether the run changed pass rate, rework turns, trace warnings, total tokens, elapsed time, or rubric quality compared with the same-provider orchestrated run.
 
 Use an isolated benchmark config when measuring routing cost. In local runs, this used a temp `XDG_CONFIG_HOME` and disabled global MCP servers so global OpenCode plugins did not add unrelated tools or context.
 
@@ -112,12 +116,22 @@ opencode run --agent orchestrator --model opencode-go/deepseek-v4-flash \
   "<prompt>"
 ```
 
-Prompt shape:
+Same-provider prompt shape:
 
 ```text
 Benchmark: yl-orchestrator-vs-native-YYYYMMDD
 Task: coding-001
-Variant: your-legion-orchestrated
+Variant: same-provider orchestrated
+
+<the same task>
+```
+
+Mixed-provider prompt shape:
+
+```text
+Benchmark: yl-orchestrator-vs-native-YYYYMMDD
+Task: coding-001
+Variant: mixed-provider orchestrated
 
 <the same task>
 ```
@@ -322,7 +336,6 @@ Execution notes:
 - Orchestrated variant used `XDG_CONFIG_HOME=/private/tmp/yl-orchestrator-vs-native-202605231350pro/xdg opencode run --agent orchestrator --model opencode-go/deepseek-v4-pro`.
 - The isolated `legionaries.yaml` pinned `orchestrator`, `builder`, `explorer`, `planner`, and `librarian` to `opencode-go/deepseek-v4-pro`.
 - The four task prompts were independent domain prompts and did not include prior benchmark results as task content.
-- `src/agents/orchestrator.ts` no longer names development-environment tools such as `codegraph*`, `context-mode*`, or `ctx_*`. The local OpenCode runtime still exposed `ctx_*` and `codegraph*` tools at execution time; that is environment-level contamination and is recorded below when it affected routing behavior.
 - This run happened after the role-boundary and Task Context Envelope prompt updates: `orchestrator` clarifies intent, delegates, and reports; `builder` gathers execution context; `explorer` gathers known repo/local-file facts only when that is the requested deliverable; `Domain refs` and `Domain skills` must be catalog ids only.
 - The earlier `deepseek-v4-flash` finance run used an unescaped shell prompt, so `$40` and `$90/hour` were expanded away before reaching OpenCode. That finance failure was a benchmark harness bug, not evidence that the model ignored visible numeric inputs. This control rerun escaped those dollar signs.
 
@@ -349,7 +362,6 @@ Interpretation:
 - Agent selection was correct on all four tasks: `explorer` for repo-local parser discovery and `builder` for marketing, finance, and accounting execution.
 - Domain envelope quality is still unreliable. Three rows had trace warnings from malformed `Active domains`; `finance-001` and `accounting-001` show the model still tends to put responsibilities or comma-separated topics where a single `domain-id: responsibility` entry is required.
 - All four `trace-check --worktree <task-worktree>` commands returned pass, even though the trace file contained warnings. In this local run, trace events recorded `worktree: "/"`, so per-worktree `trace-check` did not catch those warnings. This is an observability bug to fix before using trace-check as benchmark acceptance evidence.
-- The local runtime still exposed development-environment tools (`ctx_*` / `codegraph*`) even though the plugin source no longer names them. The pro orchestrator did not misuse them on `coding-001`, but native builder sessions still used environment tools. A formal benchmark should run in an environment where these tools are not exposed at all.
 
 ## Report Shape
 

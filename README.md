@@ -2,11 +2,11 @@
 
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/whchi/your-legion)
 
-An OpenCode plugin that turns agent delegation into structured, verifiable context contracts.
+An OpenCode plugin that improves multi-agent work with bounded specialists, per-agent provider/model mapping, and structured context handoff.
 
-Your Legion keeps OpenCode as the execution harness. It injects a small protected agent set, routes each turn to the right specialist, and lets those agents use project or domain knowledge through `DOMAIN.md`-driven Domain Packs.
+Your Legion keeps OpenCode as the execution harness. It injects a small protected agent set, routes each turn to the right specialist, and lets operators choose different providers or models for routing, planning, discovery, documentation lookup, and execution.
 
-Domain Packs give users a lightweight way to bring expert knowledge into a project without turning `AGENTS.md` into one oversized prompt. Trace and doctor commands make routing and domain usage inspectable after the fact.
+Task Context Envelopes keep delegation explicit and compact. Domain Packs are optional, lightweight context packs for project or professional knowledge; trace and doctor commands are troubleshooting tools for validating domain setup after the fact.
 
 ![](docs/architecture.svg)
 
@@ -15,8 +15,9 @@ Domain Packs give users a lightweight way to bring expert knowledge into a proje
 Use Your Legion when:
 
 - You want OpenCode to route work across specialists more consistently.
+- You want a simple per-agent provider/model map instead of a role-play agent team.
 - You have project or domain knowledge that agents should use selectively.
-- You want evidence that an agent selected the expected domain context and read the required refs or skills.
+- You want troubleshooting evidence when a domain-enabled task did not use the expected context.
 - You want to compare native OpenCode execution against an orchestrated multi-agent path.
 
 It is not a standalone agent platform or a public domain-pack ecosystem. The goal is a lightweight plugin that improves OpenCode's multi-agent workflow.
@@ -37,6 +38,8 @@ bunx @whchi/your-legion install
 ```
 
 The installer registers the plugin, writes `~/.config/opencode/legionaries.yaml`, and materializes enabled bundled domain packs under `~/.config/opencode/your-legion/domains/`. The first install enables and writes `coding` by default.
+
+Open `~/.config/opencode/legionaries.yaml` first when tuning the system. The installed model map is the main DX surface: use a reliable model for `orchestrator`, stronger reasoning for `planner`, a coding-capable model for `builder`, and cheaper or reference-oriented models for `explorer` and `librarian`.
 
 After restart, try a small routing check:
 
@@ -151,7 +154,7 @@ Domain descriptions and skills are injected into agent prompts as a Domain Catal
 
 Delegations use a compact Task Context Envelope with `Objective`, `Active domains`, `Domain refs`, `Domain skills`, `Context refs`, `Constraints`, `Expected output`, and `Verification`. The orchestrator compares the task with the Domain Catalog and activates every domain whose description materially applies. If no domain is configured or no domain description clearly matches, it should use no-domain delegation: `Active domains: none`, `Domain refs: none`, and `Domain skills: none`.
 
-Your Legion records warn-only domain usage evidence under `~/.config/opencode/your-legion/traces/`. Use `bunx @whchi/your-legion doctor --worktree .` as the main diagnostics command for static domain catalog validation, runtime trace validation, and domain usage stats. Use `bunx @whchi/your-legion trace` when you need raw delegation and domain-read events. See [`DOMAIN_OBSERVABILITY.md`](./docs/DOMAIN_OBSERVABILITY.md) for the full validation workflow.
+Your Legion records warn-only domain usage evidence under `~/.config/opencode/your-legion/traces/`. When troubleshooting domain setup, use `bunx @whchi/your-legion doctor --worktree .` for static domain catalog validation, runtime trace validation, and domain usage stats. Use `bunx @whchi/your-legion trace` when you need raw delegation and domain-read events. See [`DOMAIN_OBSERVABILITY.md`](./docs/DOMAIN_OBSERVABILITY.md) for the full validation workflow.
 
 > **NOTICE:** In Your Legion CLI commands, `--worktree` means the OpenCode workspace/project path used to key trace evidence. It does not require a Git worktree.
 
@@ -177,7 +180,7 @@ Your Legion uses direct specialist routing.
 
 - `bunx @whchi/your-legion install [--domains <ids>] [--add-domains <ids>]`: installs or refreshes the plugin registration. First install writes `legionaries.yaml` with `coding` enabled and materializes enabled bundled domain packs under `~/.config/opencode/your-legion/domains/`. Reinstall without domain flags preserves existing config. `--domains` replaces the enabled domain list; `--add-domains` merges into it.
 - `bunx @whchi/your-legion create-domain <domain-id> [--components workflows,decisions,examples,skills] [--enable]`: scaffolds a new global domain pack. By default it creates only `DOMAIN.md`; use `--components` to add selected optional folders and matching placeholder files, and `--enable` to write the domain into `legionaries.yaml`. Existing global domains and bundled domain ids are rejected.
-- `bunx @whchi/your-legion doctor [--worktree <path>] [--scenarios]`: runs the main domain diagnostics. By default it validates `DOMAIN.md` declarations, runtime trace evidence, and usage stats; `--scenarios` also verifies the fixed scenario set.
+- `bunx @whchi/your-legion doctor [--worktree <path>] [--scenarios]`: troubleshoots domain setup. By default it validates `DOMAIN.md` declarations, runtime trace evidence, and usage stats; `--scenarios` also verifies the fixed scenario set.
 - `bunx @whchi/your-legion trace [--worktree <path>] [--limit <n>]`: prints recent domain usage evidence for a workspace/project path.
 - `bunx @whchi/your-legion trace-check [--worktree <path>]`: low-level trace validation for contract warnings and declared domain refs or skills that were not read.
 - `bunx @whchi/your-legion domain-scenarios`: prints the fixed domain scenario prompts.

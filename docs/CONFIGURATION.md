@@ -89,6 +89,12 @@ custom_agents:
       effort: high
 ```
 
+## How To Choose Models
+
+Choose models by agent responsibility, not by imagined team roles. The model map is an operator-controlled capability boundary; routing still depends on task intent.
+
+Use the agent responsibilities in [Agent Reference](#agent-reference) to choose the model class: reliable routing for the primary agent, stronger reasoning for planning, coding capability for execution, and cheaper or reference-oriented models for read-only discovery. The provider/model IDs in examples are placeholders for providers already available in your OpenCode environment. Keep every entry in `provider/model-id` format and avoid adding extra agents just to use another provider.
+
 ## Custom Agents
 
 Custom agent definitions are discovered from bundled package examples and from the active worktree. To define one in a worktree, place the YAML file in:

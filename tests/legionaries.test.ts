@@ -31,6 +31,29 @@ test('legionaries config file defines a mixed system-agent model map', () => {
   assert.ok(!('code-reviewer' in config.system_agents));
 });
 
+test('legionaries template explains model choice by agent responsibility', () => {
+  const text = fs.readFileSync(legionariesConfigPath, 'utf8');
+
+  assert.match(text, /orchestrator.*routing.*context handoff/i);
+  assert.match(text, /explorer.*fast.*repo discovery/i);
+  assert.match(text, /librarian.*documentation.*reference/i);
+  assert.match(text, /planner.*reasoning.*sequencing/i);
+  assert.match(text, /builder.*coding-capable.*execution/i);
+  assert.doesNotMatch(text, /\bprofile:|\bpreset:|\brole_type:/);
+});
+
+test('public docs position provider mapping before diagnostics', () => {
+  const readme = fs.readFileSync(path.join(rootDir, 'README.md'), 'utf8');
+  const configuration = fs.readFileSync(path.join(rootDir, 'docs', 'CONFIGURATION.md'), 'utf8');
+
+  assert.ok(
+    readme.indexOf('per-agent provider/model mapping') !== -1 &&
+      readme.indexOf('per-agent provider/model mapping') < readme.indexOf('doctor'),
+  );
+  assert.match(configuration, /How To Choose Models/i);
+  assert.ok(configuration.indexOf('How To Choose Models') < configuration.indexOf('Domain Packs'));
+});
+
 test('legionaries loader resolves the mixed system-agent model map', async () => {
   const { loadLegionariesConfig } = await import('../src/config/legionaries');
   const result = loadLegionariesConfig({ rootDir, configPath: legionariesConfigPath });

@@ -1,7 +1,14 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 
 import { summarizeOrchestrationBenchmark, type BenchmarkSessionMetric } from '../src/runtime/orchestration-benchmark';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const rootDir = path.resolve(__dirname, '..');
 
 const baseMetric = {
   benchmarkID: 'yl-orchestrator-vs-native-001',
@@ -254,4 +261,13 @@ test('aggregates tokens per passed task by variant and task type', () => {
       traceWarnings: 0,
     },
   ]);
+});
+
+test('benchmark protocol distinguishes same-provider and mixed-provider orchestration', () => {
+  const benchmarkDoc = fs.readFileSync(path.join(rootDir, 'docs', 'ORCHESTRATOR_BENCHMARK.md'), 'utf8');
+
+  assert.match(benchmarkDoc, /same-provider orchestrated/i);
+  assert.match(benchmarkDoc, /mixed-provider orchestrated/i);
+  assert.match(benchmarkDoc, /pass rate/i);
+  assert.match(benchmarkDoc, /cost, speed, or quality/i);
 });
