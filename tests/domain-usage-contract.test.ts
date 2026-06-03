@@ -28,6 +28,7 @@ function testDomainPacks(configDir: string): DomainPack[] {
           {
             id: 'implementation-loop',
             path: path.join(configDir, 'your-legion', 'domains', 'coding', 'workflows', 'implementation-loop.md'),
+            signals: [],
           },
         ],
         decisions: [],
@@ -36,6 +37,7 @@ function testDomainPacks(configDir: string): DomainPack[] {
           {
             id: 'make-code-change',
             path: path.join(configDir, 'your-legion', 'domains', 'coding', 'skills', 'make-code-change', 'SKILL.md'),
+            signals: [],
           },
         ],
       },
@@ -53,6 +55,7 @@ function testDomainPacks(configDir: string): DomainPack[] {
           {
             id: 'campaign-brief',
             path: path.join(configDir, 'your-legion', 'domains', 'marketing', 'skills', 'campaign-brief', 'SKILL.md'),
+            signals: [],
           },
         ],
       },
@@ -256,6 +259,61 @@ test('trace CLI prints events and trace-check fails when warnings exist', async 
   assert.notEqual(result.status, 0);
   assert.match(result.stderr + result.stdout, /\[unknown-domain-skill\]/);
   assert.match(result.stderr + result.stdout, /unknown domain skill: coding\/missing/);
+});
+
+test('trace CLI can print a grouped delegation summary with reads and warnings', async t => {
+  const { appendDomainUsageTraceEvent } = await import('../src/runtime/domain-usage-contract');
+  const configDir = makeTempDir(t, 'domain-trace-summary-cli');
+  const worktree = path.join(configDir, 'project');
+
+  appendDomainUsageTraceEvent({
+    configDir,
+    worktree,
+    event: {
+      version: 1,
+      timestamp: '2026-05-20T00:00:00.000Z',
+      worktree,
+      sessionID: 'ses_summary',
+      delegationID: 'del_summary',
+      event: 'delegation',
+      targetAgent: 'builder',
+      activeDomains: [{ id: 'coding', responsibility: 'implement code' }],
+      domainRefs: ['coding/implementation-loop'],
+      domainSkills: ['coding/make-code-change'],
+      warnings: ['active domain must include responsibility: marketing'],
+    },
+  });
+  appendDomainUsageTraceEvent({
+    configDir,
+    worktree,
+    event: {
+      version: 1,
+      timestamp: '2026-05-20T00:00:01.000Z',
+      worktree,
+      sessionID: 'ses_summary',
+      delegationID: 'del_summary',
+      event: 'domain-read',
+      activeDomains: [],
+      domainRefs: ['coding/implementation-loop'],
+      domainSkills: ['coding/make-code-change'],
+      warnings: [],
+    },
+  });
+
+  const output = execFileSync(
+    'bun',
+    ['src/cli.ts', 'trace', '--worktree', worktree, '--config-dir', configDir, '--summary'],
+    { cwd: rootDir, encoding: 'utf8' },
+  );
+
+  assert.match(output, /Delegation del_summary/);
+  assert.match(output, /Target: builder/);
+  assert.match(output, /Active domains: coding: implement code/);
+  assert.match(output, /Declared refs: coding\/implementation-loop/);
+  assert.match(output, /Read refs: coding\/implementation-loop/);
+  assert.match(output, /Declared skills: coding\/make-code-change/);
+  assert.match(output, /Read skills: coding\/make-code-change/);
+  assert.match(output, /Warnings: active domain must include responsibility: marketing/);
 });
 
 test('trace-check fails when a declared domain skill was not read', async t => {

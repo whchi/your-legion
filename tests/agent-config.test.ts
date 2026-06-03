@@ -93,6 +93,15 @@ test('orchestrator prompt constrains domain evidence fields to catalog ids', asy
   assert.match(orchestrator.prompt, /Domain skills: finance\/financial-analysis/i);
 });
 
+test('orchestrator prompt keeps every envelope ref field structured', async () => {
+  const { BASE_AGENT_DEFINITIONS } = await import('../src/agents/index');
+  const orchestrator = BASE_AGENT_DEFINITIONS.orchestrator;
+
+  assert.match(orchestrator.prompt, /Scenario.*marker only when present/i);
+  assert.match(orchestrator.prompt, /Context refs.*repo paths, local paths, URLs, or explicit user-provided refs/i);
+  assert.match(orchestrator.prompt, /Do not put prose, explanations, summaries, or parenthetical notes in any refs field/i);
+});
+
 test('orchestrator prompt treats builder as the execution specialist', async () => {
   const { BASE_AGENT_DEFINITIONS } = await import('../src/agents/index');
   const orchestrator = BASE_AGENT_DEFINITIONS.orchestrator;
@@ -259,6 +268,7 @@ test('leaf specialist prompts follow the task context envelope before broader do
     assert.match(prompt, /Task Context Envelope/i, `${agentName} should name the envelope`);
     assert.match(prompt, /Active domains/i, `${agentName} should honor active domains`);
     assert.match(prompt, /Domain evidence/i, `${agentName} should report domain evidence`);
+    assert.match(prompt, /list the exact catalog ids or paths you actually read/i, `${agentName} should report structured evidence`);
     assert.match(prompt, /Context refs/i, `${agentName} should use context refs`);
     assert.match(
       prompt,

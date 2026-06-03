@@ -457,6 +457,19 @@ finance/financial-analysis
 
 Each declared document is injected into agent prompts as a namespaced entry, for example `marketing/campaign-brief`. Agents are instructed to read the exact path from the Domain Catalog instead of invoking the harness skill resolver.
 
+Component files may include optional frontmatter hints:
+
+```md
+---
+when_to_use: Use for launch sequencing, campaign planning, and go-to-market coordination.
+signals:
+  - launch
+  - campaign
+---
+```
+
+Your Legion includes these hints next to the catalog id and path. They help routing agents choose compact Domain refs, but they are not keyword triggers and they do not execute workflows.
+
 For a full marketing domain pack example, see [`EXAMPLES.md`](./EXAMPLES.md#add-a-marketing-domain-pack).
 
 Bundled `DOMAIN.md` is used unless a global `DOMAIN.md` exists for the same domain. Normal installer usage materializes enabled bundled domains into the global directory, so the global copy becomes the editable source for that install. A global `DOMAIN.md` replaces the bundled domain description and component catalog for that domain. Explicit overrides can replace or disable component ids that are already declared in the selected `DOMAIN.md`; they do not add undeclared components.

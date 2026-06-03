@@ -113,6 +113,61 @@ Skills:
   assert.equal(result.agent.librarian.permission.external_directory, 'allow');
 });
 
+test('domain catalog includes compact component activation metadata from frontmatter', async t => {
+  const projectDir = makeTempDir(t, 'domain-pack-component-metadata-project');
+  const configDir = makeTempDir(t, 'domain-pack-component-metadata-config');
+  const configPath = path.join(projectDir, 'legionaries.yaml');
+  const domainRoot = path.join(configDir, 'your-legion', 'domains', 'marketing');
+  const original = YAML.parse(fs.readFileSync(legionariesConfigPath, 'utf8'));
+
+  writeFile(
+    path.join(domainRoot, 'DOMAIN.md'),
+    `# Marketing
+
+Use this domain when the task involves launch copy.
+
+Workflows:
+- \`workflows/campaign-planning.md\`
+`,
+  );
+  writeFile(
+    path.join(domainRoot, 'workflows', 'campaign-planning.md'),
+    `---
+when_to_use: Use for launch sequencing, campaign planning, and go-to-market coordination.
+signals:
+  - launch
+  - campaign
+---
+
+# Campaign Planning
+
+This long body should not be inlined into the catalog.
+`,
+  );
+
+  fs.writeFileSync(
+    configPath,
+    YAML.stringify({
+      system_agents: systemAgentsFrom(original),
+      domains: {
+        marketing: true,
+      },
+    }),
+  );
+
+  const { buildEffectiveAgentConfig } = await import('../src/runtime/build-agent-config');
+  const result = await buildEffectiveAgentConfig({
+    rootDir: projectDir,
+    configDir,
+    configPath,
+  });
+
+  assert.match(result.agent.orchestrator.prompt, /marketing\/campaign-planning/);
+  assert.match(result.agent.orchestrator.prompt, /when_to_use: Use for launch sequencing/i);
+  assert.match(result.agent.orchestrator.prompt, /signals: launch, campaign/i);
+  assert.doesNotMatch(result.agent.orchestrator.prompt, /This long body should not be inlined/);
+});
+
 test('runtime reads true domains from global legionaries config without project-level lookup', async t => {
   const projectDir = makeTempDir(t, 'domain-pack-global-config-project');
   const configDir = makeTempDir(t, 'domain-pack-global-config');

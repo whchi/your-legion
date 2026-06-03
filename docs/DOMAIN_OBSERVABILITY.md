@@ -87,6 +87,12 @@ After asking OpenCode to perform a task, inspect the latest trace events:
 bunx @whchi/your-legion trace --worktree . --limit 20
 ```
 
+Use grouped output when you want to see each delegation with its declared refs, matching reads, and warnings:
+
+```bash
+bunx @whchi/your-legion trace --worktree . --summary
+```
+
 For source checkout development, use:
 
 ```bash

@@ -301,6 +301,10 @@ description: Review product operations constraints.
   assert.match(output, /Active domains: product-ops=1/);
   assert.match(output, /Domain refs declared\/read: product-ops\/policy=declared:1\/read:1/);
   assert.match(output, /Domain skills declared\/read: product-ops\/review=declared:1\/read:1/);
+  assert.match(output, /Delegation del_stats: target=builder; active=product-ops: review product policy/);
+  assert.match(output, /declared refs=product-ops\/policy; read refs=product-ops\/policy/);
+  assert.match(output, /declared skills=product-ops\/review; read skills=product-ops\/review/);
+  assert.match(output, /Delegation del_no_domain: target=builder; active=none/);
   assert.match(output, /Latest domain read: 2026-05-20T00:00:02.000Z/);
   assert.match(output, /Unused catalog refs: none/);
   assert.match(output, /Unused catalog skills: none/);

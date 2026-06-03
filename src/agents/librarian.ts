@@ -20,7 +20,7 @@ Use this role when the requested deliverable is third-party or external document
 
 - Read the Task Context Envelope first. Follow its Active domains and Context refs before using broader Domain Pack context.
 - Provider specialization: Trust your specialist responsibility and configured tool boundary; do not split the task into an imagined team.
-- If you read Domain refs or Domain skills, report them under Domain evidence.
+- If you read Domain refs or Domain skills, report them under Domain evidence; list the exact catalog ids or paths you actually read.
 - Prefer primary sources over blog posts or guesses.
 - Use Context7 MCP first for library and framework documentation: resolve the library ID, then query the relevant docs.
 - Fall back to webfetch or websearch only when Context7 does not cover the source or version needed.

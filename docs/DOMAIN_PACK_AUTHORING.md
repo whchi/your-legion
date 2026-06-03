@@ -76,6 +76,19 @@ Keyword trigger rules make routing brittle. A nearby task may mention a word wit
 - Keep files small enough for a specialist to read intentionally.
 - Put stable expert knowledge in components; keep one-off task details in the user prompt.
 
+Optional component frontmatter can add compact routing hints to the Domain Catalog:
+
+```md
+---
+when_to_use: Use for launch sequencing, campaign planning, and go-to-market coordination.
+signals:
+  - launch
+  - campaign
+---
+```
+
+These hints are descriptions, not trigger rules. They help the orchestrator choose catalog refs, but they do not create a workflow runtime or deterministic keyword router.
+
 ## Verify Usage
 
 After using the domain in OpenCode, run:

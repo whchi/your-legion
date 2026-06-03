@@ -1,7 +1,8 @@
 #!/usr/bin/env node
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { basename, dirname, resolve } from 'node:path';
+import YAML from 'yaml';
 
 import {
   AVAILABLE_DOMAIN_IDS,
@@ -23,7 +24,7 @@ function printUsage() {
   bunx @whchi/your-legion install [--config-dir <path>] [--domains <ids>] [--add-domains <ids>]
   bunx @whchi/your-legion create-domain <domain-id> [--config-dir <path>] [--components <ids>] [--enable]
   bunx @whchi/your-legion doctor [--worktree <path>] [--config-dir <path>] [--scenarios]
-  bunx @whchi/your-legion trace [--worktree <path>] [--config-dir <path>] [--limit <n>]
+  bunx @whchi/your-legion trace [--worktree <path>] [--config-dir <path>] [--limit <n>] [--summary]
   bunx @whchi/your-legion trace-check [--worktree <path>] [--config-dir <path>]
   bunx @whchi/your-legion domain-scenarios
   bunx @whchi/your-legion domain-scenario-check [--worktree <path>] [--config-dir <path>]`);
@@ -76,9 +77,29 @@ if (command === 'install') {
     console.log(`Backed up existing config to ${result.legionariesBackupPath}`);
   }
   console.log(`Updated ${result.opencodeConfigPath}`);
+  printModelMap(result.legionariesConfigPath);
   console.log(`Available bundled domains: ${AVAILABLE_DOMAIN_IDS.join(', ')} (default: coding)`);
   console.log(`Enabled domains: ${result.enabledDomains.join(', ')}`);
   process.exit(0);
+}
+
+function printModelMap(configPath: string) {
+  const parsed = YAML.parse(readFileSync(configPath, 'utf8')) as Record<string, unknown> | null;
+  const systemAgents = parsed?.system_agents;
+  if (!systemAgents || typeof systemAgents !== 'object' || Array.isArray(systemAgents)) {
+    return;
+  }
+
+  console.log('Model map:');
+  for (const [name, config] of Object.entries(systemAgents)) {
+    if (!config || typeof config !== 'object' || Array.isArray(config)) {
+      continue;
+    }
+    const model = (config as Record<string, unknown>).model;
+    if (typeof model === 'string') {
+      console.log(`- ${name} -> ${model}`);
+    }
+  }
 }
 
 if (command === 'create-domain') {
@@ -126,10 +147,79 @@ if (command === 'trace') {
     limit: Number.isFinite(limit) ? limit : 20,
   });
 
+  if (hasFlag('--summary')) {
+    printTraceSummary(events);
+    process.exit(0);
+  }
+
   for (const event of events) {
     console.log(JSON.stringify(event, null, 2));
   }
   process.exit(0);
+}
+
+function printTraceSummary(events: ReturnType<typeof readDomainUsageTraceEvents>) {
+  const readsByDelegation = new Map<string, { refs: Set<string>; skills: Set<string> }>();
+  const latestDelegationBySession = new Map<string, string>();
+
+  for (const event of events) {
+    if (event.event === 'delegation') {
+      if (event.delegationID && event.sessionID) {
+        latestDelegationBySession.set(event.sessionID, event.delegationID);
+      }
+      continue;
+    }
+
+    const delegationID =
+      event.delegationID ?? (event.sessionID ? latestDelegationBySession.get(event.sessionID) : undefined);
+    if (!delegationID) {
+      continue;
+    }
+
+    const reads = readsByDelegation.get(delegationID) ?? {
+      refs: new Set<string>(),
+      skills: new Set<string>(),
+    };
+    for (const ref of event.domainRefs) {
+      reads.refs.add(ref);
+    }
+    for (const skill of event.domainSkills) {
+      reads.skills.add(skill);
+    }
+    readsByDelegation.set(delegationID, reads);
+  }
+
+  const delegations = events.filter(event => event.event === 'delegation');
+  if (delegations.length === 0) {
+    console.log('No delegation events found');
+    return;
+  }
+
+  for (const event of delegations) {
+    const delegationID = event.delegationID ?? 'missing-delegation-id';
+    const reads = event.delegationID ? readsByDelegation.get(event.delegationID) : undefined;
+
+    console.log(`Delegation ${delegationID}`);
+    console.log(`- Target: ${event.targetAgent ?? 'unknown'}`);
+    console.log(`- Active domains: ${formatActiveDomains(event.activeDomains)}`);
+    console.log(`- Declared refs: ${formatList(event.domainRefs)}`);
+    console.log(`- Read refs: ${formatList(reads ? [...reads.refs] : [])}`);
+    console.log(`- Declared skills: ${formatList(event.domainSkills)}`);
+    console.log(`- Read skills: ${formatList(reads ? [...reads.skills] : [])}`);
+    console.log(`- Warnings: ${formatList(event.warnings)}`);
+  }
+}
+
+function formatActiveDomains(domains: ReturnType<typeof readDomainUsageTraceEvents>[number]['activeDomains']) {
+  if (domains.length === 0) {
+    return 'none';
+  }
+
+  return domains.map(domain => (domain.responsibility ? `${domain.id}: ${domain.responsibility}` : domain.id)).join(', ');
+}
+
+function formatList(values: string[]) {
+  return values.length === 0 ? 'none' : values.join(', ');
 }
 
 function printDoctorResult(result: ReturnType<typeof runYourLegionDoctor>) {
