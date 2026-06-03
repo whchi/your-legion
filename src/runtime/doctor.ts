@@ -302,6 +302,70 @@ function formatDeclaredRead(declared: Map<string, number>, read: Map<string, num
     : entries.map(ref => `${ref}=declared:${declared.get(ref) ?? 0}/read:${read.get(ref) ?? 0}`).join(', ');
 }
 
+function formatList(values: string[]) {
+  return values.length === 0 ? 'none' : values.join(', ');
+}
+
+function formatActiveDomains(domains: DomainUsageTraceEvent['activeDomains']) {
+  return domains.length === 0
+    ? 'none'
+    : domains.map(domain => (domain.responsibility ? `${domain.id}: ${domain.responsibility}` : domain.id)).join(', ');
+}
+
+function readsByDelegation(events: DomainUsageTraceEvent[]) {
+  const reads = new Map<string, { refs: Set<string>; skills: Set<string> }>();
+  const latestDelegationBySession = new Map<string, string>();
+
+  for (const event of events) {
+    if (event.event === 'delegation') {
+      if (event.delegationID && event.sessionID) {
+        latestDelegationBySession.set(event.sessionID, event.delegationID);
+      }
+      continue;
+    }
+
+    const delegationID =
+      event.delegationID ?? (event.sessionID ? latestDelegationBySession.get(event.sessionID) : undefined);
+    if (!delegationID) {
+      continue;
+    }
+
+    const evidence = reads.get(delegationID) ?? {
+      refs: new Set<string>(),
+      skills: new Set<string>(),
+    };
+    for (const ref of event.domainRefs) {
+      evidence.refs.add(ref);
+    }
+    for (const skill of event.domainSkills) {
+      evidence.skills.add(skill);
+    }
+    reads.set(delegationID, evidence);
+  }
+
+  return reads;
+}
+
+function delegationSummaryDetails(events: DomainUsageTraceEvent[]) {
+  const reads = readsByDelegation(events);
+  const delegations = events.filter(event => event.event === 'delegation');
+
+  return delegations.flatMap(event => {
+    const delegationID = event.delegationID ?? 'missing-delegation-id';
+    const evidence = event.delegationID ? reads.get(event.delegationID) : undefined;
+    const details = [
+      `Delegation ${delegationID}: target=${event.targetAgent ?? 'unknown'}; active=${formatActiveDomains(event.activeDomains)}`,
+      `Delegation ${delegationID}: declared refs=${formatList(event.domainRefs)}; read refs=${formatList(evidence ? [...evidence.refs] : [])}`,
+      `Delegation ${delegationID}: declared skills=${formatList(event.domainSkills)}; read skills=${formatList(evidence ? [...evidence.skills] : [])}`,
+    ];
+    if (event.warnings.length > 0) {
+      details.push(`Delegation ${delegationID}: warnings=${formatList(event.warnings)}`);
+    }
+
+    return details;
+  });
+}
+
 function unusedCatalogEntries(catalog: Set<string>, declared: Map<string, number>, read: Map<string, number>) {
   return [...catalog]
     .filter(ref => !declared.has(ref) && !read.has(ref))
@@ -367,6 +431,7 @@ function domainUsageStatsDetails(events: DomainUsageTraceEvent[], domainPacks: D
     `Warning categories: ${formatCounts(warningCategories)}`,
     `Unused catalog refs: ${events.length === 0 ? 'not evaluated (no trace events)' : unusedRefs.join(', ') || 'none'}`,
     `Unused catalog skills: ${events.length === 0 ? 'not evaluated (no trace events)' : unusedSkills.join(', ') || 'none'}`,
+    ...delegationSummaryDetails(events),
   ];
 }
 

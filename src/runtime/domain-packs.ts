@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
+import YAML from 'yaml';
 
 import { getOpenCodeConfigDir } from '../config/legionaries';
 import type { DomainConfig, ResolvedDomainConfigMap } from '../shared/agent-types';
@@ -21,6 +22,8 @@ const DOMAIN_COMPONENT_HEADINGS: Record<DomainComponentKind, string> = {
 export type DomainPackComponent = {
   id: string;
   path: string;
+  whenToUse?: string;
+  signals: string[];
 };
 
 export type DomainPack = {
@@ -51,6 +54,45 @@ function normalizeDomainConfig(config: DomainConfig) {
   return config === true ? {} : config;
 }
 
+function componentMetadata(filePath: string): Pick<DomainPackComponent, 'whenToUse' | 'signals'> {
+  const fallback = {
+    whenToUse: undefined,
+    signals: [],
+  };
+
+  if (!existsSync(filePath)) {
+    return fallback;
+  }
+
+  const markdown = readFileSync(filePath, 'utf8');
+  if (!markdown.startsWith('---')) {
+    return fallback;
+  }
+
+  const match = markdown.match(/^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/);
+  if (!match) {
+    return fallback;
+  }
+
+  try {
+    const parsed = YAML.parse(match[1]) as Record<string, unknown> | null;
+    const whenToUse = typeof parsed?.when_to_use === 'string' ? parsed.when_to_use.trim() : undefined;
+    const signals = Array.isArray(parsed?.signals)
+      ? parsed.signals
+          .filter((signal): signal is string => typeof signal === 'string')
+          .map(signal => signal.trim())
+          .filter(Boolean)
+      : [];
+
+    return {
+      whenToUse: whenToUse || undefined,
+      signals,
+    };
+  } catch {
+    return fallback;
+  }
+}
+
 function applyOverrides(
   components: DomainPackComponent[],
   config: DomainConfig,
@@ -70,9 +112,11 @@ function applyOverrides(
       continue;
     }
 
+    const overridePath = resolveConfiguredPath(override.path, baseDir);
     byID.set(id, {
       id,
-      path: resolveConfiguredPath(override.path, baseDir),
+      path: overridePath,
+      ...componentMetadata(overridePath),
     });
   }
 
@@ -141,6 +185,10 @@ function declaredDomainComponents({
       path: join(domainRoot, relativePath),
     }))
     .filter(component => existsSync(component.path))
+    .map(component => ({
+      ...component,
+      ...componentMetadata(component.path),
+    }))
     .sort((left, right) => left.id.localeCompare(right.id));
 }
 
@@ -220,7 +268,16 @@ function formatComponent(kind: DomainComponentKind, pack: DomainPack) {
   const title = kind[0].toUpperCase() + kind.slice(1);
   return [
     `  ${title}:`,
-    ...components.map(component => `  - \`${pack.id}/${component.id}\` (Path: ${component.path})`),
+    ...components.flatMap(component => {
+      const lines = [`  - \`${pack.id}/${component.id}\` (Path: ${component.path})`];
+      if (component.whenToUse) {
+        lines.push(`    when_to_use: ${component.whenToUse}`);
+      }
+      if (component.signals.length > 0) {
+        lines.push(`    signals: ${component.signals.join(', ')}`);
+      }
+      return lines;
+    }),
   ];
 }
 

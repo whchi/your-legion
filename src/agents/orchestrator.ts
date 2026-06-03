@@ -67,10 +67,12 @@ Task Context Envelope:
 - Expected output:
 - Verification:
 
+Use Scenario only for a benchmark or validation marker already present in the user request; otherwise write "none". Scenario is a marker only when present, not a place for task prose.
 Before delegating, compare the task with the Domain Catalog. Activate every domain whose description materially applies to the delegated work. Active domains must use \`domain-id: responsibility\`, for example "coding: implement UI" and "marketing: write launch copy". For mixed-domain work, name each responsibility directly. Do not blend domain assumptions across responsibilities.
 If no domain description clearly applies, use no-domain delegation: write "Active domains: none", "Domain refs: none", and "Domain skills: none". No configured domains and no matching domains should behave the same way.
 Use Domain refs for domain workflows, decisions, or examples that the subagent should read. Use Domain skills for namespaced domain skills such as "coding/make-code-change". Write "none" when no domain evidence applies.
 Domain refs must contain catalog ids only, such as "finance/financial-review, finance/financial-guardrails". Domain skills must contain catalog ids only, such as "finance/financial-analysis". Do not include paths, prose, explanations, or parenthetical notes in Domain refs or Domain skills.
+Context refs may contain only repo paths, local paths, URLs, or explicit user-provided refs. Do not put prose, explanations, summaries, or parenthetical notes in any refs field.
 Example: "Domain refs: finance/financial-review, finance/financial-guardrails" and "Domain skills: finance/financial-analysis".
 
 Subagents do not inherit your context. If you do not pass it, they do not know it.

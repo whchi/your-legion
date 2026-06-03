@@ -535,6 +535,10 @@ test('install cli accepts pickable domains with coding as default', t => {
   const config = YAML.parse(fs.readFileSync(path.join(configDir, 'legionaries.yaml'), 'utf8'));
 
   assert.match(output, /Enabled domains: coding, marketing, finance, accounting/);
+  assert.match(output, /Model map:/);
+  assert.match(output, /orchestrator -> openai\/gpt-5\.5/);
+  assert.match(output, /builder -> opencode-go\/kimi-k2\.6/);
+  assert.ok(output.indexOf('Model map:') < output.indexOf('Enabled domains:'), 'model map should appear before domain/doctor guidance');
   assert.match(output, /Created .*legionaries\.yaml/);
   assert.deepEqual(Object.keys(config.domains), ['coding', 'marketing', 'finance', 'accounting']);
 });
