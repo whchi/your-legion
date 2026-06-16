@@ -10,6 +10,9 @@ const TRACE_HASH_LENGTH = 16;
 
 type EnvelopeField =
   | 'scenarioID'
+  | 'loopID'
+  | 'loopRunID'
+  | 'loopStatus'
   | 'objective'
   | 'activeDomains'
   | 'domainRefs'
@@ -17,10 +20,17 @@ type EnvelopeField =
   | 'contextRefs'
   | 'constraints'
   | 'expectedOutput'
-  | 'verification';
+  | 'verification'
+  | 'completionClaim'
+  | 'verificationCommands'
+  | 'verificationOutcome';
 
 const FIELD_NAMES: Record<string, EnvelopeField> = {
   scenario: 'scenarioID',
+  loop: 'loopID',
+  'loop run': 'loopRunID',
+  'loop run id': 'loopRunID',
+  'loop status': 'loopStatus',
   objective: 'objective',
   'active domains': 'activeDomains',
   'domain refs': 'domainRefs',
@@ -29,7 +39,13 @@ const FIELD_NAMES: Record<string, EnvelopeField> = {
   constraints: 'constraints',
   'expected output': 'expectedOutput',
   verification: 'verification',
+  'completion claim': 'completionClaim',
+  'verification commands': 'verificationCommands',
+  'verification outcome': 'verificationOutcome',
 };
+
+export type LoopRunStatus = 'started' | 'maker-complete' | 'verifier-complete' | 'blocked' | 'failed';
+export type VerificationOutcome = 'passed' | 'failed' | 'not-run' | 'unknown';
 
 export type ActiveDomainUsage = {
   id: string;
@@ -38,6 +54,9 @@ export type ActiveDomainUsage = {
 
 export type TaskContextEnvelope = {
   scenarioID?: string;
+  loopID?: string;
+  loopRunID?: string;
+  loopStatus?: LoopRunStatus;
   objective?: string;
   activeDomains: ActiveDomainUsage[];
   domainRefs: string[];
@@ -46,6 +65,9 @@ export type TaskContextEnvelope = {
   constraints?: string;
   expectedOutput?: string;
   verification?: string;
+  completionClaim?: string;
+  verificationCommands: string[];
+  verificationOutcome?: VerificationOutcome;
   rawFields: Partial<Record<EnvelopeField, string[]>>;
 };
 
@@ -62,7 +84,13 @@ export type DomainUsageTraceEvent = {
   sessionID?: string;
   delegationID?: string;
   scenarioID?: string;
-  event: 'delegation' | 'domain-read';
+  loopID?: string;
+  loopRunID?: string;
+  loopStatus?: LoopRunStatus;
+  completionClaim?: string;
+  verificationCommands?: string[];
+  verificationOutcome?: VerificationOutcome;
+  event: 'delegation' | 'domain-read' | 'loop-run-report';
   domainCatalogHash?: string;
   domainCatalogSize?: number;
   toolName?: string;
@@ -268,6 +296,19 @@ function parseActiveDomains(lines: string[] | undefined): ActiveDomainUsage[] {
   });
 }
 
+const LOOP_RUN_STATUSES = new Set<LoopRunStatus>(['started', 'maker-complete', 'verifier-complete', 'blocked', 'failed']);
+const VERIFICATION_OUTCOMES = new Set<VerificationOutcome>(['passed', 'failed', 'not-run', 'unknown']);
+
+function parseLoopStatus(lines: string[] | undefined): LoopRunStatus | undefined {
+  const value = splitTokens(lines)[0];
+  return value && LOOP_RUN_STATUSES.has(value as LoopRunStatus) ? (value as LoopRunStatus) : undefined;
+}
+
+function parseVerificationOutcome(lines: string[] | undefined): VerificationOutcome | undefined {
+  const value = splitTokens(lines)[0];
+  return value && VERIFICATION_OUTCOMES.has(value as VerificationOutcome) ? (value as VerificationOutcome) : undefined;
+}
+
 export function parseTaskContextEnvelope(text: string): TaskContextEnvelope {
   const rawFields: Partial<Record<EnvelopeField, string[]>> = {};
   let currentField: EnvelopeField | undefined;
@@ -298,6 +339,9 @@ export function parseTaskContextEnvelope(text: string): TaskContextEnvelope {
 
   return {
     scenarioID: splitTokens(rawFields.scenarioID).join(', ') || undefined,
+    loopID: splitTokens(rawFields.loopID).join(', ') || undefined,
+    loopRunID: splitTokens(rawFields.loopRunID).join(', ') || undefined,
+    loopStatus: parseLoopStatus(rawFields.loopStatus),
     objective: splitTokens(rawFields.objective).join(', ') || undefined,
     activeDomains: parseActiveDomains(rawFields.activeDomains),
     domainRefs: splitTokens(rawFields.domainRefs),
@@ -306,6 +350,9 @@ export function parseTaskContextEnvelope(text: string): TaskContextEnvelope {
     constraints: splitTokens(rawFields.constraints).join(', ') || undefined,
     expectedOutput: splitTokens(rawFields.expectedOutput).join(', ') || undefined,
     verification: splitTokens(rawFields.verification).join(', ') || undefined,
+    completionClaim: splitTokens(rawFields.completionClaim).join(', ') || undefined,
+    verificationCommands: splitTokens(rawFields.verificationCommands),
+    verificationOutcome: parseVerificationOutcome(rawFields.verificationOutcome),
     rawFields,
   };
 }
@@ -530,6 +577,47 @@ function stringArg(args: Record<string, unknown>, names: string[]) {
   return undefined;
 }
 
+function extractText(input: unknown): string {
+  const fragments: string[] = [];
+  const seen = new Set<unknown>();
+
+  function visit(value: unknown) {
+    if (typeof value === 'string') {
+      fragments.push(value);
+      return;
+    }
+    if (!value || typeof value !== 'object' || seen.has(value)) {
+      return;
+    }
+
+    seen.add(value);
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        visit(item);
+      }
+      return;
+    }
+
+    for (const item of Object.values(value as Record<string, unknown>)) {
+      visit(item);
+    }
+  }
+
+  visit(input);
+  return fragments.join('\n');
+}
+
+function extractLoopRunReportText(input: unknown) {
+  const text = extractText(input);
+  const marker = 'Loop Run Report:';
+  const markerIndex = text.lastIndexOf(marker);
+  if (markerIndex === -1) {
+    return '';
+  }
+
+  return text.slice(markerIndex);
+}
+
 function createTraceEvent(
   options: CreateDomainUsageTraceHooksOptions,
   event: Omit<DomainUsageTraceEvent, 'version' | 'timestamp' | 'worktree'>,
@@ -577,6 +665,9 @@ function delegationIDFor({
         sessionID,
         targetAgent,
         scenarioID,
+        loopID: envelope.loopID,
+        loopRunID: envelope.loopRunID,
+        loopStatus: envelope.loopStatus,
         objective: envelope.objective,
         activeDomains: envelope.activeDomains,
         domainRefs: envelope.domainRefs,
@@ -748,6 +839,12 @@ export function createDomainUsageTraceHooks(options: CreateDomainUsageTraceHooks
           sessionID,
           delegationID,
           scenarioID: envelope.scenarioID,
+          loopID: envelope.loopID,
+          loopRunID: envelope.loopRunID,
+          loopStatus: envelope.loopStatus,
+          completionClaim: envelope.completionClaim,
+          verificationCommands: envelope.verificationCommands,
+          verificationOutcome: envelope.verificationOutcome,
           event: 'delegation',
           toolName: 'task',
           toolArgsShape: Object.keys(args).sort(),
@@ -761,13 +858,41 @@ export function createDomainUsageTraceHooks(options: CreateDomainUsageTraceHooks
     },
     async 'tool.execute.after'(input: unknown, output: unknown) {
       const toolName = extractToolName(input);
+      const sessionID = extractSessionID(input);
+
+      if (toolName === 'task') {
+        const envelope = parseTaskContextEnvelope(extractLoopRunReportText(output));
+        if (!envelope.loopID || !envelope.loopRunID || !envelope.loopStatus) {
+          return;
+        }
+
+        write(
+          createTraceEvent(options, {
+            sessionID,
+            delegationID: sessionID ? latestDelegationBySession.get(sessionID) : undefined,
+            loopID: envelope.loopID,
+            loopRunID: envelope.loopRunID,
+            loopStatus: envelope.loopStatus,
+            completionClaim: envelope.completionClaim,
+            verificationCommands: envelope.verificationCommands,
+            verificationOutcome: envelope.verificationOutcome,
+            event: 'loop-run-report',
+            toolName,
+            activeDomains: [],
+            domainRefs: [],
+            domainSkills: [],
+            warnings: [],
+          }),
+        );
+        return;
+      }
+
       if (toolName !== 'read') {
         return;
       }
 
       const args = extractArgs(output);
       const filePath = stringArg(args, ['filePath', 'path', 'file']);
-      const sessionID = extractSessionID(input);
       if (!filePath) {
         return;
       }

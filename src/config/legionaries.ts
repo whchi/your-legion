@@ -12,10 +12,12 @@ import {
   type CustomAgentName,
   type LegionariesConfig,
   type LegionaryEntry,
+  type LoopConfig,
   type ResolvedLegionaryEntry,
   type ResolvedCustomLegionariesMap,
   type ResolvedDomainConfigMap,
   type ResolvedLegionariesMap,
+  type ResolvedLoopConfigMap,
   type ReasoningEffort,
   type SystemAgentName,
 } from '../shared/agent-types';
@@ -96,6 +98,11 @@ function validateModelMap(models: Partial<Record<SystemAgentName, LegionaryEntry
   const resolvedModels = {} as ResolvedLegionariesMap;
 
   for (const agent of REQUIRED_AGENT_NAMES) {
+    if (models[agent] === undefined) {
+      throw new Error(
+        `missing model for required system agent: ${agent}. Add system_agents.${agent}.model to legionaries.yaml using provider/model-id format.`,
+      );
+    }
     resolvedModels[agent] = normalizeAgentEntry(agent, models[agent]);
   }
 
@@ -181,15 +188,100 @@ function validateDomainConfigMap(domains: Record<string, DomainConfig> = {}): Re
   return resolvedDomains;
 }
 
+function assertNonEmptyString(value: unknown, field: string) {
+  if (typeof value !== 'string' || value.trim().length === 0) {
+    throw new Error(`${field} must be a non-empty string`);
+  }
+}
+
+function assertStringArray(value: unknown, field: string) {
+  if (!Array.isArray(value) || value.some(item => typeof item !== 'string' || item.trim().length === 0)) {
+    throw new Error(`${field} must be a string array`);
+  }
+}
+
+function validateLoopConfigMap(loops: Record<string, LoopConfig> = {}): ResolvedLoopConfigMap {
+  const resolvedLoops: ResolvedLoopConfigMap = {};
+
+  if (!loops || typeof loops !== 'object' || Array.isArray(loops)) {
+    throw new Error('legionaries.yaml loops must be a map');
+  }
+
+  for (const [loopID, loop] of Object.entries(loops)) {
+    assertDomainID(loopID);
+
+    if (!loop || typeof loop !== 'object' || Array.isArray(loop)) {
+      throw new Error(`loops.${loopID} must be a map`);
+    }
+
+    assertNonEmptyString(loop.description, `loops.${loopID}.description`);
+    assertNonEmptyString(loop.objective, `loops.${loopID}.objective`);
+    assertNonEmptyString(loop.inbox_path, `loops.${loopID}.inbox_path`);
+    if (isAbsolute(loop.inbox_path) || loop.inbox_path.split('/').includes('..')) {
+      throw new Error(`loops.${loopID}.inbox_path must be a relative repo path`);
+    }
+
+    if (!loop.trigger || typeof loop.trigger !== 'object' || Array.isArray(loop.trigger)) {
+      throw new Error(`loops.${loopID}.trigger must be a map`);
+    }
+    if (!['manual', 'scheduled', 'external'].includes(loop.trigger.type)) {
+      throw new Error(`loops.${loopID}.trigger.type must be manual, scheduled, or external`);
+    }
+    if (loop.trigger.type === 'scheduled') {
+      assertNonEmptyString(loop.trigger.cadence, `loops.${loopID}.trigger.cadence`);
+    }
+
+    if (!loop.verification || typeof loop.verification !== 'object' || Array.isArray(loop.verification)) {
+      throw new Error(`loops.${loopID}.verification must be a map`);
+    }
+    assertStringArray(loop.verification.commands, `loops.${loopID}.verification.commands`);
+    if (loop.verification.commands.length === 0) {
+      throw new Error(`loops.${loopID}.verification.commands must contain at least one command`);
+    }
+    assertNonEmptyString(loop.verification.completion, `loops.${loopID}.verification.completion`);
+
+    if (loop.active_domains !== undefined) {
+      if (!Array.isArray(loop.active_domains)) {
+        throw new Error(`loops.${loopID}.active_domains must be an array`);
+      }
+      for (const [index, domain] of loop.active_domains.entries()) {
+        assertDomainID(domain.id);
+        assertNonEmptyString(domain.responsibility, `loops.${loopID}.active_domains.${index}.responsibility`);
+      }
+    }
+    if (loop.domain_refs !== undefined) {
+      assertStringArray(loop.domain_refs, `loops.${loopID}.domain_refs`);
+    }
+    if (loop.domain_skills !== undefined) {
+      assertStringArray(loop.domain_skills, `loops.${loopID}.domain_skills`);
+    }
+    if (loop.agents !== undefined) {
+      for (const [role, agent] of Object.entries(loop.agents)) {
+        assertAgentName(agent);
+        if (!['triage', 'maker', 'verifier'].includes(role)) {
+          throw new Error(`loops.${loopID}.agents.${role} is not supported`);
+        }
+      }
+    }
+    if (loop.worktree?.isolation && !['required', 'optional', 'none'].includes(loop.worktree.isolation)) {
+      throw new Error(`loops.${loopID}.worktree.isolation must be required, optional, or none`);
+    }
+    if (loop.connectors?.mode && !['manual', 'external'].includes(loop.connectors.mode)) {
+      throw new Error(`loops.${loopID}.connectors.mode must be manual or external`);
+    }
+
+    resolvedLoops[loopID] = loop;
+  }
+
+  return resolvedLoops;
+}
+
 function resolveConfiguredMaps(parsed: LegionariesConfig | null) {
   if (!parsed || typeof parsed !== 'object') {
     throw new Error('legionaries.yaml missing system_agents map');
   }
 
-  const hasNewSchema = parsed.system_agents !== undefined || parsed.custom_agents !== undefined;
-  const systemAgents = hasNewSchema ? parsed.system_agents : parsed.agents;
-
-  if (!systemAgents || typeof systemAgents !== 'object') {
+  if (!parsed.system_agents || typeof parsed.system_agents !== 'object') {
     throw new Error('legionaries.yaml missing system_agents map');
   }
 
@@ -198,9 +290,10 @@ function resolveConfiguredMaps(parsed: LegionariesConfig | null) {
   }
 
   return {
-    systemAgents,
+    systemAgents: parsed.system_agents,
     customAgents: parsed.custom_agents ?? {},
     domains: parsed.domains ?? {},
+    loops: parsed.loops ?? {},
   };
 }
 
@@ -214,11 +307,13 @@ export function loadLegionariesConfig(options: LoadLegionariesConfigOptions) {
   const systemAgents = validateModelMap(configuredMaps.systemAgents);
   const customAgents = validateCustomModelMap(configuredMaps.customAgents);
   const domains = validateDomainConfigMap(configuredMaps.domains);
+  const loops = validateLoopConfigMap(configuredMaps.loops);
 
   return {
     filePath,
     systemAgents,
     customAgents,
     domains,
+    loops,
   };
 }

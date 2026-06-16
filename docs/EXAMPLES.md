@@ -20,6 +20,8 @@ system_agents:
     model: openai/gpt-5.5
   builder:
     model: openai/gpt-5.5
+  verifier:
+    model: openai/gpt-5.5
 custom_agents: {}
 domains:
   coding: true
@@ -54,6 +56,11 @@ system_agents:
   # builder: coding-capable execution model for implementation, tests, and verification.
   builder:
     model: opencode-go/kimi-k2.6
+  # verifier: independent checker for maker/checker split and loop completion claims.
+  verifier:
+    model: openai/gpt-5.5
+    reasoning:
+      effort: high
 custom_agents:
   code-reviewer:
     model: openai/gpt-5.5
@@ -191,6 +198,27 @@ Ask the printed prompts, then run:
 
 ```bash
 bunx @whchi/your-legion doctor --worktree . --scenarios
+```
+
+## Add A Legion Loop
+
+Create a loop contract and repo-local inbox:
+
+```bash
+bunx @whchi/your-legion create-loop daily-ci-triage --preset ci-triage --worktree .
+```
+
+Generate the prompt for a run:
+
+```bash
+bunx @whchi/your-legion loop-prompt daily-ci-triage --worktree .
+```
+
+Validate loop health and runtime evidence:
+
+```bash
+bunx @whchi/your-legion doctor --worktree .
+bunx @whchi/your-legion loop-runs --worktree . --loop daily-ci-triage
 ```
 
 ## Add A Custom Agent

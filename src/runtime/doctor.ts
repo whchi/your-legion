@@ -4,7 +4,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { getOpenCodeConfigDir, loadLegionariesConfig, type LoadLegionariesConfigOptions } from '../config/legionaries';
-import type { ResolvedDomainConfigMap } from '../shared/agent-types';
+import type { ResolvedDomainConfigMap, ResolvedLoopConfigMap } from '../shared/agent-types';
 import {
   analyzeDomainUsageTraceEvents,
   type DomainUsageTraceEvent,
@@ -98,10 +98,8 @@ function componentID(kind: DomainComponentKind, relativePath: string) {
     return relativePath.split('/').at(-2) ?? relativePath;
   }
 
-  return relativePath
-    .split('/')
-    .at(-1)!
-    .replace(/\.md$/, '');
+  const fileName = relativePath.split('/').at(-1) ?? relativePath;
+  return fileName.replace(/\.md$/, '');
 }
 
 function displayDeclaredPath(domainID: string, relativePath: string) {
@@ -451,6 +449,165 @@ function domainUsageStatsSection(options: RunYourLegionDoctorOptions, domainPack
   };
 }
 
+function loopCatalogSection({
+  rootDir,
+  loops,
+  domainPacks,
+}: {
+  rootDir: string | URL;
+  loops: ResolvedLoopConfigMap;
+  domainPacks: DomainPack[];
+}): DoctorSection {
+  const failures: string[] = [];
+  const warnings: string[] = [];
+  const details: string[] = [];
+  const worktree = resolve(toPath(rootDir));
+  const catalog = catalogRefs(domainPacks);
+
+  for (const [loopID, loop] of Object.entries(loops).sort(([left], [right]) => left.localeCompare(right))) {
+    const agents = loop.agents ?? {};
+    const maker = agents.maker ?? 'builder';
+    const verifier = agents.verifier ?? 'verifier';
+    details.push(`${loopID}: trigger=${loop.trigger.type}; inbox=${loop.inbox_path}; maker=${maker}; verifier=${verifier}`);
+
+    if (!existsSync(join(worktree, loop.inbox_path))) {
+      failures.push(`missing loop inbox: ${loopID} -> ${loop.inbox_path}`);
+    }
+    if (maker === verifier) {
+      failures.push(`loop maker and verifier must be separate: ${loopID}`);
+    }
+    if (loop.verification.commands.length === 0) {
+      failures.push(`loop has no verification commands: ${loopID}`);
+    }
+    for (const ref of loop.domain_refs ?? []) {
+      if (!catalog.refs.has(ref)) {
+        failures.push(`unknown loop domain ref: ${loopID} -> ${ref}`);
+      }
+    }
+    for (const skill of loop.domain_skills ?? []) {
+      if (!catalog.skills.has(skill)) {
+        failures.push(`unknown loop domain skill: ${loopID} -> ${skill}`);
+      }
+    }
+    if ((loop.connectors?.mode ?? 'manual') === 'manual') {
+      warnings.push(`loop connector mode is manual: ${loopID}`);
+    }
+  }
+
+  return {
+    name: 'Loop catalog',
+    status: failures.length > 0 ? 'FAIL' : 'PASS',
+    failures,
+    warnings,
+    details,
+  };
+}
+
+function loopRuntimeSection(options: RunYourLegionDoctorOptions, loops: ResolvedLoopConfigMap): DoctorSection {
+  const events = readDomainUsageTraceEvents({
+    worktree: resolve(toPath(options.rootDir)),
+    configDir: options.configDir ? toPath(options.configDir) : undefined,
+  });
+  const failures: string[] = [];
+  const warnings: string[] = [];
+  const details: string[] = [];
+  const loopDelegations = events.filter(
+    event => (event.event === 'delegation' || event.event === 'loop-run-report') && event.loopID,
+  );
+  const loopRuns = new Map<
+    string,
+    {
+      loopID: string;
+      loopRunID: string;
+      statuses: Set<string>;
+      targets: Set<string>;
+      verificationOutcomes: Set<string>;
+      completionClaims: string[];
+    }
+  >();
+  const verifierDelegations = new Set(
+    loopDelegations.filter(event => event.targetAgent === 'verifier').map(event => event.loopID),
+  );
+
+  for (const event of loopDelegations) {
+    const loopID = event.loopID;
+    if (!loopID) {
+      continue;
+    }
+    const loop = loops[loopID];
+    if (!loop) {
+      failures.push(`unknown loop evidence: ${loopID}`);
+      continue;
+    }
+
+    const maker = loop.agents?.maker ?? 'builder';
+    const verifier = loop.agents?.verifier ?? 'verifier';
+    if (event.targetAgent === maker && !event.loopRunID && !verifierDelegations.has(loopID)) {
+      failures.push(`loop maker delegation has no verifier evidence: ${loopID}`);
+    }
+    if (event.loopRunID) {
+      const key = `${loopID}/${event.loopRunID}`;
+      const run = loopRuns.get(key) ?? {
+        loopID,
+        loopRunID: event.loopRunID,
+        statuses: new Set<string>(),
+        targets: new Set<string>(),
+        verificationOutcomes: new Set<string>(),
+        completionClaims: [],
+      };
+      if (event.loopStatus) {
+        run.statuses.add(event.loopStatus);
+      }
+      if (event.targetAgent) {
+        run.targets.add(event.targetAgent);
+      }
+      if (event.verificationOutcome) {
+        run.verificationOutcomes.add(event.verificationOutcome);
+      }
+      if (event.completionClaim) {
+        run.completionClaims.push(event.completionClaim);
+      }
+      loopRuns.set(key, run);
+    }
+    details.push(
+      `Loop ${loopID}: target=${event.targetAgent ?? 'unknown'}; run=${event.loopRunID ?? 'none'}; status=${event.loopStatus ?? 'none'}; expected verifier=${verifier}`,
+    );
+  }
+
+  for (const run of [...loopRuns.values()].sort((left, right) =>
+    `${left.loopID}/${left.loopRunID}`.localeCompare(`${right.loopID}/${right.loopRunID}`),
+  )) {
+    if (!loops[run.loopID]) {
+      continue;
+    }
+
+    if (run.statuses.has('maker-complete') && !run.statuses.has('verifier-complete')) {
+      failures.push(`loop run maker-complete has no verifier-complete: ${run.loopID}/${run.loopRunID}`);
+    }
+    if (run.statuses.has('verifier-complete') && !run.verificationOutcomes.has('passed')) {
+      warnings.push(`loop run verifier-complete has no passed verification outcome: ${run.loopID}/${run.loopRunID}`);
+    }
+    if (run.statuses.has('blocked') || run.statuses.has('failed')) {
+      warnings.push(`loop run requires human follow-up: ${run.loopID}/${run.loopRunID}`);
+    }
+    details.push(
+      `Loop run ${run.loopID}/${run.loopRunID}: statuses=${formatList([...run.statuses])}; targets=${formatList([...run.targets])}; outcomes=${formatList([...run.verificationOutcomes])}; claim=${run.completionClaims.at(-1) ?? 'none'}`,
+    );
+  }
+
+  if (loopDelegations.length === 0 && Object.keys(loops).length > 0) {
+    warnings.push('no loop runtime evidence found yet');
+  }
+
+  return {
+    name: 'Loop runtime evidence',
+    status: failures.length > 0 ? 'FAIL' : 'PASS',
+    failures,
+    warnings,
+    details,
+  };
+}
+
 function scenarioSection(options: RunYourLegionDoctorOptions): DoctorSection {
   if (!options.includeScenarios) {
     return {
@@ -489,6 +646,12 @@ export function runYourLegionDoctor(options: RunYourLegionDoctorOptions): YourLe
     }),
     traceSection(options),
     domainUsageStatsSection(options, domainPacks),
+    loopCatalogSection({
+      rootDir: options.rootDir,
+      loops: config.loops,
+      domainPacks,
+    }),
+    loopRuntimeSection(options, config.loops),
     scenarioSection(options),
   ];
 
@@ -498,11 +661,6 @@ export function runYourLegionDoctor(options: RunYourLegionDoctorOptions): YourLe
   };
 }
 
-export const checkStaticDomainCatalog = diagnoseStaticDomainCatalog;
-export const runYourLegionCheck = runYourLegionDoctor;
-
 export function doctorResultHash(result: YourLegionDoctorResult) {
   return createHash('sha256').update(JSON.stringify(result)).digest('hex').slice(0, 16);
 }
-
-export const checkResultHash = doctorResultHash;

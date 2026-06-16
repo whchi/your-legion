@@ -1,6 +1,6 @@
 # Configuration
 
-Your Legion reads per-agent model, reasoning settings, custom-agent enablement, and enabled domain packs from the global `legionaries.yaml` at startup. The plugin injects required system agents, configured YAML custom agents, and a Domain Catalog into OpenCode automatically.
+Your Legion reads per-agent model, reasoning settings, custom-agent enablement, enabled domain packs, and configured Legion Loops from the global `legionaries.yaml` at startup. The plugin injects required system agents, configured YAML custom agents, a Domain Catalog, and a Loop Catalog into OpenCode automatically.
 
 For copy-paste recipes, see [`EXAMPLES.md`](./EXAMPLES.md). This page is the reference for how the config is resolved and validated.
 
@@ -14,7 +14,7 @@ There is no project-level `legionaries.yaml` resolution. A `legionaries.yaml` fi
 
 ## Schema
 
-The file has three top-level maps. Every required system agent must have an entry in `system_agents`. Custom agents are enabled through `custom_agents` and must have a matching YAML file under `src/custom-agents/`. Domain packs are enabled through `domains`.
+The file has four top-level maps. Every required system agent should have an entry in `system_agents`. Custom agents are enabled through `custom_agents` and must have a matching YAML file under `src/custom-agents/`. Domain packs are enabled through `domains`. Legion Loops are configured through `loops`.
 
 ```yaml
 system_agents:
@@ -29,6 +29,15 @@ custom_agents:
       effort: <low|medium|high|xhigh|max>
 domains:
   <domain-id>: true
+loops:
+  <loop-id>:
+    description: <short description>
+    objective: <long-running goal>
+    trigger: { type: <manual|scheduled|external> }
+    inbox_path: <repo-relative markdown path>
+    verification:
+      commands: [<command>]
+      completion: <completion rule>
 ```
 
 If you want to disable custom agents, set `custom_agents: {}` or omit the whole block.
@@ -42,6 +51,7 @@ If you want to disable custom agents, set `custom_agents: {}` or omit the whole 
 | `custom_agents.<name>.model` | yes when a custom agent is present | Provider and model ID in `provider/model-id` format |
 | `custom_agents.<name>.reasoning.effort` | no | Reasoning effort level for supported providers |
 | `domains.<id>` | no | Enables a bundled or global `DOMAIN.md`-declared domain pack, with optional same-id path overrides |
+| `loops.<id>` | no | Defines a recurring or goal-driven Legion Loop contract |
 
 ### Reasoning Effort
 
@@ -70,10 +80,16 @@ system_agents:
       effort: high
   builder:
     model: opencode-go/kimi-k2.6
+  verifier:
+    model: openai/gpt-5.5
+    reasoning:
+      effort: high
 custom_agents: {}
 domains:
   coding: true
 ```
+
+Configs that omit `system_agents.verifier` fail fast. Add `system_agents.verifier.model` explicitly when upgrading an older config.
 
 If you want the smallest one-provider config, use the minimal example in [`EXAMPLES.md`](./EXAMPLES.md#minimal-legionariesyaml).
 
@@ -177,8 +193,9 @@ Each domain's routing description comes only from `DOMAIN.md`. Resolution order 
 ```text
 global DOMAIN.md
 bundled DOMAIN.md
-fallback: domain id
 ```
+
+If neither file exists, the enabled domain is omitted from the Domain Catalog until a `DOMAIN.md` is added.
 
 Keep `DOMAIN.md` short and semantic. It should describe when the domain applies and when it does not apply, then list available `Workflows`, `Decisions`, `Examples`, and `Skills` with domain-root relative component paths. Do not write keyword trigger rules.
 
@@ -205,7 +222,39 @@ Domain refs: none
 Domain skills: none
 ```
 
-No-domain fallback is normal behavior, not a contract warning.
+No-domain delegation is normal behavior, not a contract warning.
+
+## Legion Loops
+
+Legion Loops define recurring or goal-driven engineering workflows. Use presets for setup, then edit the generated config only when the defaults need project-specific tuning.
+
+For the friendliest setup path, create loops from presets and generate the run prompt instead of hand-writing the full YAML first:
+
+```bash
+bunx @whchi/your-legion loop-presets
+bunx @whchi/your-legion create-loop daily-ci-triage --preset ci-triage --worktree .
+bunx @whchi/your-legion loop-prompt daily-ci-triage --worktree .
+```
+
+The generated config is ordinary `legionaries.yaml` and can be edited later:
+
+Important rules:
+
+- `inbox_path` must be a repo-relative path.
+- `agents.maker` and `agents.verifier` must be different.
+- `domain_refs` and `domain_skills` must refer to enabled Domain Catalog entries.
+- `trigger` is a contract field. Use `manual`, `scheduled`, or `external`; execution is still started by OpenCode, CI, cron, hooks, or a future runner.
+
+Create and inspect loops with:
+
+```bash
+bunx @whchi/your-legion create-loop daily-ci-triage --preset ci-triage --worktree .
+bunx @whchi/your-legion loops
+bunx @whchi/your-legion loop-runs --worktree . --loop daily-ci-triage
+bunx @whchi/your-legion doctor --worktree .
+```
+
+See [`LEGION_LOOPS.md`](./LEGION_LOOPS.md) for the full workflow and detailed parameter reference.
 
 Example mixed-domain envelope:
 

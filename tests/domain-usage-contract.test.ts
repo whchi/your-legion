@@ -69,6 +69,7 @@ test('domain usage parser accepts a single-domain envelope', async t => {
   );
   const configDir = makeTempDir(t, 'domain-contract-single');
   const envelope = parseTaskContextEnvelope(`Task Context Envelope:
+- Loop: daily-ci-triage
 - Objective: Implement focused change.
 - Active domains: coding: implement and verify code
 - Domain refs: coding/implementation-loop
@@ -78,6 +79,7 @@ test('domain usage parser accepts a single-domain envelope', async t => {
 - Expected output: patch and verification
 - Verification: bun test`);
 
+  assert.equal(envelope.loopID, 'daily-ci-triage');
   assert.deepEqual(envelope.activeDomains, [{ id: 'coding', responsibility: 'implement and verify code' }]);
   assert.deepEqual(envelope.domainRefs, ['coding/implementation-loop']);
   assert.deepEqual(envelope.domainSkills, ['coding/make-code-change']);
@@ -85,6 +87,51 @@ test('domain usage parser accepts a single-domain envelope', async t => {
   const result = validateDomainUsageContract(envelope, testDomainPacks(configDir));
 
   assert.deepEqual(result.warnings, []);
+});
+
+test('domain usage parser treats missing or none loop as no loop context', async () => {
+  const { parseTaskContextEnvelope } = await import('../src/runtime/domain-usage-contract');
+
+  assert.equal(
+    parseTaskContextEnvelope(`Task Context Envelope:
+Loop: none
+Active domains: none
+Domain refs: none
+Domain skills: none
+Verification: inspect output`).loopID,
+    undefined,
+  );
+  assert.equal(
+    parseTaskContextEnvelope(`Task Context Envelope:
+Active domains: none
+Domain refs: none
+Domain skills: none
+Verification: inspect output`).loopID,
+    undefined,
+  );
+});
+
+test('domain usage parser extracts loop run completion ledger fields', async () => {
+  const { parseTaskContextEnvelope } = await import('../src/runtime/domain-usage-contract');
+
+  const envelope = parseTaskContextEnvelope(`Task Context Envelope:
+Loop: daily-ci-triage
+Loop run: run_2026_05_20
+Loop status: maker-complete
+Completion claim: Fixed the actionable CI failure and updated tests.
+Verification commands: bun test, bun run build, git diff --check
+Verification outcome: passed
+Active domains: none
+Domain refs: none
+Domain skills: none
+Verification: inspect output`);
+
+  assert.equal(envelope.loopID, 'daily-ci-triage');
+  assert.equal(envelope.loopRunID, 'run_2026_05_20');
+  assert.equal(envelope.loopStatus, 'maker-complete');
+  assert.equal(envelope.completionClaim, 'Fixed the actionable CI failure and updated tests.');
+  assert.deepEqual(envelope.verificationCommands, ['bun test', 'bun run build', 'git diff --check']);
+  assert.equal(envelope.verificationOutcome, 'passed');
 });
 
 test('domain usage validator accepts explicit mixed-domain responsibilities', async t => {
@@ -220,6 +267,85 @@ Verification: bun test`,
   assert.deepEqual(events[1].domainSkills, ['coding/make-code-change']);
 });
 
+test('domain trace hooks record loop run reports returned by task agents', async t => {
+  const { createDomainUsageTraceHooks, readDomainUsageTraceEvents } = await import(
+    '../src/runtime/domain-usage-contract'
+  );
+  const configDir = makeTempDir(t, 'loop-run-report-hooks');
+  const worktree = path.join(configDir, 'project');
+  const hooks = createDomainUsageTraceHooks({
+    configDir,
+    worktree,
+    domainPacks: [],
+  });
+
+  await hooks['tool.execute.after'](
+    { tool: 'task', sessionID: 'ses_loop_report' },
+    {
+      result: `Loop Run Report:
+Loop: daily-ci-triage
+Loop run: run_2026_05_20
+Loop status: maker-complete
+Completion claim: Fixed the actionable CI failure.
+Verification commands: bun test
+Verification outcome: passed`,
+    },
+  );
+
+  const events = readDomainUsageTraceEvents({ configDir, worktree });
+
+  assert.equal(events.length, 1);
+  assert.equal(events[0].event, 'loop-run-report');
+  assert.equal(events[0].loopID, 'daily-ci-triage');
+  assert.equal(events[0].loopRunID, 'run_2026_05_20');
+  assert.equal(events[0].loopStatus, 'maker-complete');
+  assert.equal(events[0].completionClaim, 'Fixed the actionable CI failure.');
+  assert.deepEqual(events[0].verificationCommands, ['bun test']);
+  assert.equal(events[0].verificationOutcome, 'passed');
+});
+
+test('domain trace hooks prefer loop run report text over original task prompt', async t => {
+  const { createDomainUsageTraceHooks, readDomainUsageTraceEvents } = await import(
+    '../src/runtime/domain-usage-contract'
+  );
+  const configDir = makeTempDir(t, 'loop-run-report-result-only');
+  const worktree = path.join(configDir, 'project');
+  const hooks = createDomainUsageTraceHooks({
+    configDir,
+    worktree,
+    domainPacks: [],
+  });
+
+  await hooks['tool.execute.after'](
+    { tool: 'task', sessionID: 'ses_loop_report_result_only' },
+    {
+      args: {
+        prompt: `Task Context Envelope:
+Loop: daily-ci-triage
+Loop run: run_2026_05_20
+Loop status: started
+Active domains: none
+Domain refs: none
+Domain skills: none
+Verification: bun test`,
+      },
+      result: `Loop Run Report:
+Loop: daily-ci-triage
+Loop run: run_2026_05_20
+Loop status: maker-complete
+Completion claim: Fixed the actionable CI failure.
+Verification commands: bun test
+Verification outcome: passed`,
+    },
+  );
+
+  const events = readDomainUsageTraceEvents({ configDir, worktree });
+
+  assert.equal(events.length, 1);
+  assert.equal(events[0].event, 'loop-run-report');
+  assert.equal(events[0].loopStatus, 'maker-complete');
+});
+
 test('trace CLI prints events and trace-check fails when warnings exist', async t => {
   const { appendDomainUsageTraceEvent } = await import('../src/runtime/domain-usage-contract');
   const configDir = makeTempDir(t, 'domain-trace-cli');
@@ -235,6 +361,7 @@ test('trace CLI prints events and trace-check fails when warnings exist', async 
       sessionID: 'ses_cli',
       event: 'delegation',
       targetAgent: 'builder',
+      loopID: 'daily-ci-triage',
       activeDomains: [{ id: 'coding', responsibility: 'implement code' }],
       domainRefs: [],
       domainSkills: ['coding/make-code-change'],
@@ -249,6 +376,7 @@ test('trace CLI prints events and trace-check fails when warnings exist', async 
   );
 
   assert.match(output, /"event": "delegation"/);
+  assert.match(output, /"loopID": "daily-ci-triage"/);
   assert.match(output, /coding\/make-code-change/);
 
   const result = spawnSync('bun', ['src/cli.ts', 'trace-check', '--worktree', worktree, '--config-dir', configDir], {

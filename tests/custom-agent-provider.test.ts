@@ -11,8 +11,8 @@ const rootDir = path.resolve(__dirname, '..');
 const legionariesConfigPath = path.join(rootDir, 'legionaries.yaml');
 const tempDir = path.join(rootDir, 'temp');
 
-function systemAgentsFrom(config: Record<string, any>): Record<string, any> {
-  return config.system_agents ?? config.agents;
+function systemAgentsFrom(config: Record<string, unknown>): Record<string, unknown> {
+  return config.system_agents as Record<string, unknown>;
 }
 
 function makeTempDir(t: TestContext, name: string) {

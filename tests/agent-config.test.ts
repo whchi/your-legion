@@ -14,18 +14,20 @@ const FORBIDDEN_PROMPT_HOOKS = [
   'maintainable-code-review',
 ];
 
-test('agent registry supports five protected system specialists', async () => {
+test('agent registry supports six protected system specialists', async () => {
   const { REQUIRED_AGENT_NAMES, OPTIONAL_AGENT_NAMES } = await import('../src/shared/agent-types');
   const { AGENT_FACTORIES, BASE_AGENT_DEFINITIONS } = await import('../src/agents/index');
 
-  assert.deepEqual(REQUIRED_AGENT_NAMES, ['orchestrator', 'explorer', 'planner', 'builder', 'librarian']);
+  assert.deepEqual(REQUIRED_AGENT_NAMES, ['orchestrator', 'explorer', 'planner', 'builder', 'verifier', 'librarian']);
   assert.deepEqual(OPTIONAL_AGENT_NAMES, []);
   assert.ok(!('dispatcher' in AGENT_FACTORIES));
   assert.ok(!('frontend-developer' in AGENT_FACTORIES));
   assert.ok(!('code-reviewer' in AGENT_FACTORIES));
+  assert.ok('verifier' in AGENT_FACTORIES);
   assert.ok(!('dispatcher' in BASE_AGENT_DEFINITIONS));
   assert.ok(!('frontend-developer' in BASE_AGENT_DEFINITIONS));
   assert.ok(!('code-reviewer' in BASE_AGENT_DEFINITIONS));
+  assert.ok('verifier' in BASE_AGENT_DEFINITIONS);
 });
 
 test('orchestrator prompt includes an intent gate and can delegate to explorer and librarian', async () => {
@@ -37,6 +39,7 @@ test('orchestrator prompt includes an intent gate and can delegate to explorer a
   assert.equal(taskPermission.explorer, 'allow');
   assert.equal(taskPermission.librarian, 'allow');
   assert.equal(taskPermission.builder, 'allow');
+  assert.equal(taskPermission.verifier, 'allow');
   assert.ok(!('dispatcher' in taskPermission));
   assert.ok(!('frontend-developer' in taskPermission));
   assert.ok(!('code-reviewer' in taskPermission));
@@ -55,6 +58,7 @@ test('orchestrator prompt requires a compact task context envelope for delegatio
   assert.match(orchestrator.prompt, /Every `task` tool prompt must start with `Task Context Envelope:/i);
   assert.match(orchestrator.prompt, /Task Context Envelope/i);
   assert.match(orchestrator.prompt, /Scenario:/);
+  assert.match(orchestrator.prompt, /Loop:/);
   assert.match(orchestrator.prompt, /Objective:/);
   assert.match(orchestrator.prompt, /Active domains:/);
   assert.match(orchestrator.prompt, /Domain refs:/);
@@ -248,6 +252,8 @@ test('builder prompt carries debugging, testing, and verification workflow cues'
   assert.match(builder.prompt, /narrowest test level/i);
   assert.match(builder.prompt, /environment, data, and logic/i);
   assert.match(builder.prompt, /one build or type error at a time/i);
+  assert.match(builder.prompt, /Loop evidence/i);
+  assert.match(builder.prompt, /inbox/i);
 });
 
 test('planner prompt carries structure and boundary review workflow cues', async () => {
@@ -257,6 +263,20 @@ test('planner prompt carries structure and boundary review workflow cues', async
   assert.match(planner.prompt, /project scale and ownership/i);
   assert.match(planner.prompt, /persistence access/i);
   assert.match(planner.prompt, /DDD fit/i);
+});
+
+test('verifier is a protected read-only checker for loop completion claims', async () => {
+  const { BASE_AGENT_DEFINITIONS } = await import('../src/agents/index');
+  const verifier = BASE_AGENT_DEFINITIONS.verifier;
+
+  assert.equal(verifier.mode, 'subagent');
+  assert.equal(verifier.permission.edit, 'deny');
+  assert.equal(verifier.permission.task, 'deny');
+  assert.match(verifier.description, /verification specialist/i);
+  assert.match(verifier.prompt, /maker\/checker/i);
+  assert.match(verifier.prompt, /Loop evidence/i);
+  assert.match(verifier.prompt, /completion claim/i);
+  assert.match(verifier.prompt, /Findings/i);
 });
 
 test('leaf specialist prompts follow the task context envelope before broader domain context', async () => {

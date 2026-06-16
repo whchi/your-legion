@@ -4,6 +4,7 @@ import { createBuilderAgent } from './builder';
 import { createLibrarianAgent } from './librarian';
 import { createOrchestratorAgent } from './orchestrator';
 import { createPlannerAgent } from './planner';
+import { createVerifierAgent } from './verifier';
 
 export const AGENT_FACTORIES: Record<AgentName, AgentFactory> = {
   orchestrator: createOrchestratorAgent,
@@ -11,13 +12,14 @@ export const AGENT_FACTORIES: Record<AgentName, AgentFactory> = {
   librarian: createLibrarianAgent,
   planner: createPlannerAgent,
   builder: createBuilderAgent,
+  verifier: createVerifierAgent,
 };
 
 export function buildAgentDefinition(name: AgentName, model: string): BaseAgentDefinition {
   return AGENT_FACTORIES[name](model);
 }
 
-/** Backward-compatible static definitions (built with an empty model string). */
+/** Static prompt fixtures for tests and documentation assertions. */
 export const BASE_AGENT_DEFINITIONS: Record<AgentName, BaseAgentDefinition> = Object.fromEntries(
   Object.entries(AGENT_FACTORIES).map(([k, f]) => [k, f('')]),
 ) as Record<AgentName, BaseAgentDefinition>;

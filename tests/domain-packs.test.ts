@@ -11,8 +11,8 @@ const rootDir = path.resolve(__dirname, '..');
 const legionariesConfigPath = path.join(rootDir, 'legionaries.yaml');
 const tempDir = path.join(rootDir, 'temp');
 
-function systemAgentsFrom(config: Record<string, any>): Record<string, any> {
-  return config.system_agents ?? config.agents;
+function systemAgentsFrom(config: Record<string, unknown>): Record<string, unknown> {
+  return config.system_agents as Record<string, unknown>;
 }
 
 function makeTempDir(t: TestContext, name: string) {
@@ -195,7 +195,7 @@ test('runtime reads true domains from global legionaries config without project-
   assert.doesNotMatch(result.agent.orchestrator.prompt, /### `coding`/);
 });
 
-test('domain catalog drives active-domain selection with no-domain fallback', async t => {
+test('domain catalog drives active-domain selection with no-domain delegation', async t => {
   const projectDir = makeTempDir(t, 'domain-pack-active-context-project');
   const configDir = makeTempDir(t, 'domain-pack-active-context-config');
   const configPath = path.join(projectDir, 'legionaries.yaml');
@@ -527,7 +527,7 @@ test('bundled DOMAIN.md lists domain-root relative component paths without arrow
   }
 });
 
-test('empty enabled domains are visible as quality warnings instead of fake templates', async t => {
+test('enabled domains without DOMAIN.md are not injected into the domain catalog', async t => {
   const projectDir = makeTempDir(t, 'domain-pack-empty-project');
   const configPath = path.join(projectDir, 'legionaries.yaml');
   const original = YAML.parse(fs.readFileSync(legionariesConfigPath, 'utf8'));
@@ -548,6 +548,6 @@ test('empty enabled domains are visible as quality warnings instead of fake temp
     configPath,
   });
 
-  assert.match(result.agent.orchestrator.prompt, /empty-domain/);
-  assert.match(result.agent.orchestrator.prompt, /No domain components discovered/);
+  assert.doesNotMatch(result.agent.orchestrator.prompt, /empty-domain/);
+  assert.doesNotMatch(result.agent.orchestrator.prompt, /No domain components discovered/);
 });

@@ -62,10 +62,8 @@ export {
   validateDomainUsageContract,
 } from './runtime/domain-usage-contract';
 export {
-  checkStaticDomainCatalog,
   diagnoseStaticDomainCatalog,
   doctorResultHash,
-  runYourLegionCheck,
   runYourLegionDoctor,
 } from './runtime/doctor';
 export { summarizeOrchestrationBenchmark } from './runtime/orchestration-benchmark';
