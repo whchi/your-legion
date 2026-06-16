@@ -19,7 +19,7 @@ export function buildAgentDefinition(name: AgentName, model: string): BaseAgentD
   return AGENT_FACTORIES[name](model);
 }
 
-/** Backward-compatible static definitions (built with an empty model string). */
+/** Static prompt fixtures for tests and documentation assertions. */
 export const BASE_AGENT_DEFINITIONS: Record<AgentName, BaseAgentDefinition> = Object.fromEntries(
   Object.entries(AGENT_FACTORIES).map(([k, f]) => [k, f('')]),
 ) as Record<AgentName, BaseAgentDefinition>;

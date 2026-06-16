@@ -157,7 +157,7 @@ Custom agent definitions are discovered from bundled package examples and from t
 
 Domain descriptions and skills are injected into agent prompts as a Domain Catalog with namespaced entries such as `marketing/campaign-brief`. Routing agents pass relevant `Domain refs` and `Domain skills` in the Task Context Envelope; target specialists read the exact configured paths. Your Legion does not register domain skills as top-level harness skills.
 
-Delegations use a compact Task Context Envelope with `Scenario`, `Loop`, `Objective`, `Active domains`, `Domain refs`, `Domain skills`, `Context refs`, `Constraints`, `Expected output`, and `Verification`. The orchestrator compares the task with the Loop Catalog and Domain Catalog, then passes only the matching loop id and domain evidence. If no loop applies, it writes `Loop: none`. If no domain is configured or no domain description clearly matches, it should use no-domain delegation: `Active domains: none`, `Domain refs: none`, and `Domain skills: none`.
+Delegations use a compact Task Context Envelope with `Scenario`, `Loop`, `Loop run`, `Loop status`, `Objective`, `Active domains`, `Domain refs`, `Domain skills`, `Context refs`, `Constraints`, `Expected output`, `Verification`, `Completion claim`, `Verification commands`, and `Verification outcome`. The orchestrator compares the task with the Loop Catalog and Domain Catalog, then passes only the matching loop id, run id, and domain evidence. If no loop applies, it writes `Loop: none`. If no domain is configured or no domain description clearly matches, it should use no-domain delegation: `Active domains: none`, `Domain refs: none`, and `Domain skills: none`.
 
 Your Legion records warn-only domain usage evidence under `~/.config/opencode/your-legion/traces/`. When troubleshooting domain setup, use `bunx @whchi/your-legion doctor --worktree .` for static domain catalog validation, runtime trace validation, and domain usage stats. Use `bunx @whchi/your-legion trace` when you need raw delegation and domain-read events, or `trace --summary` for grouped delegation evidence. See [`DOMAIN_OBSERVABILITY.md`](./docs/DOMAIN_OBSERVABILITY.md) for the full validation workflow.
 
@@ -183,16 +183,18 @@ Your Legion uses direct specialist routing.
 
 ## Commands
 
-- `bunx @whchi/your-legion install [--domains <ids>] [--add-domains <ids>]`: installs or refreshes the plugin registration. First install writes `legionaries.yaml` with `coding` enabled and materializes enabled bundled domain packs under `~/.config/opencode/your-legion/domains/`. Reinstall without domain flags preserves existing config. `--domains` replaces the enabled domain list; `--add-domains` merges into it.
-- `bunx @whchi/your-legion create-domain <domain-id> [--components workflows,decisions,examples,skills] [--enable]`: scaffolds a new global domain pack. By default it creates only `DOMAIN.md`; use `--components` to add selected optional folders and matching placeholder files, and `--enable` to write the domain into `legionaries.yaml`. Existing global domains and bundled domain ids are rejected.
-- `bunx @whchi/your-legion create-loop <loop-id> [--worktree <path>] [--description <text>] [--objective <text>]`: creates a configured Legion Loop and repo-local inbox.
-- `bunx @whchi/your-legion loops`: lists configured Legion Loops.
-- `bunx @whchi/your-legion doctor [--worktree <path>] [--scenarios] [--loop-scenarios]`: troubleshoots domain and loop setup. By default it validates `DOMAIN.md` declarations, loop catalogs, runtime trace evidence, and usage stats; scenario flags verify fixed domain or loop scenario sets.
-- `bunx @whchi/your-legion trace [--worktree <path>] [--limit <n>] [--summary]`: prints recent domain usage evidence for a workspace/project path; `--summary` groups declared refs, matching reads, and warnings by delegation.
-- `bunx @whchi/your-legion trace-check [--worktree <path>]`: low-level trace validation for contract warnings and declared domain refs or skills that were not read.
+- `bunx @whchi/your-legion install [--config-dir <path>] [--domains <ids>] [--add-domains <ids>]`: installs or refreshes the plugin registration. First install writes `legionaries.yaml` with `coding` enabled and materializes enabled bundled domain packs under `~/.config/opencode/your-legion/domains/`. Reinstall without domain flags preserves existing config. `--domains` replaces the enabled domain list; `--add-domains` merges into it.
+- `bunx @whchi/your-legion create-domain <domain-id> [--config-dir <path>] [--components workflows,decisions,examples,skills] [--enable]`: scaffolds a new global domain pack. By default it creates only `DOMAIN.md`; use `--components` to add selected optional folders and matching placeholder files, and `--enable` to write the domain into `legionaries.yaml`. Existing global domains and bundled domain ids are rejected.
+- `bunx @whchi/your-legion create-loop <loop-id> [--preset <id>] [--worktree <path>] [--config-dir <path>] [--description <text>] [--objective <text>] [--verification <commands>]`: creates a configured Legion Loop and repo-local inbox.
+- `bunx @whchi/your-legion loops [--config-dir <path>]`: lists configured Legion Loops.
+- `bunx @whchi/your-legion loop-presets`: lists quick-start templates such as `ci-triage`, `issue-triage`, `docs-refresh`, and `release-check`.
+- `bunx @whchi/your-legion loop-prompt <loop-id> [--worktree <path>] [--config-dir <path>] [--run-id <id>]`: generates a ready Task Context Envelope for a loop run.
+- `bunx @whchi/your-legion loop-runs [--worktree <path>] [--config-dir <path>] [--loop <loop-id>]`: groups loop run completion ledger evidence from trace events.
+- `bunx @whchi/your-legion doctor [--worktree <path>] [--config-dir <path>] [--scenarios]`: troubleshoots domain and loop setup. By default it validates `DOMAIN.md` declarations, loop catalogs, runtime trace evidence, and usage stats; `--scenarios` verifies the fixed domain scenario set.
+- `bunx @whchi/your-legion trace [--worktree <path>] [--config-dir <path>] [--limit <n>] [--summary]`: prints recent domain usage evidence for a workspace/project path; `--summary` groups declared refs, matching reads, and warnings by delegation.
+- `bunx @whchi/your-legion trace-check [--worktree <path>] [--config-dir <path>]`: low-level trace validation for contract warnings and declared domain refs or skills that were not read.
 - `bunx @whchi/your-legion domain-scenarios`: prints the fixed domain scenario prompts.
-- `bunx @whchi/your-legion loop-scenarios`: prints the fixed loop scenario prompts.
-- `bunx @whchi/your-legion domain-scenario-check [--worktree <path>]`: low-level fixed scenario validation; `doctor --scenarios` is the preferred entrypoint.
+- `bunx @whchi/your-legion domain-scenario-check [--worktree <path>] [--config-dir <path>]`: low-level fixed scenario validation; `doctor --scenarios` is the preferred entrypoint.
 
 ## Development
 

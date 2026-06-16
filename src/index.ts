@@ -55,19 +55,15 @@ export {
   appendDomainUsageTraceEvent,
   createDomainUsageTraceHooks,
   DOMAIN_USAGE_SCENARIOS,
-  LOOP_USAGE_SCENARIOS,
   evaluateDomainUsageScenarios,
-  evaluateLoopUsageScenarios,
   getDomainUsageTracePath,
   parseTaskContextEnvelope,
   readDomainUsageTraceEvents,
   validateDomainUsageContract,
 } from './runtime/domain-usage-contract';
 export {
-  checkStaticDomainCatalog,
   diagnoseStaticDomainCatalog,
   doctorResultHash,
-  runYourLegionCheck,
   runYourLegionDoctor,
 } from './runtime/doctor';
 export { summarizeOrchestrationBenchmark } from './runtime/orchestration-benchmark';

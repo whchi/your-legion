@@ -91,8 +91,8 @@ Acceptance criteria:
 - `legionaries.yaml` can define loops with objective, trigger, inbox, agents, domain evidence, worktree policy, verification, and connector mode.
 - `verifier` is a protected system agent for maker/checker separation.
 - Task Context Envelopes include `Loop:`.
-- `doctor` validates loop catalog health, loop runtime evidence, and fixed loop scenarios.
-- `create-loop`, `loops`, and `loop-scenarios` expose the workflow from the CLI.
+- `doctor` validates loop catalog health and loop runtime evidence.
+- `create-loop`, `loop-presets`, `loop-prompt`, `loop-runs`, and `loops` expose the workflow from the CLI.
 
 ## Planning Backlog
 
@@ -112,14 +112,14 @@ Acceptance criteria:
 
 ## Implementation Status
 
-The current product slice is implemented for domain-aware orchestration and the first contract-first Legion Loop scope:
+The current product slice is implemented for domain-aware orchestration and Legion Loop DX:
 
 - Public positioning now says Your Legion is an OpenCode multi-agent enhancement layer, not a standalone platform or ecosystem.
 - Domain authoring has a generated `DOMAIN.md` guide, a dedicated authoring document, success-output next steps, corrected custom-domain examples, and doctor-based diagnostics guidance.
 - Routing boundaries are covered by tests for orchestrator tool limits, builder execution ownership, explorer/librarian discovery boundaries, Task Context Envelope shape, no domain pre-reading, and unclear-intent clarification.
 - Trace/doctor output now supports categorized runtime diagnostics, usage stats, summary counts, actionable next steps, and scenario validation.
 - Benchmark reporting now compares native builder with the full orchestrated path and reports quality-plus-token outcomes instead of token deltas alone.
-- Legion Loop support adds `verifier`, `Loop:` envelope parsing, loop config validation, loop catalog injection, loop trace evidence, loop doctor sections, `create-loop`, `loops`, and fixed loop scenarios.
+- Legion Loop support adds `verifier`, `Loop:` envelope parsing, loop config validation, loop catalog injection, loop trace evidence, loop doctor sections, quick-start presets, generated loop prompts, run ledgers, `create-loop`, and `loops`.
 
 Current verification commands:
 

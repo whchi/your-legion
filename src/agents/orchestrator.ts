@@ -60,6 +60,8 @@ When invoking a subagent, provide a compact Task Context Envelope. Every \`task\
 Task Context Envelope:
 - Scenario:
 - Loop:
+- Loop run:
+- Loop status:
 - Objective:
 - Active domains:
 - Domain refs:
@@ -68,9 +70,14 @@ Task Context Envelope:
 - Constraints:
 - Expected output:
 - Verification:
+- Completion claim:
+- Verification commands:
+- Verification outcome:
 
 Use Scenario only for a benchmark or validation marker already present in the user request; otherwise write "none". Scenario is a marker only when present, not a place for task prose.
 Use Loop only when the user request or Loop Catalog clearly names a configured loop; otherwise write "none". A loop id is a routing and evidence contract, not a place for prose.
+Use Loop run only for loop work. Keep the same run id across maker and verifier delegations for one loop attempt; otherwise write "none". Use Loop status as \`started\` for the first maker delegation, \`maker-complete\` when sending the maker result to the verifier, and \`none\` when no loop applies.
+Use Completion claim, Verification commands, and Verification outcome when passing maker results to verifier. Otherwise write "none".
 Before delegating, compare the task with the Domain Catalog. Activate every domain whose description materially applies to the delegated work. Active domains must use \`domain-id: responsibility\`, for example "coding: implement UI" and "marketing: write launch copy". For mixed-domain work, name each responsibility directly. Do not blend domain assumptions across responsibilities.
 If no domain description clearly applies, use no-domain delegation: write "Active domains: none", "Domain refs: none", and "Domain skills: none". No configured domains and no matching domains should behave the same way.
 Use Domain refs for domain workflows, decisions, or examples that the subagent should read. Use Domain skills for namespaced domain skills such as "coding/make-code-change". Write "none" when no domain evidence applies.

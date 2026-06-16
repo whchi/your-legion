@@ -98,9 +98,10 @@ function validateModelMap(models: Partial<Record<SystemAgentName, LegionaryEntry
   const resolvedModels = {} as ResolvedLegionariesMap;
 
   for (const agent of REQUIRED_AGENT_NAMES) {
-    if (agent === 'verifier' && models.verifier === undefined && models.builder !== undefined) {
-      resolvedModels.verifier = normalizeAgentEntry(agent, models.builder);
-      continue;
+    if (models[agent] === undefined) {
+      throw new Error(
+        `missing model for required system agent: ${agent}. Add system_agents.${agent}.model to legionaries.yaml using provider/model-id format.`,
+      );
     }
     resolvedModels[agent] = normalizeAgentEntry(agent, models[agent]);
   }
@@ -280,10 +281,7 @@ function resolveConfiguredMaps(parsed: LegionariesConfig | null) {
     throw new Error('legionaries.yaml missing system_agents map');
   }
 
-  const hasNewSchema = parsed.system_agents !== undefined || parsed.custom_agents !== undefined;
-  const systemAgents = hasNewSchema ? parsed.system_agents : parsed.agents;
-
-  if (!systemAgents || typeof systemAgents !== 'object') {
+  if (!parsed.system_agents || typeof parsed.system_agents !== 'object') {
     throw new Error('legionaries.yaml missing system_agents map');
   }
 
@@ -292,7 +290,7 @@ function resolveConfiguredMaps(parsed: LegionariesConfig | null) {
   }
 
   return {
-    systemAgents,
+    systemAgents: parsed.system_agents,
     customAgents: parsed.custom_agents ?? {},
     domains: parsed.domains ?? {},
     loops: parsed.loops ?? {},

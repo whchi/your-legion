@@ -14,24 +14,25 @@ import {
 import {
   analyzeDomainUsageTraceEvents,
   DOMAIN_USAGE_SCENARIOS,
-  LOOP_USAGE_SCENARIOS,
   evaluateDomainUsageScenarios,
   readDomainUsageTraceEvents,
 } from './runtime/domain-usage-contract';
 import { runYourLegionDoctor } from './runtime/doctor';
-import { resolveLegionariesConfigPath } from './config/legionaries';
+import { AGENT_NAME_PATTERN, resolveLegionariesConfigPath } from './config/legionaries';
 
 function printUsage() {
   console.log(`Usage:
   bunx @whchi/your-legion install [--config-dir <path>] [--domains <ids>] [--add-domains <ids>]
   bunx @whchi/your-legion create-domain <domain-id> [--config-dir <path>] [--components <ids>] [--enable]
-  bunx @whchi/your-legion create-loop <loop-id> [--worktree <path>] [--config-dir <path>] [--description <text>] [--objective <text>]
+  bunx @whchi/your-legion create-loop <loop-id> [--preset <id>] [--worktree <path>] [--config-dir <path>] [--description <text>] [--objective <text>] [--verification <commands>]
   bunx @whchi/your-legion loops [--config-dir <path>]
-  bunx @whchi/your-legion doctor [--worktree <path>] [--config-dir <path>] [--scenarios] [--loop-scenarios]
+  bunx @whchi/your-legion loop-presets
+  bunx @whchi/your-legion loop-prompt <loop-id> [--worktree <path>] [--config-dir <path>] [--run-id <id>]
+  bunx @whchi/your-legion loop-runs [--worktree <path>] [--config-dir <path>] [--loop <loop-id>]
+  bunx @whchi/your-legion doctor [--worktree <path>] [--config-dir <path>] [--scenarios]
   bunx @whchi/your-legion trace [--worktree <path>] [--config-dir <path>] [--limit <n>] [--summary]
   bunx @whchi/your-legion trace-check [--worktree <path>] [--config-dir <path>]
   bunx @whchi/your-legion domain-scenarios
-  bunx @whchi/your-legion loop-scenarios
   bunx @whchi/your-legion domain-scenario-check [--worktree <path>] [--config-dir <path>]`);
 }
 
@@ -57,6 +58,87 @@ function configPathFor(worktree: string) {
     configDir: optionValue('--config-dir'),
   });
 }
+
+type LoopPresetID = 'basic' | 'ci-triage' | 'issue-triage' | 'docs-refresh' | 'release-check';
+
+type LoopPreset = {
+  description: string;
+  objective: string;
+  trigger: Record<string, string>;
+  activeDomain?: { id: string; responsibility: string };
+  domainRefs?: string[];
+  domainSkills?: string[];
+  verification: {
+    commands: string[];
+    completion: string;
+  };
+};
+
+const LOOP_PRESETS: Record<LoopPresetID, LoopPreset> = {
+  basic: {
+    description: 'Manual maker/checker loop',
+    objective: 'Run a focused loop with maker/checker verification',
+    trigger: { type: 'manual' },
+    verification: {
+      commands: ['bun test'],
+      completion: 'All configured verification commands pass and verifier reports no high or critical findings.',
+    },
+  },
+  'ci-triage': {
+    description: 'Daily CI triage',
+    objective: 'Find actionable CI failures and produce verified fixes',
+    trigger: { type: 'scheduled', cadence: 'daily' },
+    activeDomain: {
+      id: 'coding',
+      responsibility: 'triage CI failures and implement verified fixes',
+    },
+    domainRefs: ['coding/implementation-loop'],
+    domainSkills: ['coding/make-code-change'],
+    verification: {
+      commands: ['bun test'],
+      completion: 'All configured verification commands pass and verifier reports no high or critical findings.',
+    },
+  },
+  'issue-triage': {
+    description: 'Issue triage',
+    objective: 'Review incoming issues, identify actionable work, and produce verified fixes when safe',
+    trigger: { type: 'external' },
+    activeDomain: {
+      id: 'coding',
+      responsibility: 'triage issues and implement verified fixes',
+    },
+    domainRefs: ['coding/implementation-loop'],
+    domainSkills: ['coding/make-code-change'],
+    verification: {
+      commands: ['bun test'],
+      completion: 'Relevant tests pass and unresolved product or safety questions are listed in the loop inbox.',
+    },
+  },
+  'docs-refresh': {
+    description: 'Documentation refresh',
+    objective: 'Keep documentation aligned with recent project behavior and verified commands',
+    trigger: { type: 'manual' },
+    verification: {
+      commands: ['bun test'],
+      completion: 'Docs reflect current behavior and configured verification commands pass.',
+    },
+  },
+  'release-check': {
+    description: 'Release readiness check',
+    objective: 'Check release readiness, verify core commands, and record unresolved release risks',
+    trigger: { type: 'manual' },
+    activeDomain: {
+      id: 'coding',
+      responsibility: 'verify release readiness and fix release-blocking code issues',
+    },
+    domainRefs: ['coding/implementation-loop'],
+    domainSkills: ['coding/make-code-change'],
+    verification: {
+      commands: ['bun test', 'bun run build', 'git diff --check'],
+      completion: 'All release verification commands pass and verifier reports no high or critical findings.',
+    },
+  },
+};
 
 const command = process.argv[2];
 
@@ -156,6 +238,19 @@ if (command === 'create-loop') {
     printUsage();
     process.exit(1);
   }
+  if (!AGENT_NAME_PATTERN.test(loopID)) {
+    console.error(`invalid loop id: ${loopID}`);
+    console.error('Loop ids must use kebab-case letters, numbers, and hyphens, for example: daily-ci-triage');
+    process.exit(1);
+  }
+
+  const presetID = (optionValue('--preset') ?? 'basic') as LoopPresetID;
+  const preset = LOOP_PRESETS[presetID];
+  if (!preset) {
+    console.error(`unknown loop preset: ${presetID}`);
+    console.error(`Available presets: ${Object.keys(LOOP_PRESETS).join(', ')}`);
+    process.exit(1);
+  }
 
   const worktree = resolve(optionValue('--worktree') ?? process.cwd());
   const configPath = configPathFor(worktree);
@@ -173,18 +268,27 @@ if (command === 'create-loop') {
     process.exit(1);
   }
 
-  const description = optionValue('--description') ?? `${loopID} loop`;
-  const objective = optionValue('--objective') ?? `Run the ${loopID} loop with maker/checker verification`;
+  const enabledDomains = new Set(
+    Object.entries((parsed.domains ?? {}) as Record<string, unknown>)
+      .filter(([, config]) => Boolean(config))
+      .map(([id]) => id),
+  );
+  const description = optionValue('--description') ?? preset.description;
+  const objective = optionValue('--objective') ?? preset.objective;
+  const activeDomains =
+    preset.activeDomain && enabledDomains.has(preset.activeDomain.id) ? [preset.activeDomain] : [];
+  const domainRefs = preset.activeDomain && enabledDomains.has(preset.activeDomain.id) ? (preset.domainRefs ?? []) : [];
+  const domainSkills =
+    preset.activeDomain && enabledDomains.has(preset.activeDomain.id) ? (preset.domainSkills ?? []) : [];
+  const verificationCommands = csvOption('--verification') ?? preset.verification.commands;
   parsed.loops[loopID] = {
     description,
     objective,
-    trigger: {
-      type: 'manual',
-    },
+    trigger: preset.trigger,
     inbox_path: inboxPath,
-    active_domains: [],
-    domain_refs: [],
-    domain_skills: [],
+    active_domains: activeDomains,
+    domain_refs: domainRefs,
+    domain_skills: domainSkills,
     agents: {
       triage: 'planner',
       maker: 'builder',
@@ -194,8 +298,8 @@ if (command === 'create-loop') {
       isolation: 'required',
     },
     verification: {
-      commands: ['bun test'],
-      completion: 'All configured verification commands pass and verifier reports no high or critical findings.',
+      commands: verificationCommands,
+      completion: preset.verification.completion,
     },
     connectors: {
       mode: 'manual',
@@ -210,6 +314,21 @@ if (command === 'create-loop') {
     `# ${description}
 
 Objective: ${objective}
+
+## How To Start
+
+Run this command from the project:
+
+\`\`\`bash
+bunx @whchi/your-legion loop-prompt ${loopID} --worktree .
+\`\`\`
+
+Paste the generated Task Context Envelope into OpenCode, then inspect progress with:
+
+\`\`\`bash
+bunx @whchi/your-legion loop-runs --worktree . --loop ${loopID}
+bunx @whchi/your-legion doctor --worktree .
+\`\`\`
 
 ## Current State
 
@@ -227,8 +346,14 @@ Objective: ${objective}
   );
 
   console.log(`Created loop ${loopID}`);
+  console.log(`Preset: ${presetID}`);
   console.log(`Updated config: ${configPath}`);
   console.log(`Created inbox: ${inboxPath}`);
+  if (preset.activeDomain && !enabledDomains.has(preset.activeDomain.id)) {
+    console.log(`Skipped preset domain evidence because domain is not enabled: ${preset.activeDomain.id}`);
+  }
+  console.log('Start prompt:');
+  console.log(`bunx @whchi/your-legion loop-prompt ${loopID} --worktree .`);
   console.log('Verify after use:');
   console.log('bunx @whchi/your-legion doctor --worktree .');
   process.exit(0);
@@ -253,6 +378,48 @@ if (command === 'loops') {
   process.exit(0);
 }
 
+if (command === 'loop-presets') {
+  for (const [presetID, preset] of Object.entries(LOOP_PRESETS)) {
+    console.log(`${presetID}`);
+    console.log(`- Description: ${preset.description}`);
+    console.log(`- Trigger: ${preset.trigger.type}${preset.trigger.cadence ? ` (${preset.trigger.cadence})` : ''}`);
+    console.log(`- Verification: ${preset.verification.commands.join(', ')}`);
+  }
+  process.exit(0);
+}
+
+if (command === 'loop-prompt' || (command === 'loop' && process.argv[3] === 'prompt')) {
+  const loopID = command === 'loop' ? process.argv[4] : process.argv[3];
+  if (!loopID) {
+    printUsage();
+    process.exit(1);
+  }
+
+  const worktree = resolve(optionValue('--worktree') ?? process.cwd());
+  const configPath = configPathFor(worktree);
+  const parsed = YAML.parse(readFileSync(configPath, 'utf8')) as Record<string, any>;
+  const loop = parsed.loops?.[loopID];
+  if (!loop) {
+    console.error(`unknown loop: ${loopID}`);
+    process.exit(1);
+  }
+
+  const runID = optionValue('--run-id') ?? defaultLoopRunID(loopID);
+  printLoopPrompt(loopID, runID, loop);
+  process.exit(0);
+}
+
+if (command === 'loop-runs') {
+  const worktree = resolve(optionValue('--worktree') ?? process.cwd());
+  const events = readDomainUsageTraceEvents({
+    worktree,
+    configDir: optionValue('--config-dir'),
+  });
+
+  printLoopRuns(events, optionValue('--loop'));
+  process.exit(0);
+}
+
 if (command === 'trace') {
   const worktree = resolve(optionValue('--worktree') ?? process.cwd());
   const limit = Number(optionValue('--limit') ?? '20');
@@ -271,6 +438,126 @@ if (command === 'trace') {
     console.log(JSON.stringify(event, null, 2));
   }
   process.exit(0);
+}
+
+function defaultLoopRunID(loopID: string) {
+  const timestamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z');
+  return `${loopID}-${timestamp}`;
+}
+
+function formatLoopActiveDomains(domains: Array<{ id: string; responsibility?: string }> | undefined) {
+  if (!domains || domains.length === 0) {
+    return 'none';
+  }
+
+  return domains.map(domain => (domain.responsibility ? `${domain.id}: ${domain.responsibility}` : domain.id)).join(', ');
+}
+
+function printLoopPrompt(loopID: string, runID: string, loop: Record<string, any>) {
+  const verificationCommands = Array.isArray(loop.verification?.commands) ? loop.verification.commands : [];
+
+  console.log(`Task Context Envelope:
+Scenario: none
+Loop: ${loopID}
+Loop run: ${runID}
+Loop status: started
+Objective: ${loop.objective}
+Active domains: ${formatLoopActiveDomains(loop.active_domains)}
+Domain refs: ${formatList(loop.domain_refs ?? [])}
+Domain skills: ${formatList(loop.domain_skills ?? [])}
+Context refs: ${loop.inbox_path}
+Constraints: Use ${loop.worktree?.isolation ?? 'required'} worktree isolation when the loop touches code or long-running state.
+Expected output: Patch or findings, updated loop inbox, verification results, and a Loop Run Report.
+Verification: ${formatList(verificationCommands)}
+Completion claim: none
+Verification commands: none
+Verification outcome: none`);
+}
+
+function pushUnique(values: string[], value: string | undefined) {
+  if (value && !values.includes(value)) {
+    values.push(value);
+  }
+}
+
+function summarizeVerificationOutcome(outcomes: string[]) {
+  if (outcomes.includes('failed')) {
+    return 'failed';
+  }
+  if (outcomes.includes('passed')) {
+    return 'passed';
+  }
+  if (outcomes.includes('not-run')) {
+    return 'not-run';
+  }
+  if (outcomes.includes('unknown')) {
+    return 'unknown';
+  }
+
+  return 'none';
+}
+
+function printLoopRuns(events: ReturnType<typeof readDomainUsageTraceEvents>, loopFilter?: string) {
+  const runs = new Map<
+    string,
+    {
+      loopID: string;
+      loopRunID: string;
+      statuses: string[];
+      targets: string[];
+      verificationCommands: string[];
+      verificationOutcomes: string[];
+      completionClaim?: string;
+    }
+  >();
+
+  for (const event of events) {
+    if ((event.event !== 'delegation' && event.event !== 'loop-run-report') || !event.loopID || !event.loopRunID) {
+      continue;
+    }
+    if (loopFilter && event.loopID !== loopFilter) {
+      continue;
+    }
+
+    const key = `${event.loopID}/${event.loopRunID}`;
+    const run = runs.get(key) ?? {
+      loopID: event.loopID,
+      loopRunID: event.loopRunID,
+      statuses: [],
+      targets: [],
+      verificationCommands: [],
+      verificationOutcomes: [],
+    };
+
+    pushUnique(run.statuses, event.loopStatus);
+    pushUnique(run.targets, event.targetAgent);
+    for (const command of event.verificationCommands ?? []) {
+      pushUnique(run.verificationCommands, command);
+    }
+    pushUnique(run.verificationOutcomes, event.verificationOutcome);
+    if (event.completionClaim) {
+      run.completionClaim = event.completionClaim;
+    }
+    runs.set(key, run);
+  }
+
+  const sortedRuns = [...runs.values()].sort((left, right) =>
+    `${left.loopID}/${left.loopRunID}`.localeCompare(`${right.loopID}/${right.loopRunID}`),
+  );
+  if (sortedRuns.length === 0) {
+    console.log('No loop runs found');
+    return;
+  }
+
+  for (const run of sortedRuns) {
+    console.log(`Loop run ${run.loopRunID}`);
+    console.log(`- Loop: ${run.loopID}`);
+    console.log(`- Statuses: ${formatList(run.statuses)}`);
+    console.log(`- Targets: ${formatList(run.targets)}`);
+    console.log(`- Verification outcome: ${summarizeVerificationOutcome(run.verificationOutcomes)}`);
+    console.log(`- Verification commands: ${formatList(run.verificationCommands)}`);
+    console.log(`- Completion claim: ${run.completionClaim ?? 'none'}`);
+  }
 }
 
 function printTraceSummary(events: ReturnType<typeof readDomainUsageTraceEvents>) {
@@ -434,11 +721,8 @@ function checkNextSteps(messages: string[]) {
     if (/missing loop inbox/.test(message)) {
       steps.add('Create the loop inbox file or update loops.<id>.inbox_path to the repo-relative state file.');
     }
-    if (/loop maker and verifier must be separate|loop maker delegation has no verifier evidence/.test(message)) {
+    if (/loop maker and verifier must be separate|loop maker delegation has no verifier evidence|loop run maker-complete has no verifier-complete/.test(message)) {
       steps.add('Keep maker and verifier separate, then run the verifier delegation before claiming loop completion.');
-    }
-    if (/missing loop scenario evidence/.test(message)) {
-      steps.add('Run the matching OpenCode prompt from loop-scenarios, then rerun doctor with --loop-scenarios.');
     }
     if (/\[unknown-active-domain\]|\[unknown-domain-ref\]|\[unknown-domain-skill\]|unknown active domain|unknown domain ref|unknown domain skill/.test(message)) {
       steps.add('Use only enabled domain ids and catalog ids shown in the Domain Catalog.');
@@ -448,16 +732,12 @@ function checkNextSteps(messages: string[]) {
   return [...steps];
 }
 
-if (command === 'doctor' || command === 'check') {
-  if (command === 'check') {
-    console.warn('`check` is deprecated; use `doctor`.');
-  }
+if (command === 'doctor') {
   const worktree = resolve(optionValue('--worktree') ?? process.cwd());
   const result = runYourLegionDoctor({
     rootDir: worktree,
     configDir: optionValue('--config-dir'),
     includeScenarios: hasFlag('--scenarios'),
-    includeLoopScenarios: hasFlag('--loop-scenarios'),
   });
 
   printDoctorResult(result);
@@ -483,15 +763,6 @@ if (command === 'trace-check') {
 
 if (command === 'domain-scenarios') {
   for (const scenario of DOMAIN_USAGE_SCENARIOS) {
-    console.log(`## ${scenario.id}: ${scenario.title}`);
-    console.log(scenario.prompt);
-    console.log('');
-  }
-  process.exit(0);
-}
-
-if (command === 'loop-scenarios') {
-  for (const scenario of LOOP_USAGE_SCENARIOS) {
     console.log(`## ${scenario.id}: ${scenario.title}`);
     console.log(scenario.prompt);
     console.log('');

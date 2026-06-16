@@ -19,11 +19,12 @@ Legion Loop is a first-class Your Legion concept.
 - `verifier` is a protected system agent, separate from `builder`, for independent completion checks.
 - Task Context Envelopes include `Loop:` so delegations can be tied to a configured loop.
 - The runtime injects a Loop Catalog into agent prompts.
-- `doctor` validates loop catalog health, loop runtime evidence, and fixed loop scenarios.
-- The first implementation is contract-first. It does not include a scheduler or runner; OpenCode, hooks, cron, CI, or a future runner can trigger the loop.
+- `create-loop --preset`, `loop-prompt`, and `loop-runs` are the user-facing loop path.
+- `doctor` validates loop catalog health and loop runtime evidence.
+- Scheduling and external connectors are declared as loop metadata; OpenCode, hooks, cron, CI, or external tooling can start a loop run.
 
 ## Consequences
 
-- Existing configs that omit `verifier` remain loadable by inheriting the `builder` model, but new templates include `verifier`.
+- Existing configs that omit `verifier` fail fast with a setup error; operators must add `system_agents.verifier.model` explicitly.
 - Your Legion's positioning expands from domain-aware multi-agent routing to domain-aware loop orchestration.
 - Loop automation stays intentionally decoupled from verification. A loop result is not trusted until trace/doctor evidence shows the expected verifier path.

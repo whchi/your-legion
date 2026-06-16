@@ -113,7 +113,6 @@ export type LoopConfig = {
 };
 
 export type LegionariesConfig = {
-  agents?: Partial<Record<SystemAgentName, LegionaryEntry>>;
   system_agents?: Partial<Record<SystemAgentName, LegionaryEntry>>;
   custom_agents?: Record<CustomAgentName, LegionaryEntry>;
   domains?: Record<string, DomainConfig>;

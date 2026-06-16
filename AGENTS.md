@@ -141,7 +141,7 @@ Your Legion uses direct specialist routing rather than a category-first runtime.
 
 - Domain packs live under `~/.config/opencode/your-legion/domains/<domain-id>/`.
 - Bundled domain packs live under `src/domains/<domain-id>/`; global domain packs can extend or override them by id.
-- `DOMAIN.md` is the description-driven routing contract. Resolution order is global `DOMAIN.md`, bundled `DOMAIN.md`, then fallback to domain id.
+- `DOMAIN.md` is the description-driven routing contract. Resolution order is global `DOMAIN.md`, then bundled `DOMAIN.md`; if neither exists, the domain is omitted from the Domain Catalog.
 - Optional component folders are `workflows/`, `decisions/`, `examples/`, and `skills/`; create only folders with real domain knowledge and list domain-root relative paths in `DOMAIN.md`.
 - Enable a domain with `domains.<domain-id>: true`.
 - Override or disable specific declared components with `domains.<domain-id>.<component>.<id>.path` or `false`.
@@ -157,10 +157,10 @@ Your Legion uses direct specialist routing rather than a category-first runtime.
 - A loop defines `description`, `objective`, `trigger`, `inbox_path`, optional domain evidence, agent roles, worktree policy, verification, and connector mode.
 - `inbox_path` must be repo-relative and points to the durable human-readable loop state file.
 - `builder` is the default maker and `verifier` is the default checker.
-- `create-loop <loop-id>` writes a loop config entry and creates `docs/legion-loops/<loop-id>.md` in the selected worktree.
+- `create-loop <loop-id> --preset <id>` writes a loop config entry and creates `docs/legion-loops/<loop-id>.md` in the selected worktree.
+- `loop-presets`, `loop-prompt`, and `loop-runs` are the user-facing loop DX path.
 - `loops` lists configured loops.
-- `loop-scenarios` and `doctor --worktree . --loop-scenarios` validate fixed loop routing evidence.
-- The first version is contract-first; it does not include a scheduler or runner.
+- Scheduling and external connectors are declared as loop metadata; execution is still started by OpenCode, CI, cron, hooks, or external tooling.
 
 This repo ships an example mixed-provider mapping using `openai`, `github-copilot`, and `opencode-go`.
 

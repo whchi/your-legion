@@ -89,7 +89,7 @@ domains:
   coding: true
 ```
 
-Older configs that omit `system_agents.verifier` remain loadable by inheriting the `builder` model, but new configs should set `verifier` explicitly.
+Configs that omit `system_agents.verifier` fail fast. Add `system_agents.verifier.model` explicitly when upgrading an older config.
 
 If you want the smallest one-provider config, use the minimal example in [`EXAMPLES.md`](./EXAMPLES.md#minimal-legionariesyaml).
 
@@ -193,8 +193,9 @@ Each domain's routing description comes only from `DOMAIN.md`. Resolution order 
 ```text
 global DOMAIN.md
 bundled DOMAIN.md
-fallback: domain id
 ```
+
+If neither file exists, the enabled domain is omitted from the Domain Catalog until a `DOMAIN.md` is added.
 
 Keep `DOMAIN.md` short and semantic. It should describe when the domain applies and when it does not apply, then list available `Workflows`, `Decisions`, `Examples`, and `Skills` with domain-root relative component paths. Do not write keyword trigger rules.
 
@@ -221,30 +222,21 @@ Domain refs: none
 Domain skills: none
 ```
 
-No-domain fallback is normal behavior, not a contract warning.
+No-domain delegation is normal behavior, not a contract warning.
 
 ## Legion Loops
 
-Legion Loops define recurring or goal-driven engineering workflows. They are contract-first: Your Legion validates and routes loop work, but it does not run a scheduler in this version.
+Legion Loops define recurring or goal-driven engineering workflows. Use presets for setup, then edit the generated config only when the defaults need project-specific tuning.
 
-```yaml
-loops:
-  daily-ci-triage:
-    description: Daily CI and issue triage loop
-    objective: Find actionable CI failures and produce verified fixes
-    trigger: { type: scheduled, cadence: daily }
-    inbox_path: docs/legion-loops/daily-ci-triage.md
-    active_domains:
-      - { id: coding, responsibility: triage CI failures and implement code fixes }
-    domain_refs: [coding/implementation-loop]
-    domain_skills: [coding/make-code-change]
-    agents: { triage: planner, maker: builder, verifier: verifier }
-    worktree: { isolation: required }
-    verification:
-      commands: ["bun test", "bun run build", "git diff --check"]
-      completion: All commands pass and verifier reports no high or critical findings.
-    connectors: { mode: manual, targets: [] }
+For the friendliest setup path, create loops from presets and generate the run prompt instead of hand-writing the full YAML first:
+
+```bash
+bunx @whchi/your-legion loop-presets
+bunx @whchi/your-legion create-loop daily-ci-triage --preset ci-triage --worktree .
+bunx @whchi/your-legion loop-prompt daily-ci-triage --worktree .
 ```
+
+The generated config is ordinary `legionaries.yaml` and can be edited later:
 
 Important rules:
 
@@ -256,12 +248,13 @@ Important rules:
 Create and inspect loops with:
 
 ```bash
-bunx @whchi/your-legion create-loop daily-ci-triage --worktree .
+bunx @whchi/your-legion create-loop daily-ci-triage --preset ci-triage --worktree .
 bunx @whchi/your-legion loops
+bunx @whchi/your-legion loop-runs --worktree . --loop daily-ci-triage
 bunx @whchi/your-legion doctor --worktree .
 ```
 
-See [`LEGION_LOOPS.md`](./LEGION_LOOPS.md) for the full workflow.
+See [`LEGION_LOOPS.md`](./LEGION_LOOPS.md) for the full workflow and detailed parameter reference.
 
 Example mixed-domain envelope:
 

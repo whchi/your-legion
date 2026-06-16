@@ -7,7 +7,7 @@ Use it when you need to answer:
 - Did the orchestrator choose the correct domain?
 - Did a mixed-domain task keep responsibilities separate?
 - Did the delegated agent actually read the declared domain refs and skills?
-- Did no-domain fallback happen when no domain applies?
+- Did no-domain delegation happen when no domain applies?
 
 ## Mental Model
 
@@ -20,7 +20,9 @@ Runtime does not classify domains for the agent. Runtime only records and valida
 - `delegation` event: what the orchestrator declared before delegating.
 - `domain-read` event: which declared domain component files the delegated agent actually read.
 - `loopID`: optional delegation evidence tying a task to a configured Legion Loop.
+- `loop-run-report` event: a maker or verifier completion report for one `Loop run`.
 - `doctor`: the main diagnostics command. It validates static `DOMAIN.md` declarations, loop catalogs, runtime trace evidence, and reports usage stats.
+- `loop-runs`: grouped completion ledger output for loop run status, claims, commands, and outcomes.
 - `trace-check`: low-level trace validation for contract warnings or declared domain refs/skills that were not read.
 - `domain-scenario-check`: low-level fixed scenario validation. Prefer `doctor --scenarios`.
 
@@ -94,6 +96,12 @@ Use grouped output when you want to see each delegation with its declared refs, 
 bunx @whchi/your-legion trace --worktree . --summary
 ```
 
+Use loop ledger output when you want to see whether maker/checker completion closed for each run:
+
+```bash
+bunx @whchi/your-legion loop-runs --worktree .
+```
+
 For source checkout development, use:
 
 ```bash
@@ -113,12 +121,28 @@ A good single-domain coding delegation should look like this shape:
   "event": "delegation",
   "targetAgent": "builder",
   "loopID": "daily-ci-triage",
+  "loopRunID": "daily-ci-triage-20260520-001",
+  "loopStatus": "started",
   "activeDomains": [
     { "id": "coding", "responsibility": "implement and verify the code change" }
   ],
   "domainRefs": ["coding/implementation-loop"],
   "domainSkills": ["coding/make-code-change"],
   "warnings": []
+}
+```
+
+A completed maker/checker loop should also produce `loop-run-report` events:
+
+```json
+{
+  "event": "loop-run-report",
+  "loopID": "daily-ci-triage",
+  "loopRunID": "daily-ci-triage-20260520-001",
+  "loopStatus": "verifier-complete",
+  "completionClaim": "No findings after checking diff and tests.",
+  "verificationCommands": ["git diff --check"],
+  "verificationOutcome": "passed"
 }
 ```
 
@@ -172,15 +196,13 @@ Domain usage stats: PASS
 Loop catalog: PASS
 Loop runtime evidence: PASS
 Scenario evidence: SKIPPED
-Loop scenario evidence: SKIPPED
 
 Summary:
-- Sections: 5 passed, 0 failed, 2 skipped
-- Findings: 0 failures, 2 warnings
+- Sections: 5 passed, 0 failed, 1 skipped
+- Findings: 0 failures, 1 warning
 
 Warnings:
 - Use --scenarios after running prompts from domain-scenarios.
-- Use --loop-scenarios after running prompts from loop-scenarios.
 
 Details:
 Domain usage stats:
@@ -319,7 +341,7 @@ When validating a trace by eye, check these fields first:
 | Did it request the expected workflow or decision? | `delegation.domainRefs` |
 | Did it request the expected domain skill? | `delegation.domainSkills` |
 | Did it actually read the skill file? | matching `domain-read.domainSkills` |
-| Did no-domain fallback happen? | empty `activeDomains`, `domainRefs`, and `domainSkills` |
+| Did no-domain delegation happen? | empty `activeDomains`, `domainRefs`, and `domainSkills` |
 | Was the contract clean? | `warnings: []` and `doctor` passes |
 
 ## CI Or Local Regression Use

@@ -111,6 +111,29 @@ Verification: inspect output`).loopID,
   );
 });
 
+test('domain usage parser extracts loop run completion ledger fields', async () => {
+  const { parseTaskContextEnvelope } = await import('../src/runtime/domain-usage-contract');
+
+  const envelope = parseTaskContextEnvelope(`Task Context Envelope:
+Loop: daily-ci-triage
+Loop run: run_2026_05_20
+Loop status: maker-complete
+Completion claim: Fixed the actionable CI failure and updated tests.
+Verification commands: bun test, bun run build, git diff --check
+Verification outcome: passed
+Active domains: none
+Domain refs: none
+Domain skills: none
+Verification: inspect output`);
+
+  assert.equal(envelope.loopID, 'daily-ci-triage');
+  assert.equal(envelope.loopRunID, 'run_2026_05_20');
+  assert.equal(envelope.loopStatus, 'maker-complete');
+  assert.equal(envelope.completionClaim, 'Fixed the actionable CI failure and updated tests.');
+  assert.deepEqual(envelope.verificationCommands, ['bun test', 'bun run build', 'git diff --check']);
+  assert.equal(envelope.verificationOutcome, 'passed');
+});
+
 test('domain usage validator accepts explicit mixed-domain responsibilities', async t => {
   const { parseTaskContextEnvelope, validateDomainUsageContract } = await import(
     '../src/runtime/domain-usage-contract'
@@ -242,6 +265,85 @@ Verification: bun test`,
   assert.match(events[0].warnings.join('\n'), /unknown active domain: marketing/i);
   assert.equal(events[1].event, 'domain-read');
   assert.deepEqual(events[1].domainSkills, ['coding/make-code-change']);
+});
+
+test('domain trace hooks record loop run reports returned by task agents', async t => {
+  const { createDomainUsageTraceHooks, readDomainUsageTraceEvents } = await import(
+    '../src/runtime/domain-usage-contract'
+  );
+  const configDir = makeTempDir(t, 'loop-run-report-hooks');
+  const worktree = path.join(configDir, 'project');
+  const hooks = createDomainUsageTraceHooks({
+    configDir,
+    worktree,
+    domainPacks: [],
+  });
+
+  await hooks['tool.execute.after'](
+    { tool: 'task', sessionID: 'ses_loop_report' },
+    {
+      result: `Loop Run Report:
+Loop: daily-ci-triage
+Loop run: run_2026_05_20
+Loop status: maker-complete
+Completion claim: Fixed the actionable CI failure.
+Verification commands: bun test
+Verification outcome: passed`,
+    },
+  );
+
+  const events = readDomainUsageTraceEvents({ configDir, worktree });
+
+  assert.equal(events.length, 1);
+  assert.equal(events[0].event, 'loop-run-report');
+  assert.equal(events[0].loopID, 'daily-ci-triage');
+  assert.equal(events[0].loopRunID, 'run_2026_05_20');
+  assert.equal(events[0].loopStatus, 'maker-complete');
+  assert.equal(events[0].completionClaim, 'Fixed the actionable CI failure.');
+  assert.deepEqual(events[0].verificationCommands, ['bun test']);
+  assert.equal(events[0].verificationOutcome, 'passed');
+});
+
+test('domain trace hooks prefer loop run report text over original task prompt', async t => {
+  const { createDomainUsageTraceHooks, readDomainUsageTraceEvents } = await import(
+    '../src/runtime/domain-usage-contract'
+  );
+  const configDir = makeTempDir(t, 'loop-run-report-result-only');
+  const worktree = path.join(configDir, 'project');
+  const hooks = createDomainUsageTraceHooks({
+    configDir,
+    worktree,
+    domainPacks: [],
+  });
+
+  await hooks['tool.execute.after'](
+    { tool: 'task', sessionID: 'ses_loop_report_result_only' },
+    {
+      args: {
+        prompt: `Task Context Envelope:
+Loop: daily-ci-triage
+Loop run: run_2026_05_20
+Loop status: started
+Active domains: none
+Domain refs: none
+Domain skills: none
+Verification: bun test`,
+      },
+      result: `Loop Run Report:
+Loop: daily-ci-triage
+Loop run: run_2026_05_20
+Loop status: maker-complete
+Completion claim: Fixed the actionable CI failure.
+Verification commands: bun test
+Verification outcome: passed`,
+    },
+  );
+
+  const events = readDomainUsageTraceEvents({ configDir, worktree });
+
+  assert.equal(events.length, 1);
+  assert.equal(events[0].event, 'loop-run-report');
+  assert.equal(events[0].loopStatus, 'maker-complete');
 });
 
 test('trace CLI prints events and trace-check fails when warnings exist', async t => {

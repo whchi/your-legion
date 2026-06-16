@@ -205,42 +205,20 @@ bunx @whchi/your-legion doctor --worktree . --scenarios
 Create a loop contract and repo-local inbox:
 
 ```bash
-bunx @whchi/your-legion create-loop daily-ci-triage --worktree . --description "Daily CI triage" --objective "Find and verify CI fixes"
+bunx @whchi/your-legion create-loop daily-ci-triage --preset ci-triage --worktree .
 ```
 
-Then tune the generated `loops.daily-ci-triage` entry in `legionaries.yaml`:
+Generate the prompt for a run:
 
-```yaml
-loops:
-  daily-ci-triage:
-    description: Daily CI and issue triage loop
-    objective: Find actionable CI failures and produce verified fixes
-    trigger: { type: scheduled, cadence: daily }
-    inbox_path: docs/legion-loops/daily-ci-triage.md
-    active_domains:
-      - { id: coding, responsibility: triage CI failures and implement code fixes }
-    domain_refs: [coding/implementation-loop]
-    domain_skills: [coding/make-code-change]
-    agents: { triage: planner, maker: builder, verifier: verifier }
-    worktree: { isolation: required }
-    verification:
-      commands: ["bun test", "bun run build", "git diff --check"]
-      completion: All commands pass and verifier reports no high or critical findings.
-    connectors: { mode: manual, targets: [] }
-```
-
-When asking OpenCode to work inside the loop, the delegation should include:
-
-```text
-Loop: daily-ci-triage
+```bash
+bunx @whchi/your-legion loop-prompt daily-ci-triage --worktree .
 ```
 
 Validate loop health and runtime evidence:
 
 ```bash
 bunx @whchi/your-legion doctor --worktree .
-bunx @whchi/your-legion loop-scenarios
-bunx @whchi/your-legion doctor --worktree . --loop-scenarios
+bunx @whchi/your-legion loop-runs --worktree . --loop daily-ci-triage
 ```
 
 ## Add A Custom Agent

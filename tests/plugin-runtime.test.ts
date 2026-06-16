@@ -13,8 +13,8 @@ const legionariesConfigPath = path.join(rootDir, 'legionaries.yaml');
 const packageJsonPath = path.join(rootDir, 'package.json');
 const tempDir = path.join(rootDir, 'temp');
 
-function systemAgentsFrom(config: Record<string, any>): Record<string, any> {
-  return config.system_agents ?? config.agents;
+function systemAgentsFrom(config: Record<string, unknown>): Record<string, unknown> {
+  return config.system_agents as Record<string, unknown>;
 }
 
 test('plugin runtime builds the full agent config from the mixed legionaries map', async () => {

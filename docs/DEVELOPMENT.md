@@ -214,13 +214,7 @@ The doctor expects these scenarios to have matching `delegation` evidence with n
 
 ## Loop Scenario Validation
 
-Use the fixed loop scenario set when changing Legion Loop prompts, `Loop:` envelope parsing, trace output, or doctor loop diagnostics.
-
-```bash
-bun src/cli.ts loop-scenarios
-# Paste and run every printed scenario prompt in OpenCode.
-bun src/cli.ts doctor --worktree . --loop-scenarios
-```
+Use the fixed loop scenario set when changing Legion Loop prompts, `Loop:` envelope parsing, loop run reports, trace output, or doctor loop diagnostics.
 
 Loop diagnostics also run during ordinary doctor checks:
 
@@ -228,7 +222,15 @@ Loop diagnostics also run during ordinary doctor checks:
 bun src/cli.ts doctor --worktree .
 ```
 
-The doctor validates configured loop inbox files, maker/checker separation, declared loop domain evidence, runtime loop evidence, and fixed loop scenario evidence when `--loop-scenarios` is provided.
+Inspect grouped loop run evidence while developing loop behavior:
+
+```bash
+bun src/cli.ts loop-presets
+bun src/cli.ts loop-prompt daily-ci-triage --worktree .
+bun src/cli.ts loop-runs --worktree .
+```
+
+The doctor validates configured loop inbox files, maker/checker separation, declared loop domain evidence, runtime loop evidence, and maker-complete/verifier-complete run closure.
 
 ## Domain Pack Development
 
@@ -279,7 +281,7 @@ Domain refs: none
 Domain skills: none
 ```
 
-That no-domain fallback is normal behavior and should not produce a warning.
+That no-domain delegation is normal behavior and should not produce a warning.
 
 ## Customization
 

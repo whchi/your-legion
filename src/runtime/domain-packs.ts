@@ -55,23 +55,23 @@ function normalizeDomainConfig(config: DomainConfig) {
 }
 
 function componentMetadata(filePath: string): Pick<DomainPackComponent, 'whenToUse' | 'signals'> {
-  const fallback = {
+  const emptyMetadata = {
     whenToUse: undefined,
     signals: [],
   };
 
   if (!existsSync(filePath)) {
-    return fallback;
+    return emptyMetadata;
   }
 
   const markdown = readFileSync(filePath, 'utf8');
   if (!markdown.startsWith('---')) {
-    return fallback;
+    return emptyMetadata;
   }
 
   const match = markdown.match(/^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/);
   if (!match) {
-    return fallback;
+    return emptyMetadata;
   }
 
   try {
@@ -89,7 +89,7 @@ function componentMetadata(filePath: string): Pick<DomainPackComponent, 'whenToU
       signals,
     };
   } catch {
-    return fallback;
+    return emptyMetadata;
   }
 }
 
@@ -207,7 +207,7 @@ function truncateDescription(description: string) {
   };
 }
 
-function resolveDomainDescription(root: string, bundledRoot: string, domain: string) {
+function resolveDomainDescription(root: string, bundledRoot: string) {
   const globalDescriptionPath = join(root, DOMAIN_DESCRIPTION_FILE);
   const bundledDescriptionPath = join(bundledRoot, DOMAIN_DESCRIPTION_FILE);
   const descriptionPath = existsSync(globalDescriptionPath)
@@ -215,7 +215,11 @@ function resolveDomainDescription(root: string, bundledRoot: string, domain: str
     : existsSync(bundledDescriptionPath)
       ? bundledDescriptionPath
       : undefined;
-  const rawDescription = descriptionPath ? readFileSync(descriptionPath, 'utf8') : domain;
+  if (!descriptionPath) {
+    return undefined;
+  }
+
+  const rawDescription = readFileSync(descriptionPath, 'utf8');
   const { description, truncated } = truncateDescription(rawDescription);
 
   return {
@@ -234,7 +238,10 @@ export function resolveDomainPacks({ configDir, configPath, domains }: ResolveDo
       const root = resolveDomainRoot(resolvedConfigDir, id);
       const bundledRoot = resolveBundledDomainRoot(id);
       const components = {} as Record<DomainComponentKind, DomainPackComponent[]>;
-      const description = resolveDomainDescription(root, bundledRoot, id);
+      const description = resolveDomainDescription(root, bundledRoot);
+      if (!description) {
+        return undefined;
+      }
 
       for (const component of DOMAIN_COMPONENTS) {
         components[component] = applyOverrides(
@@ -256,6 +263,7 @@ export function resolveDomainPacks({ configDir, configPath, domains }: ResolveDo
         components,
       };
     })
+    .filter((pack): pack is DomainPack => Boolean(pack))
     .sort((left, right) => left.id.localeCompare(right.id));
 }
 

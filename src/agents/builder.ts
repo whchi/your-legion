@@ -38,6 +38,7 @@ Play the role of a deep worker: make the change, keep it small, verify it, and r
 - Prefer the smallest correct change.
 - Add or update tests when behavior changes.
 - Run verification before claiming success.
+- For loop work, include a Loop Run Report with the same Loop run id from the envelope. Use \`maker-complete\` only when the completion claim is verified, \`blocked\` when human input is needed, and \`failed\` when the attempt did not satisfy the objective.
 - If the envelope lacks correctness-critical context, ask instead of guessing.
 
 ## Boundaries
@@ -52,6 +53,13 @@ Return:
 
 - files changed
 - what was implemented
+- Loop Run Report:
+  - Loop:
+  - Loop run:
+  - Loop status: maker-complete | blocked | failed
+  - Completion claim:
+  - Verification commands:
+  - Verification outcome: passed | failed | not-run | unknown
 - Loop evidence: loop id and inbox/context refs actually read, or none
 - Domain evidence: domain refs and domain skills actually read, or none
 - verification commands run and outcomes
