@@ -19,7 +19,8 @@ Runtime does not classify domains for the agent. Runtime only records and valida
 
 - `delegation` event: what the orchestrator declared before delegating.
 - `domain-read` event: which declared domain component files the delegated agent actually read.
-- `doctor`: the main diagnostics command. It validates static `DOMAIN.md` declarations, runtime trace evidence, and reports domain usage stats.
+- `loopID`: optional delegation evidence tying a task to a configured Legion Loop.
+- `doctor`: the main diagnostics command. It validates static `DOMAIN.md` declarations, loop catalogs, runtime trace evidence, and reports usage stats.
 - `trace-check`: low-level trace validation for contract warnings or declared domain refs/skills that were not read.
 - `domain-scenario-check`: low-level fixed scenario validation. Prefer `doctor --scenarios`.
 
@@ -111,6 +112,7 @@ A good single-domain coding delegation should look like this shape:
 {
   "event": "delegation",
   "targetAgent": "builder",
+  "loopID": "daily-ci-triage",
   "activeDomains": [
     { "id": "coding", "responsibility": "implement and verify the code change" }
   ],
@@ -167,14 +169,18 @@ Your Legion doctor
 Static domain catalog: PASS
 Runtime trace diagnostics: PASS
 Domain usage stats: PASS
+Loop catalog: PASS
+Loop runtime evidence: PASS
 Scenario evidence: SKIPPED
+Loop scenario evidence: SKIPPED
 
 Summary:
-- Sections: 3 passed, 0 failed, 1 skipped
-- Findings: 0 failures, 1 warning
+- Sections: 5 passed, 0 failed, 2 skipped
+- Findings: 0 failures, 2 warnings
 
 Warnings:
 - Use --scenarios after running prompts from domain-scenarios.
+- Use --loop-scenarios after running prompts from loop-scenarios.
 
 Details:
 Domain usage stats:
@@ -191,7 +197,7 @@ Domain usage stats:
 Your Legion doctor passed
 ```
 
-`doctor` validates `DOMAIN.md` declarations and runtime trace evidence. It exits non-zero when static domain paths are wrong, trace contract warnings exist, or declared domain refs/skills were not read. It also reports usage stats so you can see which domains, refs, and skills are being declared or actually read.
+`doctor` validates `DOMAIN.md` declarations, loop catalog health, and runtime trace evidence. It exits non-zero when static domain paths are wrong, loop inbox/checker contracts are broken, trace contract warnings exist, or declared domain refs/skills were not read. It also reports usage stats so you can see which domains, refs, and skills are being declared or actually read.
 
 ## Run Runtime Trace Check
 

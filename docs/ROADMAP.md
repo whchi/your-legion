@@ -2,18 +2,19 @@
 
 This document tracks the current product plan and implementation status for Your Legion.
 
-The architecture decision behind this roadmap is recorded in [ADR 0001: Plugin-First Domain-Aware Orchestration](./adr/0001-plugin-first-domain-aware-orchestration.md).
+The architecture decisions behind this roadmap are recorded in [ADR 0001: Plugin-First Domain-Aware Orchestration](./adr/0001-plugin-first-domain-aware-orchestration.md) and [ADR 0002: Legion Loop Contract](./adr/0002-legion-loop-contract.md).
 
 ## Current Focus
 
-Your Legion makes OpenCode's multi-agent workflow domain-aware, observable, and verifiable, while giving users a lightweight way to bring their own expert knowledge into a project through Domain Packs.
+Your Legion makes OpenCode's multi-agent workflow domain-aware, loop-aware, observable, and verifiable, while giving users a lightweight way to bring expert knowledge and recurring engineering loops into a project.
 
 The near-term work should strengthen this loop:
 
-1. author domain knowledge;
-2. route to the right specialist;
-3. verify the specialist used the right knowledge;
-4. compare the result against native OpenCode.
+1. author domain knowledge and loop contracts;
+2. route to the right specialist with explicit `Loop:` and domain evidence;
+3. keep maker/checker separation through `builder` and `verifier`;
+4. verify the specialist used the right knowledge and loop state;
+5. compare the result against native OpenCode.
 
 ## Development Plan
 
@@ -81,6 +82,18 @@ Acceptance criteria:
 - Results can distinguish "more expensive but better" from "more expensive and not better."
 - Benchmark documentation contains only the latest clean run unless older results are explicitly kept for historical comparison.
 
+### 7. Legion Loop Contract
+
+Goal: make Loop Engineering a first-class, diagnosable Your Legion workflow without owning a scheduler yet.
+
+Acceptance criteria:
+
+- `legionaries.yaml` can define loops with objective, trigger, inbox, agents, domain evidence, worktree policy, verification, and connector mode.
+- `verifier` is a protected system agent for maker/checker separation.
+- Task Context Envelopes include `Loop:`.
+- `doctor` validates loop catalog health, loop runtime evidence, and fixed loop scenarios.
+- `create-loop`, `loops`, and `loop-scenarios` expose the workflow from the CLI.
+
 ## Planning Backlog
 
 | Area | Item | Priority | Notes |
@@ -95,16 +108,18 @@ Acceptance criteria:
 | Doctor | Improve failure messages and usage stats | P1 | Done: `doctor` prints summary counts, next steps, category-aware guidance, and domain usage stats |
 | Benchmark | Keep clean native vs orchestrated task set | P0 | Done: benchmark doc keeps the fixed four-domain prompt set and clean-run rules |
 | Benchmark | Add summary table for quality plus token cost | P1 | Done: benchmark summaries include task `outcome` and `byOutcome` aggregation |
+| Loop | Add Legion Loop contract and verifier | P0 | Done: loops are config-backed, prompt-injected, trace-aware, and doctor-validated |
 
 ## Implementation Status
 
-Phase 1 through Phase 4 are implemented for the current lightweight scope:
+The current product slice is implemented for domain-aware orchestration and the first contract-first Legion Loop scope:
 
 - Public positioning now says Your Legion is an OpenCode multi-agent enhancement layer, not a standalone platform or ecosystem.
 - Domain authoring has a generated `DOMAIN.md` guide, a dedicated authoring document, success-output next steps, corrected custom-domain examples, and doctor-based diagnostics guidance.
 - Routing boundaries are covered by tests for orchestrator tool limits, builder execution ownership, explorer/librarian discovery boundaries, Task Context Envelope shape, no domain pre-reading, and unclear-intent clarification.
 - Trace/doctor output now supports categorized runtime diagnostics, usage stats, summary counts, actionable next steps, and scenario validation.
 - Benchmark reporting now compares native builder with the full orchestrated path and reports quality-plus-token outcomes instead of token deltas alone.
+- Legion Loop support adds `verifier`, `Loop:` envelope parsing, loop config validation, loop catalog injection, loop trace evidence, loop doctor sections, `create-loop`, `loops`, and fixed loop scenarios.
 
 Current verification commands:
 

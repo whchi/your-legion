@@ -24,9 +24,11 @@ function writeFile(filePath: string, contents: string) {
 function writeConfig({
   configDir,
   domains,
+  loops,
 }: {
   configDir: string;
   domains: Record<string, true>;
+  loops?: Record<string, unknown>;
 }) {
   const original = YAML.parse(fs.readFileSync(legionariesConfigPath, 'utf8'));
   fs.mkdirSync(configDir, { recursive: true });
@@ -36,6 +38,7 @@ function writeConfig({
       system_agents: original.system_agents,
       custom_agents: original.custom_agents,
       domains,
+      ...(loops ? { loops } : {}),
     }),
   );
 }
@@ -79,8 +82,9 @@ Skills:
   assert.notEqual(result.status, 0);
   assert.match(result.stdout + result.stderr, /Your Legion doctor/);
   assert.match(result.stdout + result.stderr, /Summary:/);
-  assert.match(result.stdout + result.stderr, /- Sections: 2 passed, 1 failed, 1 skipped/);
-  assert.match(result.stdout + result.stderr, /- Findings: 3 failures, 2 warnings/);
+  assert.match(result.stdout + result.stderr, /- Sections: 4 passed, 1 failed, 2 skipped/);
+  assert.match(result.stdout + result.stderr, /Loop catalog: PASS/);
+  assert.match(result.stdout + result.stderr, /- Findings: 3 failures, 3 warnings/);
   assert.match(result.stdout + result.stderr, /Static domain catalog: FAIL/);
   assert.match(result.stdout + result.stderr, /missing declared domain component: product-ops\/workflows\/missing-workflow/);
   assert.match(result.stdout + result.stderr, /domain skill missing frontmatter description: product-ops\/review/);
@@ -136,12 +140,175 @@ description: Review product operations constraints.
   assert.match(output, /Your Legion doctor/);
   assert.match(output, /Static domain catalog: PASS/);
   assert.match(output, /Summary:/);
-  assert.match(output, /- Sections: 3 passed, 0 failed, 1 skipped/);
-  assert.match(output, /- Findings: 0 failures, 1 warning/);
+  assert.match(output, /- Sections: 5 passed, 0 failed, 2 skipped/);
+  assert.match(output, /- Findings: 0 failures, 2 warnings/);
   assert.match(output, /Runtime trace diagnostics: PASS/);
   assert.match(output, /Domain usage stats: PASS/);
+  assert.match(output, /Loop catalog: PASS/);
+  assert.match(output, /Loop runtime evidence: PASS/);
+  assert.match(output, /Loop scenario evidence: SKIPPED/);
   assert.match(output, /Scenario evidence: SKIPPED/);
   assert.match(output, /Your Legion doctor passed/);
+});
+
+test('doctor CLI fails loop catalog validation for missing inbox and unsafe checker split', t => {
+  const configDir = makeTempDir(t, 'your-legion-doctor-loop-fail-config');
+  const worktree = makeTempDir(t, 'your-legion-doctor-loop-fail-worktree');
+
+  writeConfig({
+    configDir,
+    domains: {},
+    loops: {
+      'daily-ci-triage': {
+        description: 'Daily CI triage',
+        objective: 'Find and fix CI failures',
+        trigger: { type: 'scheduled', cadence: 'daily' },
+        inbox_path: 'docs/legion-loops/daily-ci-triage.md',
+        agents: {
+          maker: 'builder',
+          verifier: 'builder',
+        },
+        verification: {
+          commands: ['bun test'],
+          completion: 'Tests pass',
+        },
+      },
+    },
+  });
+
+  const result = spawnSync('bun', ['src/cli.ts', 'doctor', '--worktree', worktree, '--config-dir', configDir], {
+    cwd: rootDir,
+    encoding: 'utf8',
+  });
+
+  assert.notEqual(result.status, 0);
+  assert.match(result.stdout + result.stderr, /Loop catalog: FAIL/);
+  assert.match(result.stdout + result.stderr, /missing loop inbox: daily-ci-triage -> docs\/legion-loops\/daily-ci-triage\.md/);
+  assert.match(result.stdout + result.stderr, /loop maker and verifier must be separate: daily-ci-triage/);
+});
+
+test('doctor CLI fails loop runtime evidence when maker has no verifier delegation', async t => {
+  const configDir = makeTempDir(t, 'your-legion-doctor-loop-runtime-config');
+  const worktree = makeTempDir(t, 'your-legion-doctor-loop-runtime-worktree');
+  const { appendDomainUsageTraceEvent } = await import('../src/runtime/domain-usage-contract');
+
+  writeConfig({
+    configDir,
+    domains: {},
+    loops: {
+      'daily-ci-triage': {
+        description: 'Daily CI triage',
+        objective: 'Find and fix CI failures',
+        trigger: { type: 'manual' },
+        inbox_path: 'docs/legion-loops/daily-ci-triage.md',
+        agents: {
+          maker: 'builder',
+          verifier: 'verifier',
+        },
+        verification: {
+          commands: ['bun test'],
+          completion: 'Tests pass',
+        },
+      },
+    },
+  });
+  writeFile(path.join(worktree, 'docs', 'legion-loops', 'daily-ci-triage.md'), '# Daily CI triage\n');
+  appendDomainUsageTraceEvent({
+    configDir,
+    worktree,
+    event: {
+      version: 1,
+      timestamp: '2026-05-20T00:00:00.000Z',
+      worktree,
+      sessionID: 'ses_loop_runtime',
+      delegationID: 'del_loop_runtime',
+      loopID: 'daily-ci-triage',
+      event: 'delegation',
+      targetAgent: 'builder',
+      activeDomains: [],
+      domainRefs: [],
+      domainSkills: [],
+      warnings: [],
+    },
+  });
+
+  const result = spawnSync('bun', ['src/cli.ts', 'doctor', '--worktree', worktree, '--config-dir', configDir], {
+    cwd: rootDir,
+    encoding: 'utf8',
+  });
+
+  assert.notEqual(result.status, 0);
+  assert.match(result.stdout + result.stderr, /Loop runtime evidence: FAIL/);
+  assert.match(result.stdout + result.stderr, /loop maker delegation has no verifier evidence: daily-ci-triage/);
+});
+
+test('loop CLI can create and list a configured loop contract', t => {
+  const configDir = makeTempDir(t, 'your-legion-loop-cli-config');
+  const worktree = makeTempDir(t, 'your-legion-loop-cli-worktree');
+
+  writeConfig({
+    configDir,
+    domains: {},
+  });
+
+  const createOutput = execFileSync(
+    'bun',
+    [
+      'src/cli.ts',
+      'create-loop',
+      'daily-ci-triage',
+      '--worktree',
+      worktree,
+      '--config-dir',
+      configDir,
+      '--description',
+      'Daily CI triage',
+      '--objective',
+      'Find and verify CI fixes',
+    ],
+    {
+      cwd: rootDir,
+      encoding: 'utf8',
+    },
+  );
+
+  assert.match(createOutput, /Created loop daily-ci-triage/);
+  assert.ok(fs.existsSync(path.join(worktree, 'docs', 'legion-loops', 'daily-ci-triage.md')));
+
+  const listOutput = execFileSync('bun', ['src/cli.ts', 'loops', '--config-dir', configDir], {
+    cwd: rootDir,
+    encoding: 'utf8',
+  });
+
+  assert.match(listOutput, /daily-ci-triage/);
+  assert.match(listOutput, /Daily CI triage/);
+  assert.match(listOutput, /docs\/legion-loops\/daily-ci-triage\.md/);
+});
+
+test('loop scenarios CLI prints prompts and doctor can require loop scenario evidence', t => {
+  const configDir = makeTempDir(t, 'your-legion-loop-scenarios-config');
+  const worktree = makeTempDir(t, 'your-legion-loop-scenarios-worktree');
+
+  writeConfig({
+    configDir,
+    domains: {},
+  });
+
+  const scenarioOutput = execFileSync('bun', ['src/cli.ts', 'loop-scenarios'], {
+    cwd: rootDir,
+    encoding: 'utf8',
+  });
+  assert.match(scenarioOutput, /manual-loop-design/);
+  assert.match(scenarioOutput, /Loop: daily-ci-triage/);
+
+  const result = spawnSync('bun', ['src/cli.ts', 'doctor', '--worktree', worktree, '--config-dir', configDir, '--loop-scenarios'], {
+    cwd: rootDir,
+    encoding: 'utf8',
+  });
+
+  assert.notEqual(result.status, 0);
+  assert.match(result.stdout + result.stderr, /Loop scenario evidence: FAIL/);
+  assert.match(result.stdout + result.stderr, /missing loop scenario evidence: manual-loop-design/);
 });
 
 test('doctor CLI includes scenario evidence only when requested', t => {

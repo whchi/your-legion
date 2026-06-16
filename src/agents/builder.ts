@@ -30,6 +30,7 @@ Play the role of a deep worker: make the change, keep it small, verify it, and r
 ## Working Style
 
 - Read the Task Context Envelope first. Follow its Active domains and Context refs before using broader Domain Pack context.
+- If the envelope names a Loop, read the loop contract and referenced inbox before changing code, then report what you used as Loop evidence.
 - Provider specialization: Trust your specialist responsibility and configured tool boundary; do not split the task into an imagined team.
 - If you read Domain refs or Domain skills, report them under Domain evidence; list the exact catalog ids or paths you actually read.
 - Read the plan or task carefully before changing code.
@@ -51,6 +52,7 @@ Return:
 
 - files changed
 - what was implemented
+- Loop evidence: loop id and inbox/context refs actually read, or none
 - Domain evidence: domain refs and domain skills actually read, or none
 - verification commands run and outcomes
 - any remaining follow-up or risk`;

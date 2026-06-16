@@ -11,6 +11,7 @@ import {
 } from '../shared/agent-types';
 import { loadAgentDefinitionProviders } from './agent-definition-provider';
 import { buildDomainPromptSection, resolveDomainPacks } from './domain-packs';
+import { buildLoopPromptSection } from './loop-catalog';
 
 function toPath(value: string | URL) {
   return value instanceof URL ? fileURLToPath(value) : value;
@@ -89,6 +90,24 @@ ${domainSection}`,
   ) as EffectiveAgentConfig['agent'];
 }
 
+function augmentAgentsWithLoopCatalog(agents: EffectiveAgentConfig['agent'], loopSection: string) {
+  if (!loopSection) {
+    return agents;
+  }
+
+  return Object.fromEntries(
+    Object.entries(agents).map(([agentName, agent]) => [
+      agentName,
+      {
+        ...agent,
+        prompt: `${agent.prompt}
+
+${loopSection}`,
+      },
+    ]),
+  ) as EffectiveAgentConfig['agent'];
+}
+
 function allowDomainCatalogExternalReads(agents: EffectiveAgentConfig['agent']) {
   return Object.fromEntries(
     Object.entries(agents).map(([agentName, agent]) => {
@@ -115,6 +134,7 @@ export async function buildEffectiveAgentConfig(options: LoadLegionariesConfigOp
     systemAgents: configuredSystemAgents,
     customAgents: configuredCustomAgents,
     domains: configuredDomains,
+    loops: configuredLoops,
     filePath: configPath,
   } = loadLegionariesConfig(options);
   const providers = await loadAgentDefinitionProviders(options);
@@ -157,6 +177,7 @@ export async function buildEffectiveAgentConfig(options: LoadLegionariesConfigOp
   });
   const domainSection = buildDomainPromptSection(domainPacks);
   agent = augmentAgentsWithDomainPacks(agent, domainSection);
+  agent = augmentAgentsWithLoopCatalog(agent, buildLoopPromptSection(configuredLoops));
   if (domainSection) {
     agent = allowDomainCatalogExternalReads(agent);
   }

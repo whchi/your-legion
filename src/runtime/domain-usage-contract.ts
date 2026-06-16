@@ -10,6 +10,7 @@ const TRACE_HASH_LENGTH = 16;
 
 type EnvelopeField =
   | 'scenarioID'
+  | 'loopID'
   | 'objective'
   | 'activeDomains'
   | 'domainRefs'
@@ -21,6 +22,7 @@ type EnvelopeField =
 
 const FIELD_NAMES: Record<string, EnvelopeField> = {
   scenario: 'scenarioID',
+  loop: 'loopID',
   objective: 'objective',
   'active domains': 'activeDomains',
   'domain refs': 'domainRefs',
@@ -38,6 +40,7 @@ export type ActiveDomainUsage = {
 
 export type TaskContextEnvelope = {
   scenarioID?: string;
+  loopID?: string;
   objective?: string;
   activeDomains: ActiveDomainUsage[];
   domainRefs: string[];
@@ -62,6 +65,7 @@ export type DomainUsageTraceEvent = {
   sessionID?: string;
   delegationID?: string;
   scenarioID?: string;
+  loopID?: string;
   event: 'delegation' | 'domain-read';
   domainCatalogHash?: string;
   domainCatalogSize?: number;
@@ -97,6 +101,13 @@ export type DomainUsageScenarioCheckResult = {
   title: string;
   passed: boolean;
   messages: string[];
+};
+
+export type LoopUsageScenario = {
+  id: string;
+  title: string;
+  prompt: string;
+  expectedLoopID: string;
 };
 
 function scenario({
@@ -233,6 +244,59 @@ export const DOMAIN_USAGE_SCENARIOS: DomainUsageScenario[] = [
   }),
 ];
 
+export const LOOP_USAGE_SCENARIOS: LoopUsageScenario[] = [
+  {
+    id: 'manual-loop-design',
+    title: 'Manual loop design',
+    expectedLoopID: 'daily-ci-triage',
+    prompt: `Scenario: manual-loop-design
+Ask Your Legion to run or refine the configured daily CI triage loop.
+When delegating, include "Scenario: manual-loop-design" and "Loop: daily-ci-triage" in the Task Context Envelope.
+Expected delegation evidence:
+Loop: daily-ci-triage`,
+  },
+  {
+    id: 'maker-checker-separation',
+    title: 'Maker checker separation',
+    expectedLoopID: 'daily-ci-triage',
+    prompt: `Scenario: maker-checker-separation
+Ask Your Legion to verify the maker output for the configured daily CI triage loop.
+When delegating, include "Scenario: maker-checker-separation" and "Loop: daily-ci-triage" in the Task Context Envelope.
+Expected delegation evidence:
+Loop: daily-ci-triage`,
+  },
+  {
+    id: 'scheduled-ci-triage',
+    title: 'Scheduled CI triage',
+    expectedLoopID: 'daily-ci-triage',
+    prompt: `Scenario: scheduled-ci-triage
+Ask Your Legion to handle the scheduled daily CI triage loop as if a scheduled trigger surfaced new failures.
+When delegating, include "Scenario: scheduled-ci-triage" and "Loop: daily-ci-triage" in the Task Context Envelope.
+Expected delegation evidence:
+Loop: daily-ci-triage`,
+  },
+  {
+    id: 'missing-inbox-failure',
+    title: 'Missing inbox failure',
+    expectedLoopID: 'daily-ci-triage',
+    prompt: `Scenario: missing-inbox-failure
+Ask Your Legion to diagnose a daily CI triage loop whose inbox file is missing.
+When delegating, include "Scenario: missing-inbox-failure" and "Loop: daily-ci-triage" in the Task Context Envelope.
+Expected delegation evidence:
+Loop: daily-ci-triage`,
+  },
+  {
+    id: 'mixed-domain-loop',
+    title: 'Mixed-domain loop',
+    expectedLoopID: 'daily-ci-triage',
+    prompt: `Scenario: mixed-domain-loop
+Ask Your Legion to run a loop task that needs coding implementation and release-facing explanation.
+When delegating, include "Scenario: mixed-domain-loop" and "Loop: daily-ci-triage" in the Task Context Envelope.
+Expected delegation evidence:
+Loop: daily-ci-triage`,
+  },
+];
+
 function cleanLine(line: string) {
   return line
     .trim()
@@ -298,6 +362,7 @@ export function parseTaskContextEnvelope(text: string): TaskContextEnvelope {
 
   return {
     scenarioID: splitTokens(rawFields.scenarioID).join(', ') || undefined,
+    loopID: splitTokens(rawFields.loopID).join(', ') || undefined,
     objective: splitTokens(rawFields.objective).join(', ') || undefined,
     activeDomains: parseActiveDomains(rawFields.activeDomains),
     domainRefs: splitTokens(rawFields.domainRefs),
@@ -478,6 +543,31 @@ export function evaluateDomainUsageScenarios(options: DomainUsageTraceOptions) {
   };
 }
 
+export function evaluateLoopUsageScenarios(options: DomainUsageTraceOptions) {
+  const events = readDomainUsageTraceEvents(options);
+  const results = LOOP_USAGE_SCENARIOS.map((scenario): DomainUsageScenarioCheckResult => {
+    const event = events.find(
+      candidate =>
+        candidate.event === 'delegation' &&
+        candidate.scenarioID === scenario.id &&
+        candidate.loopID === scenario.expectedLoopID &&
+        candidate.warnings.length === 0,
+    );
+
+    return {
+      id: scenario.id,
+      title: scenario.title,
+      passed: Boolean(event),
+      messages: event ? [] : [`missing loop scenario evidence: ${scenario.id}`],
+    };
+  });
+
+  return {
+    passed: results.every(result => result.passed),
+    results,
+  };
+}
+
 function extractSessionID(input: unknown): string | undefined {
   if (!input || typeof input !== 'object') {
     return undefined;
@@ -577,6 +667,7 @@ function delegationIDFor({
         sessionID,
         targetAgent,
         scenarioID,
+        loopID: envelope.loopID,
         objective: envelope.objective,
         activeDomains: envelope.activeDomains,
         domainRefs: envelope.domainRefs,
@@ -748,6 +839,7 @@ export function createDomainUsageTraceHooks(options: CreateDomainUsageTraceHooks
           sessionID,
           delegationID,
           scenarioID: envelope.scenarioID,
+          loopID: envelope.loopID,
           event: 'delegation',
           toolName: 'task',
           toolArgsShape: Object.keys(args).sort(),

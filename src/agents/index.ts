@@ -4,6 +4,7 @@ import { createBuilderAgent } from './builder';
 import { createLibrarianAgent } from './librarian';
 import { createOrchestratorAgent } from './orchestrator';
 import { createPlannerAgent } from './planner';
+import { createVerifierAgent } from './verifier';
 
 export const AGENT_FACTORIES: Record<AgentName, AgentFactory> = {
   orchestrator: createOrchestratorAgent,
@@ -11,6 +12,7 @@ export const AGENT_FACTORIES: Record<AgentName, AgentFactory> = {
   librarian: createLibrarianAgent,
   planner: createPlannerAgent,
   builder: createBuilderAgent,
+  verifier: createVerifierAgent,
 };
 
 export function buildAgentDefinition(name: AgentName, model: string): BaseAgentDefinition {

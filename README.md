@@ -2,11 +2,11 @@
 
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/whchi/your-legion)
 
-An OpenCode plugin that improves multi-agent work with bounded specialists, per-agent provider/model mapping, and structured context handoff.
+An OpenCode plugin that improves multi-agent and loop-oriented work with bounded specialists, per-agent provider/model mapping, structured context handoff, and evidence-backed diagnostics.
 
 Your Legion keeps OpenCode as the execution harness. It injects a small protected agent set, routes each turn to the right specialist, and lets operators choose different providers or models for routing, planning, discovery, documentation lookup, and execution.
 
-Task Context Envelopes keep delegation explicit and compact. Domain Packs are optional, lightweight context packs for project or professional knowledge; trace and doctor commands are troubleshooting tools for validating domain setup after the fact.
+Task Context Envelopes keep delegation explicit and compact. Domain Packs provide selective expert context. Legion Loops define recurring or goal-driven engineering workflows with durable inboxes and maker/checker verification. Trace and doctor commands validate domain and loop evidence after the fact.
 
 ![](docs/architecture.svg)
 
@@ -17,6 +17,7 @@ Use Your Legion when:
 - You want OpenCode to route work across specialists more consistently.
 - You want a simple per-agent provider/model map instead of a role-play agent team.
 - You have project or domain knowledge that agents should use selectively.
+- You want recurring engineering loops with explicit state, maker/checker separation, and diagnostics.
 - You want troubleshooting evidence when a domain-enabled task did not use the expected context.
 - You want to compare native OpenCode execution against an orchestrated multi-agent path.
 
@@ -54,6 +55,7 @@ Use these docs next:
 - Install and uninstall details: [`INSTALLATION.md`](./docs/INSTALLATION.md)
 - Config schema and field rules: [`CONFIGURATION.md`](./docs/CONFIGURATION.md)
 - Domain Pack authoring guide: [`DOMAIN_PACK_AUTHORING.md`](./docs/DOMAIN_PACK_AUTHORING.md)
+- Legion Loop guide: [`LEGION_LOOPS.md`](./docs/LEGION_LOOPS.md)
 - Domain observability and validation: [`DOMAIN_OBSERVABILITY.md`](./docs/DOMAIN_OBSERVABILITY.md)
 - Orchestrator token benchmark: [`ORCHESTRATOR_BENCHMARK.md`](./docs/ORCHESTRATOR_BENCHMARK.md)
 - Copy-paste examples: [`EXAMPLES.md`](./docs/EXAMPLES.md)
@@ -109,6 +111,8 @@ system_agents:
     model: openai/gpt-5.5
   builder:
     model: openai/gpt-5.5
+  verifier:
+    model: openai/gpt-5.5
 custom_agents: {}
 domains:
   coding: true
@@ -144,6 +148,7 @@ domains:
 - `orchestrator`: default primary router; clarifies intent, delegates, and reports back without repo exploration
 - `planner`: design doc and implementation plan writer with docs-only edit permissions
 - `builder`: execution specialist for approved work, including code, tests, UI work, analysis, copy, structured reviews, and code-coupled docs
+- `verifier`: read-only checker for loop completion claims, maker/checker separation, tests, and evidence
 - `explorer`: read-only known repo/local-file discovery specialist
 - `librarian`: read-only third-party documentation and API reference specialist; prefers Context7 MCP for library docs
 - `code-reviewer`: bundled YAML custom agent example for read-only review
@@ -152,7 +157,7 @@ Custom agent definitions are discovered from bundled package examples and from t
 
 Domain descriptions and skills are injected into agent prompts as a Domain Catalog with namespaced entries such as `marketing/campaign-brief`. Routing agents pass relevant `Domain refs` and `Domain skills` in the Task Context Envelope; target specialists read the exact configured paths. Your Legion does not register domain skills as top-level harness skills.
 
-Delegations use a compact Task Context Envelope with `Objective`, `Active domains`, `Domain refs`, `Domain skills`, `Context refs`, `Constraints`, `Expected output`, and `Verification`. The orchestrator compares the task with the Domain Catalog and activates every domain whose description materially applies. If no domain is configured or no domain description clearly matches, it should use no-domain delegation: `Active domains: none`, `Domain refs: none`, and `Domain skills: none`.
+Delegations use a compact Task Context Envelope with `Scenario`, `Loop`, `Objective`, `Active domains`, `Domain refs`, `Domain skills`, `Context refs`, `Constraints`, `Expected output`, and `Verification`. The orchestrator compares the task with the Loop Catalog and Domain Catalog, then passes only the matching loop id and domain evidence. If no loop applies, it writes `Loop: none`. If no domain is configured or no domain description clearly matches, it should use no-domain delegation: `Active domains: none`, `Domain refs: none`, and `Domain skills: none`.
 
 Your Legion records warn-only domain usage evidence under `~/.config/opencode/your-legion/traces/`. When troubleshooting domain setup, use `bunx @whchi/your-legion doctor --worktree .` for static domain catalog validation, runtime trace validation, and domain usage stats. Use `bunx @whchi/your-legion trace` when you need raw delegation and domain-read events, or `trace --summary` for grouped delegation evidence. See [`DOMAIN_OBSERVABILITY.md`](./docs/DOMAIN_OBSERVABILITY.md) for the full validation workflow.
 
@@ -180,10 +185,13 @@ Your Legion uses direct specialist routing.
 
 - `bunx @whchi/your-legion install [--domains <ids>] [--add-domains <ids>]`: installs or refreshes the plugin registration. First install writes `legionaries.yaml` with `coding` enabled and materializes enabled bundled domain packs under `~/.config/opencode/your-legion/domains/`. Reinstall without domain flags preserves existing config. `--domains` replaces the enabled domain list; `--add-domains` merges into it.
 - `bunx @whchi/your-legion create-domain <domain-id> [--components workflows,decisions,examples,skills] [--enable]`: scaffolds a new global domain pack. By default it creates only `DOMAIN.md`; use `--components` to add selected optional folders and matching placeholder files, and `--enable` to write the domain into `legionaries.yaml`. Existing global domains and bundled domain ids are rejected.
-- `bunx @whchi/your-legion doctor [--worktree <path>] [--scenarios]`: troubleshoots domain setup. By default it validates `DOMAIN.md` declarations, runtime trace evidence, and usage stats; `--scenarios` also verifies the fixed scenario set.
+- `bunx @whchi/your-legion create-loop <loop-id> [--worktree <path>] [--description <text>] [--objective <text>]`: creates a configured Legion Loop and repo-local inbox.
+- `bunx @whchi/your-legion loops`: lists configured Legion Loops.
+- `bunx @whchi/your-legion doctor [--worktree <path>] [--scenarios] [--loop-scenarios]`: troubleshoots domain and loop setup. By default it validates `DOMAIN.md` declarations, loop catalogs, runtime trace evidence, and usage stats; scenario flags verify fixed domain or loop scenario sets.
 - `bunx @whchi/your-legion trace [--worktree <path>] [--limit <n>] [--summary]`: prints recent domain usage evidence for a workspace/project path; `--summary` groups declared refs, matching reads, and warnings by delegation.
 - `bunx @whchi/your-legion trace-check [--worktree <path>]`: low-level trace validation for contract warnings and declared domain refs or skills that were not read.
 - `bunx @whchi/your-legion domain-scenarios`: prints the fixed domain scenario prompts.
+- `bunx @whchi/your-legion loop-scenarios`: prints the fixed loop scenario prompts.
 - `bunx @whchi/your-legion domain-scenario-check [--worktree <path>]`: low-level fixed scenario validation; `doctor --scenarios` is the preferred entrypoint.
 
 ## Development

@@ -1,6 +1,6 @@
 # Development
 
-This document covers repository development for `your-legion`. User-facing installation and configuration instructions live in [`README.md`](../README.md). Architecture direction lives in [`ADR 0001`](./adr/0001-plugin-first-domain-aware-orchestration.md), the current product plan lives in [`ROADMAP.md`](./ROADMAP.md), and user-facing domain authoring guidance lives in [`DOMAIN_PACK_AUTHORING.md`](./DOMAIN_PACK_AUTHORING.md).
+This document covers repository development for `your-legion`. User-facing installation and configuration instructions live in [`README.md`](../README.md). Architecture direction lives in [`ADR 0001`](./adr/0001-plugin-first-domain-aware-orchestration.md) and [`ADR 0002`](./adr/0002-legion-loop-contract.md), the current product plan lives in [`ROADMAP.md`](./ROADMAP.md), and user-facing domain/loop guidance lives in [`DOMAIN_PACK_AUTHORING.md`](./DOMAIN_PACK_AUTHORING.md) and [`LEGION_LOOPS.md`](./LEGION_LOOPS.md).
 
 ## Plugin-First Runtime
 
@@ -10,6 +10,7 @@ This document covers repository development for `your-legion`. User-facing insta
 - `src/runtime/agent-definition-provider.ts` loads protected system agent factories and YAML custom agents.
 - `src/runtime/build-agent-config.ts` merges model maps with agent providers.
 - `src/runtime/domain-packs.ts` resolves `DOMAIN.md`-declared domain packs and builds the Domain Catalog.
+- `src/runtime/loop-catalog.ts` formats configured Legion Loops into the Loop Catalog.
 - The plugin injects `default_agent` and the full `agent` map at startup.
 
 No frontmatter rewrite step is required.
@@ -211,6 +212,24 @@ The doctor expects these scenarios to have matching `delegation` evidence with n
 - `accounting-finance`
 - `finance-marketing`
 
+## Loop Scenario Validation
+
+Use the fixed loop scenario set when changing Legion Loop prompts, `Loop:` envelope parsing, trace output, or doctor loop diagnostics.
+
+```bash
+bun src/cli.ts loop-scenarios
+# Paste and run every printed scenario prompt in OpenCode.
+bun src/cli.ts doctor --worktree . --loop-scenarios
+```
+
+Loop diagnostics also run during ordinary doctor checks:
+
+```bash
+bun src/cli.ts doctor --worktree .
+```
+
+The doctor validates configured loop inbox files, maker/checker separation, declared loop domain evidence, runtime loop evidence, and fixed loop scenario evidence when `--loop-scenarios` is provided.
+
 ## Domain Pack Development
 
 Domain routing is description-driven. `DOMAIN.md` is the only domain description and component catalog used in the Domain Catalog. Domain component folders are optional capability facets. Do not scaffold all four folders unless the domain actually has all four kinds of knowledge. Runtime only includes component paths listed in `DOMAIN.md`; folders or files that are not listed are treated as absent. For the author-facing version of these rules, see [`DOMAIN_PACK_AUTHORING.md`](./DOMAIN_PACK_AUTHORING.md).
@@ -270,7 +289,7 @@ That no-domain fallback is normal behavior and should not produce a warning.
 - Add domain packs under `~/.config/opencode/your-legion/domains/<domain-id>/`, then enable them with `domains.<domain-id>: true`.
 - Use `domains.<domain-id>.<component>.<id>.path` only when a component id already listed in `DOMAIN.md` needs to be mounted from another path.
 - Built-in domain packs live under `src/domains/` and are copied to `dist/domains` by `bun run build`.
-- Domain usage evidence is implemented in `src/runtime/domain-usage-contract.ts`; update parser, trace, and CLI tests when changing the envelope contract.
+- Domain and loop usage evidence are implemented in `src/runtime/domain-usage-contract.ts`; update parser, trace, doctor, scenario, and CLI tests when changing the envelope contract.
 - Add a new required agent by updating `src/agents/`, `src/agents/index.ts`, `src/shared/agent-types.ts`, `legionaries.yaml`, and the routing guidance in `src/agents/orchestrator.ts`.
 - Add a new optional agent by registering it in `src/shared/agent-types.ts` and `src/agents/index.ts`, then documenting the optional `legionaries.yaml` mapping.
 - Do not use a system agent name for a custom agent. The runtime fails startup if a custom agent attempts to replace a system agent.

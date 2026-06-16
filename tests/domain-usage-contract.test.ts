@@ -69,6 +69,7 @@ test('domain usage parser accepts a single-domain envelope', async t => {
   );
   const configDir = makeTempDir(t, 'domain-contract-single');
   const envelope = parseTaskContextEnvelope(`Task Context Envelope:
+- Loop: daily-ci-triage
 - Objective: Implement focused change.
 - Active domains: coding: implement and verify code
 - Domain refs: coding/implementation-loop
@@ -78,6 +79,7 @@ test('domain usage parser accepts a single-domain envelope', async t => {
 - Expected output: patch and verification
 - Verification: bun test`);
 
+  assert.equal(envelope.loopID, 'daily-ci-triage');
   assert.deepEqual(envelope.activeDomains, [{ id: 'coding', responsibility: 'implement and verify code' }]);
   assert.deepEqual(envelope.domainRefs, ['coding/implementation-loop']);
   assert.deepEqual(envelope.domainSkills, ['coding/make-code-change']);
@@ -85,6 +87,28 @@ test('domain usage parser accepts a single-domain envelope', async t => {
   const result = validateDomainUsageContract(envelope, testDomainPacks(configDir));
 
   assert.deepEqual(result.warnings, []);
+});
+
+test('domain usage parser treats missing or none loop as no loop context', async () => {
+  const { parseTaskContextEnvelope } = await import('../src/runtime/domain-usage-contract');
+
+  assert.equal(
+    parseTaskContextEnvelope(`Task Context Envelope:
+Loop: none
+Active domains: none
+Domain refs: none
+Domain skills: none
+Verification: inspect output`).loopID,
+    undefined,
+  );
+  assert.equal(
+    parseTaskContextEnvelope(`Task Context Envelope:
+Active domains: none
+Domain refs: none
+Domain skills: none
+Verification: inspect output`).loopID,
+    undefined,
+  );
 });
 
 test('domain usage validator accepts explicit mixed-domain responsibilities', async t => {
@@ -235,6 +259,7 @@ test('trace CLI prints events and trace-check fails when warnings exist', async 
       sessionID: 'ses_cli',
       event: 'delegation',
       targetAgent: 'builder',
+      loopID: 'daily-ci-triage',
       activeDomains: [{ id: 'coding', responsibility: 'implement code' }],
       domainRefs: [],
       domainSkills: ['coding/make-code-change'],
@@ -249,6 +274,7 @@ test('trace CLI prints events and trace-check fails when warnings exist', async 
   );
 
   assert.match(output, /"event": "delegation"/);
+  assert.match(output, /"loopID": "daily-ci-triage"/);
   assert.match(output, /coding\/make-code-change/);
 
   const result = spawnSync('bun', ['src/cli.ts', 'trace-check', '--worktree', worktree, '--config-dir', configDir], {

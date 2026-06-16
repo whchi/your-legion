@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { basename, dirname, resolve } from 'node:path';
+import { basename, dirname, join, resolve } from 'node:path';
 import YAML from 'yaml';
 
 import {
@@ -14,19 +14,24 @@ import {
 import {
   analyzeDomainUsageTraceEvents,
   DOMAIN_USAGE_SCENARIOS,
+  LOOP_USAGE_SCENARIOS,
   evaluateDomainUsageScenarios,
   readDomainUsageTraceEvents,
 } from './runtime/domain-usage-contract';
 import { runYourLegionDoctor } from './runtime/doctor';
+import { resolveLegionariesConfigPath } from './config/legionaries';
 
 function printUsage() {
   console.log(`Usage:
   bunx @whchi/your-legion install [--config-dir <path>] [--domains <ids>] [--add-domains <ids>]
   bunx @whchi/your-legion create-domain <domain-id> [--config-dir <path>] [--components <ids>] [--enable]
-  bunx @whchi/your-legion doctor [--worktree <path>] [--config-dir <path>] [--scenarios]
+  bunx @whchi/your-legion create-loop <loop-id> [--worktree <path>] [--config-dir <path>] [--description <text>] [--objective <text>]
+  bunx @whchi/your-legion loops [--config-dir <path>]
+  bunx @whchi/your-legion doctor [--worktree <path>] [--config-dir <path>] [--scenarios] [--loop-scenarios]
   bunx @whchi/your-legion trace [--worktree <path>] [--config-dir <path>] [--limit <n>] [--summary]
   bunx @whchi/your-legion trace-check [--worktree <path>] [--config-dir <path>]
   bunx @whchi/your-legion domain-scenarios
+  bunx @whchi/your-legion loop-scenarios
   bunx @whchi/your-legion domain-scenario-check [--worktree <path>] [--config-dir <path>]`);
 }
 
@@ -44,6 +49,13 @@ function csvOption(name: string) {
 
 function hasFlag(name: string) {
   return process.argv.includes(name);
+}
+
+function configPathFor(worktree: string) {
+  return resolveLegionariesConfigPath({
+    rootDir: worktree,
+    configDir: optionValue('--config-dir'),
+  });
 }
 
 const command = process.argv[2];
@@ -138,6 +150,109 @@ if (command === 'create-domain') {
   process.exit(0);
 }
 
+if (command === 'create-loop') {
+  const loopID = process.argv[3];
+  if (!loopID) {
+    printUsage();
+    process.exit(1);
+  }
+
+  const worktree = resolve(optionValue('--worktree') ?? process.cwd());
+  const configPath = configPathFor(worktree);
+  const parsed = YAML.parse(readFileSync(configPath, 'utf8')) as Record<string, any>;
+  parsed.loops = parsed.loops ?? {};
+  if (parsed.loops[loopID]) {
+    console.error(`loop already exists: ${loopID}`);
+    process.exit(1);
+  }
+
+  const inboxPath = `docs/legion-loops/${loopID}.md`;
+  const absoluteInboxPath = join(worktree, inboxPath);
+  if (existsSync(absoluteInboxPath)) {
+    console.error(`loop inbox already exists: ${inboxPath}`);
+    process.exit(1);
+  }
+
+  const description = optionValue('--description') ?? `${loopID} loop`;
+  const objective = optionValue('--objective') ?? `Run the ${loopID} loop with maker/checker verification`;
+  parsed.loops[loopID] = {
+    description,
+    objective,
+    trigger: {
+      type: 'manual',
+    },
+    inbox_path: inboxPath,
+    active_domains: [],
+    domain_refs: [],
+    domain_skills: [],
+    agents: {
+      triage: 'planner',
+      maker: 'builder',
+      verifier: 'verifier',
+    },
+    worktree: {
+      isolation: 'required',
+    },
+    verification: {
+      commands: ['bun test'],
+      completion: 'All configured verification commands pass and verifier reports no high or critical findings.',
+    },
+    connectors: {
+      mode: 'manual',
+      targets: [],
+    },
+  };
+
+  writeFileSync(configPath, YAML.stringify(parsed));
+  mkdirSync(dirname(absoluteInboxPath), { recursive: true });
+  writeFileSync(
+    absoluteInboxPath,
+    `# ${description}
+
+Objective: ${objective}
+
+## Current State
+
+- Status: not-started
+- Last run: none
+
+## Findings
+
+- none
+
+## Human Inbox
+
+- none
+`,
+  );
+
+  console.log(`Created loop ${loopID}`);
+  console.log(`Updated config: ${configPath}`);
+  console.log(`Created inbox: ${inboxPath}`);
+  console.log('Verify after use:');
+  console.log('bunx @whchi/your-legion doctor --worktree .');
+  process.exit(0);
+}
+
+if (command === 'loops') {
+  const configPath = configPathFor(process.cwd());
+  const parsed = YAML.parse(readFileSync(configPath, 'utf8')) as Record<string, any>;
+  const loops = parsed.loops && typeof parsed.loops === 'object' ? parsed.loops : {};
+  const entries = Object.entries(loops);
+  if (entries.length === 0) {
+    console.log('No loops configured');
+    process.exit(0);
+  }
+  for (const [loopID, loop] of entries) {
+    const config = loop as Record<string, any>;
+    console.log(`${loopID}`);
+    console.log(`- Description: ${config.description ?? 'none'}`);
+    console.log(`- Trigger: ${config.trigger?.type ?? 'manual'}`);
+    console.log(`- Inbox: ${config.inbox_path ?? 'none'}`);
+  }
+  process.exit(0);
+}
+
 if (command === 'trace') {
   const worktree = resolve(optionValue('--worktree') ?? process.cwd());
   const limit = Number(optionValue('--limit') ?? '20');
@@ -201,6 +316,7 @@ function printTraceSummary(events: ReturnType<typeof readDomainUsageTraceEvents>
 
     console.log(`Delegation ${delegationID}`);
     console.log(`- Target: ${event.targetAgent ?? 'unknown'}`);
+    console.log(`- Loop: ${event.loopID ?? 'none'}`);
     console.log(`- Active domains: ${formatActiveDomains(event.activeDomains)}`);
     console.log(`- Declared refs: ${formatList(event.domainRefs)}`);
     console.log(`- Read refs: ${formatList(reads ? [...reads.refs] : [])}`);
@@ -315,6 +431,15 @@ function checkNextSteps(messages: string[]) {
     if (/\[missing-domain-ref-read\]|\[missing-domain-skill-read\]|declared domain ref was not read|declared domain skill was not read|missing scenario evidence/.test(message)) {
       steps.add('Run the matching OpenCode prompt, then rerun doctor with the same --worktree value.');
     }
+    if (/missing loop inbox/.test(message)) {
+      steps.add('Create the loop inbox file or update loops.<id>.inbox_path to the repo-relative state file.');
+    }
+    if (/loop maker and verifier must be separate|loop maker delegation has no verifier evidence/.test(message)) {
+      steps.add('Keep maker and verifier separate, then run the verifier delegation before claiming loop completion.');
+    }
+    if (/missing loop scenario evidence/.test(message)) {
+      steps.add('Run the matching OpenCode prompt from loop-scenarios, then rerun doctor with --loop-scenarios.');
+    }
     if (/\[unknown-active-domain\]|\[unknown-domain-ref\]|\[unknown-domain-skill\]|unknown active domain|unknown domain ref|unknown domain skill/.test(message)) {
       steps.add('Use only enabled domain ids and catalog ids shown in the Domain Catalog.');
     }
@@ -332,6 +457,7 @@ if (command === 'doctor' || command === 'check') {
     rootDir: worktree,
     configDir: optionValue('--config-dir'),
     includeScenarios: hasFlag('--scenarios'),
+    includeLoopScenarios: hasFlag('--loop-scenarios'),
   });
 
   printDoctorResult(result);
@@ -357,6 +483,15 @@ if (command === 'trace-check') {
 
 if (command === 'domain-scenarios') {
   for (const scenario of DOMAIN_USAGE_SCENARIOS) {
+    console.log(`## ${scenario.id}: ${scenario.title}`);
+    console.log(scenario.prompt);
+    console.log('');
+  }
+  process.exit(0);
+}
+
+if (command === 'loop-scenarios') {
+  for (const scenario of LOOP_USAGE_SCENARIOS) {
     console.log(`## ${scenario.id}: ${scenario.title}`);
     console.log(scenario.prompt);
     console.log('');

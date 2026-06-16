@@ -1,6 +1,6 @@
 export const DEFAULT_AGENT = 'orchestrator' as const;
 
-export const REQUIRED_AGENT_NAMES = ['orchestrator', 'explorer', 'planner', 'builder', 'librarian'] as const;
+export const REQUIRED_AGENT_NAMES = ['orchestrator', 'explorer', 'planner', 'builder', 'verifier', 'librarian'] as const;
 
 export const OPTIONAL_AGENT_NAMES = [] as const;
 
@@ -65,11 +65,59 @@ export type DomainConfig =
       skills?: DomainComponentOverrides;
     };
 
+export type LoopTriggerConfig =
+  | {
+      type: 'manual';
+      cadence?: string;
+    }
+  | {
+      type: 'scheduled';
+      cadence: string;
+    }
+  | {
+      type: 'external';
+      cadence?: string;
+    };
+
+export type LoopAgentConfig = {
+  triage?: RuntimeAgentName;
+  maker?: RuntimeAgentName;
+  verifier?: RuntimeAgentName;
+};
+
+export type LoopDomainUsageConfig = {
+  id: string;
+  responsibility: string;
+};
+
+export type LoopConfig = {
+  description: string;
+  objective: string;
+  trigger: LoopTriggerConfig;
+  inbox_path: string;
+  active_domains?: LoopDomainUsageConfig[];
+  domain_refs?: string[];
+  domain_skills?: string[];
+  agents?: LoopAgentConfig;
+  worktree?: {
+    isolation?: 'required' | 'optional' | 'none';
+  };
+  verification: {
+    commands: string[];
+    completion: string;
+  };
+  connectors?: {
+    mode?: 'manual' | 'external';
+    targets?: string[];
+  };
+};
+
 export type LegionariesConfig = {
   agents?: Partial<Record<SystemAgentName, LegionaryEntry>>;
   system_agents?: Partial<Record<SystemAgentName, LegionaryEntry>>;
   custom_agents?: Record<CustomAgentName, LegionaryEntry>;
   domains?: Record<string, DomainConfig>;
+  loops?: Record<string, LoopConfig>;
 };
 
 export type ResolvedLegionaryEntry = {
@@ -83,6 +131,7 @@ export type ResolvedLegionariesMap = Record<RequiredAgentName, ResolvedLegionary
 export type ResolvedCustomLegionariesMap = Record<CustomAgentName, ResolvedLegionaryEntry>;
 
 export type ResolvedDomainConfigMap = Record<string, DomainConfig>;
+export type ResolvedLoopConfigMap = Record<string, LoopConfig>;
 
 export type EffectiveAgentDefinition = BaseAgentDefinition & {
   model: string;

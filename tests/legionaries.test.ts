@@ -26,6 +26,7 @@ test('legionaries config file defines a mixed system-agent model map', () => {
   assert.equal(config.system_agents.explorer.model, 'opencode-go/deepseek-v4-flash');
   assert.equal(config.system_agents.librarian.model, 'opencode-go/minimax-m2.7');
   assert.equal(config.system_agents.builder.model, 'opencode-go/kimi-k2.6');
+  assert.equal(config.system_agents.verifier.model, 'openai/gpt-5.5');
   assert.ok(!('dispatcher' in config.system_agents));
   assert.ok(!('frontend-developer' in config.system_agents));
   assert.ok(!('code-reviewer' in config.system_agents));
@@ -39,6 +40,7 @@ test('legionaries template explains model choice by agent responsibility', () =>
   assert.match(text, /librarian.*documentation.*reference/i);
   assert.match(text, /planner.*reasoning.*sequencing/i);
   assert.match(text, /builder.*coding-capable.*execution/i);
+  assert.match(text, /verifier.*checker.*completion/i);
   assert.doesNotMatch(text, /\bprofile:|\bpreset:|\brole_type:/);
 });
 
@@ -65,6 +67,7 @@ test('legionaries loader resolves the mixed system-agent model map', async () =>
   assert.equal(result.systemAgents.explorer.model, 'opencode-go/deepseek-v4-flash');
   assert.equal(result.systemAgents.librarian.model, 'opencode-go/minimax-m2.7');
   assert.equal(result.systemAgents.builder.model, 'opencode-go/kimi-k2.6');
+  assert.equal(result.systemAgents.verifier.model, 'openai/gpt-5.5');
   assert.equal(result.customAgents['code-reviewer'].model, 'openai/gpt-5.5');
   assert.ok(!('dispatcher' in result.systemAgents));
   assert.ok(!('frontend-developer' in result.systemAgents));
@@ -140,6 +143,7 @@ test('legionaries loader supports legacy agents map when new keys are absent', a
   const tempConfigPath = path.join(tempDir, 'legionaries.legacy-agents.yaml');
   const original = YAML.parse(fs.readFileSync(legionariesConfigPath, 'utf8'));
   const systemAgents = systemAgentsFrom(original);
+  delete systemAgents.verifier;
 
   fs.writeFileSync(
     tempConfigPath,
@@ -152,7 +156,89 @@ test('legionaries loader supports legacy agents map when new keys are absent', a
   const result = loadLegionariesConfig({ rootDir, configPath: tempConfigPath });
 
   assert.equal(result.systemAgents.orchestrator.model, 'openai/gpt-5.5');
+  assert.equal(result.systemAgents.verifier.model, result.systemAgents.builder.model);
   assert.deepEqual(result.customAgents, {});
+});
+
+test('legionaries loader accepts loop contracts', async () => {
+  fs.mkdirSync(tempDir, { recursive: true });
+  const tempConfigPath = path.join(tempDir, 'legionaries.loops.yaml');
+  const original = YAML.parse(fs.readFileSync(legionariesConfigPath, 'utf8'));
+  const systemAgents = systemAgentsFrom(original);
+
+  fs.writeFileSync(
+    tempConfigPath,
+    YAML.stringify({
+      system_agents: systemAgents,
+      loops: {
+        'daily-ci-triage': {
+          description: 'Daily CI and issue triage loop',
+          objective: 'Find actionable CI failures and produce verified fixes',
+          trigger: {
+            type: 'scheduled',
+            cadence: 'daily',
+          },
+          inbox_path: 'docs/legion-loops/daily-ci-triage.md',
+          active_domains: [{ id: 'coding', responsibility: 'triage CI failures' }],
+          domain_refs: ['coding/implementation-loop'],
+          domain_skills: ['coding/make-code-change'],
+          agents: {
+            triage: 'planner',
+            maker: 'builder',
+            verifier: 'verifier',
+          },
+          worktree: {
+            isolation: 'required',
+          },
+          verification: {
+            commands: ['bun test'],
+            completion: 'All commands pass and verifier reports no high findings',
+          },
+          connectors: {
+            mode: 'manual',
+            targets: [],
+          },
+        },
+      },
+    }),
+  );
+
+  const { loadLegionariesConfig } = await import('../src/config/legionaries');
+  const result = loadLegionariesConfig({ rootDir, configPath: tempConfigPath });
+
+  assert.equal(result.loops['daily-ci-triage'].trigger.type, 'scheduled');
+  assert.equal(result.loops['daily-ci-triage'].agents.verifier, 'verifier');
+  assert.deepEqual(result.loops['daily-ci-triage'].verification.commands, ['bun test']);
+});
+
+test('legionaries loader rejects unsafe loop inbox paths', async () => {
+  fs.mkdirSync(tempDir, { recursive: true });
+  const tempConfigPath = path.join(tempDir, 'legionaries.loop-absolute-inbox.yaml');
+  const original = YAML.parse(fs.readFileSync(legionariesConfigPath, 'utf8'));
+  const systemAgents = systemAgentsFrom(original);
+
+  fs.writeFileSync(
+    tempConfigPath,
+    YAML.stringify({
+      system_agents: systemAgents,
+      loops: {
+        'bad-loop': {
+          description: 'Bad loop',
+          objective: 'Demonstrate validation',
+          trigger: { type: 'manual' },
+          inbox_path: '/tmp/bad-loop.md',
+          verification: { commands: ['bun test'], completion: 'Tests pass' },
+        },
+      },
+    }),
+  );
+
+  const { loadLegionariesConfig } = await import('../src/config/legionaries');
+
+  assert.throws(
+    () => loadLegionariesConfig({ rootDir, configPath: tempConfigPath }),
+    /loops\.bad-loop\.inbox_path must be a relative repo path/,
+  );
 });
 
 test('legionaries loader rejects missing agent model mappings', async () => {

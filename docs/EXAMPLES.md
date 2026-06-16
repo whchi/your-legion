@@ -20,6 +20,8 @@ system_agents:
     model: openai/gpt-5.5
   builder:
     model: openai/gpt-5.5
+  verifier:
+    model: openai/gpt-5.5
 custom_agents: {}
 domains:
   coding: true
@@ -54,6 +56,11 @@ system_agents:
   # builder: coding-capable execution model for implementation, tests, and verification.
   builder:
     model: opencode-go/kimi-k2.6
+  # verifier: independent checker for maker/checker split and loop completion claims.
+  verifier:
+    model: openai/gpt-5.5
+    reasoning:
+      effort: high
 custom_agents:
   code-reviewer:
     model: openai/gpt-5.5
@@ -191,6 +198,49 @@ Ask the printed prompts, then run:
 
 ```bash
 bunx @whchi/your-legion doctor --worktree . --scenarios
+```
+
+## Add A Legion Loop
+
+Create a loop contract and repo-local inbox:
+
+```bash
+bunx @whchi/your-legion create-loop daily-ci-triage --worktree . --description "Daily CI triage" --objective "Find and verify CI fixes"
+```
+
+Then tune the generated `loops.daily-ci-triage` entry in `legionaries.yaml`:
+
+```yaml
+loops:
+  daily-ci-triage:
+    description: Daily CI and issue triage loop
+    objective: Find actionable CI failures and produce verified fixes
+    trigger: { type: scheduled, cadence: daily }
+    inbox_path: docs/legion-loops/daily-ci-triage.md
+    active_domains:
+      - { id: coding, responsibility: triage CI failures and implement code fixes }
+    domain_refs: [coding/implementation-loop]
+    domain_skills: [coding/make-code-change]
+    agents: { triage: planner, maker: builder, verifier: verifier }
+    worktree: { isolation: required }
+    verification:
+      commands: ["bun test", "bun run build", "git diff --check"]
+      completion: All commands pass and verifier reports no high or critical findings.
+    connectors: { mode: manual, targets: [] }
+```
+
+When asking OpenCode to work inside the loop, the delegation should include:
+
+```text
+Loop: daily-ci-triage
+```
+
+Validate loop health and runtime evidence:
+
+```bash
+bunx @whchi/your-legion doctor --worktree .
+bunx @whchi/your-legion loop-scenarios
+bunx @whchi/your-legion doctor --worktree . --loop-scenarios
 ```
 
 ## Add A Custom Agent
